@@ -1,0 +1,13 @@
+ok|projects_list
+ok|api_keys
+ok|secrets
+ok|postgres_config
+ok|network_restrictions
+ok|ssl_enforcement
+ok|network_bans
+failed|domains|failed to get custom hostname config; received: {"message":"Please enable the Custom Domain add-on for the project first."} Try rerunning the command with --debug to troubleshoot the error. 
+failed|vanity_subdomains|failed to obtain vanity subdomain config: {"message":"Project ixwaaziifteubxkxtdwj is not allowed to set up vanity subdomain; upgrade your plan to access this feature."} Try rerunning the command with --debug to troubleshoot the error. 
+ok|sso_list
+ok|functions_list
+ok|functions_download
+ok|storage_tree

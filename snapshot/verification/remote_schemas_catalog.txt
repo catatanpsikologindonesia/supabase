@@ -1,0 +1,9 @@
+auth
+extensions
+graphql
+graphql_public
+pgbouncer
+public
+realtime
+storage
+vault

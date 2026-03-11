@@ -1,0 +1,2 @@
+failed to obtain vanity subdomain config: {"message":"Project ixwaaziifteubxkxtdwj is not allowed to set up vanity subdomain; upgrade your plan to access this feature."}
+Try rerunning the command with --debug to troubleshoot the error.

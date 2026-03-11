@@ -1,0 +1,2 @@
+failed to get custom hostname config; received: {"message":"Please enable the Custom Domain add-on for the project first."}
+Try rerunning the command with --debug to troubleshoot the error.

@@ -1,0 +1,1635 @@
+Local DB URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
+Admin DB URL: postgresql://supabase_admin:postgres@127.0.0.1:55322/postgres
+[1/6] Applying role snapshot (best-effort)...
+SET
+SET
+SET
+psql:snapshot/database/roles.sql:16: ERROR:  role "anon" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:18: ERROR:  role "authenticated" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:20: ERROR:  role "authenticator" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:22: ERROR:  role "cli_login_postgres" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:24: ERROR:  role "dashboard_user" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:26: ERROR:  role "pgbouncer" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:28: ERROR:  role "postgres" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:30: ERROR:  role "service_role" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:32: ERROR:  role "supabase_admin" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:34: ERROR:  role "supabase_auth_admin" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:36: ERROR:  role "supabase_etl_admin" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:38: ERROR:  role "supabase_read_only_user" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:40: ERROR:  role "supabase_realtime_admin" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:42: ERROR:  role "supabase_replication_admin" already exists
+ALTER ROLE
+psql:snapshot/database/roles.sql:44: ERROR:  role "supabase_storage_admin" already exists
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+psql:snapshot/database/roles.sql:110: NOTICE:  role "authenticator" has already been granted membership in role "anon" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:111: NOTICE:  role "postgres" has already been granted membership in role "anon" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:112: NOTICE:  role "authenticator" has already been granted membership in role "authenticated" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:113: NOTICE:  role "postgres" has already been granted membership in role "authenticated" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:114: NOTICE:  role "postgres" has already been granted membership in role "authenticator" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:115: NOTICE:  role "supabase_storage_admin" has already been granted membership in role "authenticator" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:116: NOTICE:  role "postgres" has already been granted membership in role "pg_create_subscription" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:117: NOTICE:  role "postgres" has already been granted membership in role "pg_monitor" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:118: NOTICE:  role "supabase_etl_admin" has already been granted membership in role "pg_monitor" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:119: NOTICE:  role "supabase_read_only_user" has already been granted membership in role "pg_monitor" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:120: NOTICE:  role "postgres" has already been granted membership in role "pg_read_all_data" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:121: NOTICE:  role "supabase_etl_admin" has already been granted membership in role "pg_read_all_data" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:122: NOTICE:  role "supabase_read_only_user" has already been granted membership in role "pg_read_all_data" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:123: NOTICE:  role "postgres" has already been granted membership in role "pg_signal_backend" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:124: ERROR:  role "postgres" is a member of role "cli_login_postgres"
+psql:snapshot/database/roles.sql:125: NOTICE:  role "authenticator" has already been granted membership in role "service_role" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:126: NOTICE:  role "postgres" has already been granted membership in role "service_role" by role "supabase_admin"
+GRANT ROLE
+psql:snapshot/database/roles.sql:127: NOTICE:  role "postgres" has already been granted membership in role "supabase_realtime_admin" by role "supabase_admin"
+GRANT ROLE
+[2/6] Dropping non-system schemas in local DB...
+NOTICE:  drop cascades to 44 other objects
+DETAIL:  drop cascades to type adhd_indication
+drop cascades to type appointment_status
+drop cascades to type autism_indication
+drop cascades to type birth_process
+drop cascades to type consent_source
+drop cascades to type patient_invitation_flow
+drop cascades to type patient_invitation_used_reason
+drop cascades to type practitioner_profession
+drop cascades to type user_role
+drop cascades to type visit_status
+drop cascades to function accept_patient_consent_by_token(text,text,text)
+drop cascades to function add_clinic_member_by_email(uuid,text,boolean,boolean,practitioner_profession,uuid)
+drop cascades to function create_clinic_with_owner(text,text,uuid)
+drop cascades to function create_patient_from_auth_user(text,uuid,text)
+drop cascades to function create_patient_invitation_with_schedule(uuid,uuid,text,date,time without time zone,integer,text,integer)
+drop cascades to function get_invitation_by_token(text)
+drop cascades to function handle_new_auth_user()
+drop cascades to trigger on_auth_user_created on table auth.users
+drop cascades to function has_active_membership(uuid)
+drop cascades to function has_ops_access(uuid)
+drop cascades to function has_owner_access(uuid)
+drop cascades to function has_patient_access(uuid)
+drop cascades to function has_practitioner_access(uuid)
+drop cascades to function is_portal_staff()
+drop cascades to function rls_auto_enable()
+drop cascades to function submit_patient_registration(text,jsonb)
+drop cascades to function sync_clinic_membership_profile_defaults()
+drop cascades to function update_patient_registration_by_user_id(text,jsonb,uuid)
+drop cascades to function verify_referral_pin(uuid,text)
+drop cascades to table appointments
+drop cascades to table clinic_memberships
+drop cascades to table clinic_patients
+drop cascades to table clinics
+drop cascades to table cognitive_assessments
+drop cascades to table developmental_history
+drop cascades to table patient_clinic_consents
+drop cascades to table patient_family_data
+drop cascades to table patient_invitations
+drop cascades to table patient_personal_data
+drop cascades to table patient_visits
+drop cascades to table patients
+drop cascades to table referrals_and_feedback
+drop cascades to table therapy_sessions
+drop cascades to table users
+NOTICE:  drop cascades to 34 other objects
+DETAIL:  drop cascades to type aal_level
+drop cascades to type code_challenge_method
+drop cascades to type factor_status
+drop cascades to type factor_type
+drop cascades to type oauth_authorization_status
+drop cascades to type oauth_client_type
+drop cascades to type oauth_registration_type
+drop cascades to type oauth_response_type
+drop cascades to type one_time_token_type
+drop cascades to function email()
+drop cascades to function jwt()
+drop cascades to function role()
+drop cascades to function uid()
+drop cascades to table audit_log_entries
+drop cascades to table custom_oauth_providers
+drop cascades to table flow_state
+drop cascades to table identities
+drop cascades to table instances
+drop cascades to table mfa_amr_claims
+drop cascades to table mfa_challenges
+drop cascades to table mfa_factors
+drop cascades to table oauth_authorizations
+drop cascades to table oauth_client_states
+drop cascades to table oauth_clients
+drop cascades to table oauth_consents
+drop cascades to table one_time_tokens
+drop cascades to table refresh_tokens
+drop cascades to table saml_providers
+drop cascades to table saml_relay_states
+drop cascades to table schema_migrations
+drop cascades to table sessions
+drop cascades to table sso_domains
+drop cascades to table sso_providers
+drop cascades to table users
+NOTICE:  drop cascades to 24 other objects
+DETAIL:  drop cascades to type storage.buckettype
+drop cascades to function storage.can_insert_object(text,text,uuid,jsonb)
+drop cascades to function storage.enforce_bucket_name_length()
+drop cascades to function storage.extension(text)
+drop cascades to function storage.filename(text)
+drop cascades to function storage.foldername(text)
+drop cascades to function storage.get_common_prefix(text,text,text)
+drop cascades to function storage.get_size_by_bucket()
+drop cascades to function storage.list_multipart_uploads_with_delimiter(text,text,text,integer,text,text)
+drop cascades to function storage.list_objects_with_delimiter(text,text,text,integer,text,text,text)
+drop cascades to function storage.operation()
+drop cascades to function storage.protect_delete()
+drop cascades to function storage.search(text,text,integer,integer,integer,text,text,text)
+drop cascades to function storage.search_by_timestamp(text,text,integer,integer,text,text,text,text)
+drop cascades to function storage.search_v2(text,text,integer,integer,text,text,text,text)
+drop cascades to function storage.update_updated_at_column()
+drop cascades to table storage.buckets
+drop cascades to table storage.buckets_analytics
+drop cascades to table storage.buckets_vectors
+drop cascades to table storage.migrations
+drop cascades to table storage.objects
+drop cascades to table storage.s3_multipart_uploads
+drop cascades to table storage.s3_multipart_uploads_parts
+drop cascades to table storage.vector_indexes
+NOTICE:  drop cascades to 20 other objects
+DETAIL:  drop cascades to type realtime.action
+drop cascades to type realtime.equality_op
+drop cascades to type realtime.user_defined_filter
+drop cascades to type realtime.wal_column
+drop cascades to type realtime.wal_rls
+drop cascades to function realtime.apply_rls(jsonb,integer)
+drop cascades to function realtime.broadcast_changes(text,text,text,text,text,record,record,text)
+drop cascades to function realtime.build_prepared_statement_sql(text,regclass,realtime.wal_column[])
+drop cascades to function realtime."cast"(text,regtype)
+drop cascades to function realtime.check_equality_op(realtime.equality_op,regtype,text,text)
+drop cascades to function realtime.is_visible_through_filters(realtime.wal_column[],realtime.user_defined_filter[])
+drop cascades to function realtime.list_changes(name,name,integer,integer)
+drop cascades to function realtime.quote_wal2json(regclass)
+drop cascades to function realtime.send(jsonb,text,text,boolean)
+drop cascades to function realtime.subscription_check_filters()
+drop cascades to function realtime.to_regrole(text)
+drop cascades to function realtime.topic()
+drop cascades to table realtime.messages
+drop cascades to table realtime.schema_migrations
+drop cascades to table realtime.subscription
+NOTICE:  schema "extensions" does not exist, skipping
+NOTICE:  schema "graphql" does not exist, skipping
+NOTICE:  schema "graphql_public" does not exist, skipping
+NOTICE:  schema "pgbouncer" does not exist, skipping
+NOTICE:  schema "supabase_functions" does not exist, skipping
+DO
+[3/6] Restoring schema...
+SET
+SET
+SET
+SET
+SET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SET
+SET
+SET
+SET
+CREATE SCHEMA
+ALTER SCHEMA
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE FUNCTION
+ALTER FUNCTION
+COMMENT
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+COMMENT
+CREATE FUNCTION
+ALTER FUNCTION
+COMMENT
+SET
+SET
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE TABLE
+ALTER TABLE
+COMMENT
+COMMENT
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE TABLE
+ALTER TABLE
+COMMENT
+COMMENT
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE SEQUENCE
+ALTER SEQUENCE
+ALTER SEQUENCE
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE TABLE
+ALTER TABLE
+COMMENT
+COMMENT
+COMMENT
+COMMENT
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE TABLE
+ALTER TABLE
+COMMENT
+COMMENT
+CREATE TABLE
+ALTER TABLE
+COMMENT
+COMMENT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+psql:snapshot/database/schema_auth.sql:1515: ERROR:  schema "public" does not exist
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+SET
+SET
+SET
+SET
+SET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SET
+SET
+SET
+SET
+CREATE SCHEMA
+ALTER SCHEMA
+COMMENT
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+SET
+SET
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE TRIGGER
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+SET
+SET
+SET
+SET
+SET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SET
+SET
+SET
+SET
+psql:snapshot/database/schema_auth.sql:26: ERROR:  schema "auth" already exists
+ALTER SCHEMA
+psql:snapshot/database/schema_auth.sql:39: ERROR:  type "aal_level" already exists
+ALTER TYPE
+psql:snapshot/database/schema_auth.sql:51: ERROR:  type "code_challenge_method" already exists
+ALTER TYPE
+psql:snapshot/database/schema_auth.sql:63: ERROR:  type "factor_status" already exists
+ALTER TYPE
+psql:snapshot/database/schema_auth.sql:76: ERROR:  type "factor_type" already exists
+ALTER TYPE
+psql:snapshot/database/schema_auth.sql:90: ERROR:  type "oauth_authorization_status" already exists
+ALTER TYPE
+psql:snapshot/database/schema_auth.sql:102: ERROR:  type "oauth_client_type" already exists
+ALTER TYPE
+psql:snapshot/database/schema_auth.sql:114: ERROR:  type "oauth_registration_type" already exists
+ALTER TYPE
+psql:snapshot/database/schema_auth.sql:125: ERROR:  type "oauth_response_type" already exists
+ALTER TYPE
+psql:snapshot/database/schema_auth.sql:141: ERROR:  type "one_time_token_type" already exists
+ALTER TYPE
+psql:snapshot/database/schema_auth.sql:158: ERROR:  function "email" already exists with same argument types
+ALTER FUNCTION
+COMMENT
+psql:snapshot/database/schema_auth.sql:182: ERROR:  function "jwt" already exists with same argument types
+ALTER FUNCTION
+psql:snapshot/database/schema_auth.sql:199: ERROR:  function "role" already exists with same argument types
+ALTER FUNCTION
+COMMENT
+psql:snapshot/database/schema_auth.sql:223: ERROR:  function "uid" already exists with same argument types
+ALTER FUNCTION
+COMMENT
+SET
+SET
+psql:snapshot/database/schema_auth.sql:249: ERROR:  relation "audit_log_entries" already exists
+ALTER TABLE
+COMMENT
+psql:snapshot/database/schema_auth.sql:308: ERROR:  relation "custom_oauth_providers" already exists
+ALTER TABLE
+psql:snapshot/database/schema_auth.sql:335: ERROR:  relation "flow_state" already exists
+ALTER TABLE
+COMMENT
+psql:snapshot/database/schema_auth.sql:361: ERROR:  relation "identities" already exists
+ALTER TABLE
+COMMENT
+COMMENT
+psql:snapshot/database/schema_auth.sql:390: ERROR:  relation "instances" already exists
+ALTER TABLE
+COMMENT
+psql:snapshot/database/schema_auth.sql:412: ERROR:  relation "mfa_amr_claims" already exists
+ALTER TABLE
+COMMENT
+psql:snapshot/database/schema_auth.sql:436: ERROR:  relation "mfa_challenges" already exists
+ALTER TABLE
+COMMENT
+psql:snapshot/database/schema_auth.sql:466: ERROR:  relation "mfa_factors" already exists
+ALTER TABLE
+COMMENT
+COMMENT
+psql:snapshot/database/schema_auth.sql:515: ERROR:  relation "oauth_authorizations" already exists
+ALTER TABLE
+psql:snapshot/database/schema_auth.sql:529: ERROR:  relation "oauth_client_states" already exists
+ALTER TABLE
+COMMENT
+psql:snapshot/database/schema_auth.sql:563: ERROR:  relation "oauth_clients" already exists
+ALTER TABLE
+psql:snapshot/database/schema_auth.sql:582: ERROR:  relation "oauth_consents" already exists
+ALTER TABLE
+psql:snapshot/database/schema_auth.sql:600: ERROR:  relation "one_time_tokens" already exists
+ALTER TABLE
+psql:snapshot/database/schema_auth.sql:619: ERROR:  relation "refresh_tokens" already exists
+ALTER TABLE
+COMMENT
+psql:snapshot/database/schema_auth.sql:640: ERROR:  relation "refresh_tokens_id_seq" already exists
+ALTER SEQUENCE
+ALTER SEQUENCE
+psql:snapshot/database/schema_auth.sql:669: ERROR:  relation "saml_providers" already exists
+ALTER TABLE
+COMMENT
+psql:snapshot/database/schema_auth.sql:695: ERROR:  relation "saml_relay_states" already exists
+ALTER TABLE
+COMMENT
+psql:snapshot/database/schema_auth.sql:713: ERROR:  relation "schema_migrations" already exists
+ALTER TABLE
+COMMENT
+psql:snapshot/database/schema_auth.sql:746: ERROR:  relation "sessions" already exists
+ALTER TABLE
+COMMENT
+COMMENT
+COMMENT
+COMMENT
+psql:snapshot/database/schema_auth.sql:790: ERROR:  relation "sso_domains" already exists
+ALTER TABLE
+COMMENT
+psql:snapshot/database/schema_auth.sql:813: ERROR:  relation "sso_providers" already exists
+ALTER TABLE
+COMMENT
+COMMENT
+psql:snapshot/database/schema_auth.sql:873: ERROR:  relation "users" already exists
+ALTER TABLE
+COMMENT
+COMMENT
+ALTER TABLE
+psql:snapshot/database/schema_auth.sql:904: ERROR:  multiple primary keys for table "mfa_amr_claims" are not allowed
+psql:snapshot/database/schema_auth.sql:912: ERROR:  multiple primary keys for table "audit_log_entries" are not allowed
+psql:snapshot/database/schema_auth.sql:920: ERROR:  relation "custom_oauth_providers_identifier_key" already exists
+psql:snapshot/database/schema_auth.sql:928: ERROR:  multiple primary keys for table "custom_oauth_providers" are not allowed
+psql:snapshot/database/schema_auth.sql:936: ERROR:  multiple primary keys for table "flow_state" are not allowed
+psql:snapshot/database/schema_auth.sql:944: ERROR:  multiple primary keys for table "identities" are not allowed
+psql:snapshot/database/schema_auth.sql:952: ERROR:  relation "identities_provider_id_provider_unique" already exists
+psql:snapshot/database/schema_auth.sql:960: ERROR:  multiple primary keys for table "instances" are not allowed
+psql:snapshot/database/schema_auth.sql:968: ERROR:  relation "mfa_amr_claims_session_id_authentication_method_pkey" already exists
+psql:snapshot/database/schema_auth.sql:976: ERROR:  multiple primary keys for table "mfa_challenges" are not allowed
+psql:snapshot/database/schema_auth.sql:984: ERROR:  relation "mfa_factors_last_challenged_at_key" already exists
+psql:snapshot/database/schema_auth.sql:992: ERROR:  multiple primary keys for table "mfa_factors" are not allowed
+psql:snapshot/database/schema_auth.sql:1000: ERROR:  relation "oauth_authorizations_authorization_code_key" already exists
+psql:snapshot/database/schema_auth.sql:1008: ERROR:  relation "oauth_authorizations_authorization_id_key" already exists
+psql:snapshot/database/schema_auth.sql:1016: ERROR:  multiple primary keys for table "oauth_authorizations" are not allowed
+psql:snapshot/database/schema_auth.sql:1024: ERROR:  multiple primary keys for table "oauth_client_states" are not allowed
+psql:snapshot/database/schema_auth.sql:1032: ERROR:  multiple primary keys for table "oauth_clients" are not allowed
+psql:snapshot/database/schema_auth.sql:1040: ERROR:  multiple primary keys for table "oauth_consents" are not allowed
+psql:snapshot/database/schema_auth.sql:1048: ERROR:  relation "oauth_consents_user_client_unique" already exists
+psql:snapshot/database/schema_auth.sql:1056: ERROR:  multiple primary keys for table "one_time_tokens" are not allowed
+psql:snapshot/database/schema_auth.sql:1064: ERROR:  multiple primary keys for table "refresh_tokens" are not allowed
+psql:snapshot/database/schema_auth.sql:1072: ERROR:  relation "refresh_tokens_token_unique" already exists
+psql:snapshot/database/schema_auth.sql:1080: ERROR:  relation "saml_providers_entity_id_key" already exists
+psql:snapshot/database/schema_auth.sql:1088: ERROR:  multiple primary keys for table "saml_providers" are not allowed
+psql:snapshot/database/schema_auth.sql:1096: ERROR:  multiple primary keys for table "saml_relay_states" are not allowed
+psql:snapshot/database/schema_auth.sql:1104: ERROR:  multiple primary keys for table "schema_migrations" are not allowed
+psql:snapshot/database/schema_auth.sql:1112: ERROR:  multiple primary keys for table "sessions" are not allowed
+psql:snapshot/database/schema_auth.sql:1120: ERROR:  multiple primary keys for table "sso_domains" are not allowed
+psql:snapshot/database/schema_auth.sql:1128: ERROR:  multiple primary keys for table "sso_providers" are not allowed
+psql:snapshot/database/schema_auth.sql:1136: ERROR:  relation "users_phone_key" already exists
+psql:snapshot/database/schema_auth.sql:1144: ERROR:  multiple primary keys for table "users" are not allowed
+psql:snapshot/database/schema_auth.sql:1151: ERROR:  relation "audit_logs_instance_id_idx" already exists
+psql:snapshot/database/schema_auth.sql:1158: ERROR:  relation "confirmation_token_idx" already exists
+psql:snapshot/database/schema_auth.sql:1165: ERROR:  relation "custom_oauth_providers_created_at_idx" already exists
+psql:snapshot/database/schema_auth.sql:1172: ERROR:  relation "custom_oauth_providers_enabled_idx" already exists
+psql:snapshot/database/schema_auth.sql:1179: ERROR:  relation "custom_oauth_providers_identifier_idx" already exists
+psql:snapshot/database/schema_auth.sql:1186: ERROR:  relation "custom_oauth_providers_provider_type_idx" already exists
+psql:snapshot/database/schema_auth.sql:1193: ERROR:  relation "email_change_token_current_idx" already exists
+psql:snapshot/database/schema_auth.sql:1200: ERROR:  relation "email_change_token_new_idx" already exists
+psql:snapshot/database/schema_auth.sql:1207: ERROR:  relation "factor_id_created_at_idx" already exists
+psql:snapshot/database/schema_auth.sql:1214: ERROR:  relation "flow_state_created_at_idx" already exists
+psql:snapshot/database/schema_auth.sql:1221: ERROR:  relation "identities_email_idx" already exists
+COMMENT
+psql:snapshot/database/schema_auth.sql:1235: ERROR:  relation "identities_user_id_idx" already exists
+psql:snapshot/database/schema_auth.sql:1242: ERROR:  relation "idx_auth_code" already exists
+psql:snapshot/database/schema_auth.sql:1249: ERROR:  relation "idx_oauth_client_states_created_at" already exists
+psql:snapshot/database/schema_auth.sql:1256: ERROR:  relation "idx_user_id_auth_method" already exists
+psql:snapshot/database/schema_auth.sql:1263: ERROR:  relation "mfa_challenge_created_at_idx" already exists
+psql:snapshot/database/schema_auth.sql:1270: ERROR:  relation "mfa_factors_user_friendly_name_unique" already exists
+psql:snapshot/database/schema_auth.sql:1277: ERROR:  relation "mfa_factors_user_id_idx" already exists
+psql:snapshot/database/schema_auth.sql:1284: ERROR:  relation "oauth_auth_pending_exp_idx" already exists
+psql:snapshot/database/schema_auth.sql:1291: ERROR:  relation "oauth_clients_deleted_at_idx" already exists
+psql:snapshot/database/schema_auth.sql:1298: ERROR:  relation "oauth_consents_active_client_idx" already exists
+psql:snapshot/database/schema_auth.sql:1305: ERROR:  relation "oauth_consents_active_user_client_idx" already exists
+psql:snapshot/database/schema_auth.sql:1312: ERROR:  relation "oauth_consents_user_order_idx" already exists
+psql:snapshot/database/schema_auth.sql:1319: ERROR:  relation "one_time_tokens_relates_to_hash_idx" already exists
+psql:snapshot/database/schema_auth.sql:1326: ERROR:  relation "one_time_tokens_token_hash_hash_idx" already exists
+psql:snapshot/database/schema_auth.sql:1333: ERROR:  relation "one_time_tokens_user_id_token_type_key" already exists
+psql:snapshot/database/schema_auth.sql:1340: ERROR:  relation "reauthentication_token_idx" already exists
+psql:snapshot/database/schema_auth.sql:1347: ERROR:  relation "recovery_token_idx" already exists
+psql:snapshot/database/schema_auth.sql:1354: ERROR:  relation "refresh_tokens_instance_id_idx" already exists
+psql:snapshot/database/schema_auth.sql:1361: ERROR:  relation "refresh_tokens_instance_id_user_id_idx" already exists
+psql:snapshot/database/schema_auth.sql:1368: ERROR:  relation "refresh_tokens_parent_idx" already exists
+psql:snapshot/database/schema_auth.sql:1375: ERROR:  relation "refresh_tokens_session_id_revoked_idx" already exists
+psql:snapshot/database/schema_auth.sql:1382: ERROR:  relation "refresh_tokens_updated_at_idx" already exists
+psql:snapshot/database/schema_auth.sql:1389: ERROR:  relation "saml_providers_sso_provider_id_idx" already exists
+psql:snapshot/database/schema_auth.sql:1396: ERROR:  relation "saml_relay_states_created_at_idx" already exists
+psql:snapshot/database/schema_auth.sql:1403: ERROR:  relation "saml_relay_states_for_email_idx" already exists
+psql:snapshot/database/schema_auth.sql:1410: ERROR:  relation "saml_relay_states_sso_provider_id_idx" already exists
+psql:snapshot/database/schema_auth.sql:1417: ERROR:  relation "sessions_not_after_idx" already exists
+psql:snapshot/database/schema_auth.sql:1424: ERROR:  relation "sessions_oauth_client_id_idx" already exists
+psql:snapshot/database/schema_auth.sql:1431: ERROR:  relation "sessions_user_id_idx" already exists
+psql:snapshot/database/schema_auth.sql:1438: ERROR:  relation "sso_domains_domain_idx" already exists
+psql:snapshot/database/schema_auth.sql:1445: ERROR:  relation "sso_domains_sso_provider_id_idx" already exists
+psql:snapshot/database/schema_auth.sql:1452: ERROR:  relation "sso_providers_resource_id_idx" already exists
+psql:snapshot/database/schema_auth.sql:1459: ERROR:  relation "sso_providers_resource_id_pattern_idx" already exists
+psql:snapshot/database/schema_auth.sql:1466: ERROR:  relation "unique_phone_factor_per_user" already exists
+psql:snapshot/database/schema_auth.sql:1473: ERROR:  relation "user_id_created_at_idx" already exists
+psql:snapshot/database/schema_auth.sql:1480: ERROR:  relation "users_email_partial_key" already exists
+COMMENT
+psql:snapshot/database/schema_auth.sql:1494: ERROR:  relation "users_instance_id_email_idx" already exists
+psql:snapshot/database/schema_auth.sql:1501: ERROR:  relation "users_instance_id_idx" already exists
+psql:snapshot/database/schema_auth.sql:1508: ERROR:  relation "users_is_anonymous_idx" already exists
+CREATE TRIGGER
+psql:snapshot/database/schema_auth.sql:1523: ERROR:  constraint "identities_user_id_fkey" for relation "identities" already exists
+psql:snapshot/database/schema_auth.sql:1531: ERROR:  constraint "mfa_amr_claims_session_id_fkey" for relation "mfa_amr_claims" already exists
+psql:snapshot/database/schema_auth.sql:1539: ERROR:  constraint "mfa_challenges_auth_factor_id_fkey" for relation "mfa_challenges" already exists
+psql:snapshot/database/schema_auth.sql:1547: ERROR:  constraint "mfa_factors_user_id_fkey" for relation "mfa_factors" already exists
+psql:snapshot/database/schema_auth.sql:1555: ERROR:  constraint "oauth_authorizations_client_id_fkey" for relation "oauth_authorizations" already exists
+psql:snapshot/database/schema_auth.sql:1563: ERROR:  constraint "oauth_authorizations_user_id_fkey" for relation "oauth_authorizations" already exists
+psql:snapshot/database/schema_auth.sql:1571: ERROR:  constraint "oauth_consents_client_id_fkey" for relation "oauth_consents" already exists
+psql:snapshot/database/schema_auth.sql:1579: ERROR:  constraint "oauth_consents_user_id_fkey" for relation "oauth_consents" already exists
+psql:snapshot/database/schema_auth.sql:1587: ERROR:  constraint "one_time_tokens_user_id_fkey" for relation "one_time_tokens" already exists
+psql:snapshot/database/schema_auth.sql:1595: ERROR:  constraint "refresh_tokens_session_id_fkey" for relation "refresh_tokens" already exists
+psql:snapshot/database/schema_auth.sql:1603: ERROR:  constraint "saml_providers_sso_provider_id_fkey" for relation "saml_providers" already exists
+psql:snapshot/database/schema_auth.sql:1611: ERROR:  constraint "saml_relay_states_flow_state_id_fkey" for relation "saml_relay_states" already exists
+psql:snapshot/database/schema_auth.sql:1619: ERROR:  constraint "saml_relay_states_sso_provider_id_fkey" for relation "saml_relay_states" already exists
+psql:snapshot/database/schema_auth.sql:1627: ERROR:  constraint "sessions_oauth_client_id_fkey" for relation "sessions" already exists
+psql:snapshot/database/schema_auth.sql:1635: ERROR:  constraint "sessions_user_id_fkey" for relation "sessions" already exists
+psql:snapshot/database/schema_auth.sql:1643: ERROR:  constraint "sso_domains_sso_provider_id_fkey" for relation "sso_domains" already exists
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+SET
+SET
+SET
+SET
+SET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SET
+SET
+SET
+SET
+CREATE SCHEMA
+ALTER SCHEMA
+CREATE TYPE
+ALTER TYPE
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+SET
+SET
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+COMMENT
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+REVOKE
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+REVOKE
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+SET
+SET
+SET
+SET
+SET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SET
+SET
+SET
+SET
+CREATE SCHEMA
+ALTER SCHEMA
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE TYPE
+ALTER TYPE
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+CREATE FUNCTION
+ALTER FUNCTION
+SET
+CREATE TABLE
+ALTER TABLE
+SET
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE TRIGGER
+ALTER TABLE
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+NOTICE:  schema "vault" already exists, skipping
+CREATE SCHEMA
+NOTICE:  relation "secrets" already exists, skipping
+CREATE TABLE
+[4/6] Restoring data (replica mode for FK cycles)...
+SET
+SET
+SET
+SET
+SET
+SET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SET
+SET
+SET
+SET
+COPY 0
+COPY 0
+COPY 0
+COPY 3
+COPY 3
+COPY 0
+COPY 0
+COPY 4
+COPY 4
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 1
+COPY 9
+COPY 0
+COPY 0
+COPY 0
+COPY 75
+COPY 0
+ setval 
+--------
+     14
+(1 row)
+
+SET
+SET
+SET
+SET
+SET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SET
+SET
+SET
+SET
+COPY 0
+COPY 0
+COPY 0
+COPY 57
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+SET
+SET
+SET
+SET
+SET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SET
+SET
+SET
+SET
+COPY 68
+COPY 0
+ setval 
+--------
+      1
+(1 row)
+
+SET
+SET
+SET
+SET
+SET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SET
+SET
+SET
+SET
+COPY 3
+COPY 2
+COPY 1
+COPY 1
+COPY 1
+COPY 2
+COPY 2
+COPY 1
+COPY 1
+COPY 2
+COPY 1
+COPY 1
+COPY 1
+COPY 1
+COPY 1
+SET
+[5/6] Syncing storage binary objects into local storage API...
+[6/6] Capturing local row estimates for verification...
+Local restore complete.

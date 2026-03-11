@@ -1,0 +1,41 @@
+[2026-03-11 09:57:26 +0700] SYNC ALL VERBOSE STARTED
+[2026-03-11 09:57:26 +0700] START  export_remote_database_snapshot
+[1/6] Querying schema catalog...
+[2/6] Querying table row estimates...
+[3/6] Dumping globals/roles...
+[4/6] Dumping full schema (all non-system schemas)...
+[5/6] Dumping full data (all non-system schemas)...
+pg_dump: warning: there are circular foreign-key constraints on this table:
+pg_dump: detail: patient_invitations
+pg_dump: hint: You might not be able to restore the dump without using --disable-triggers or temporarily dropping the constraints.
+pg_dump: hint: Consider using a full dump instead of a --data-only dump to avoid this problem.
+[6/6] Dumping per-schema slices...
+pg_dump: warning: there are circular foreign-key constraints on this table:
+pg_dump: detail: patient_invitations
+pg_dump: hint: You might not be able to restore the dump without using --disable-triggers or temporarily dropping the constraints.
+pg_dump: hint: Consider using a full dump instead of a --data-only dump to avoid this problem.
+Done. Snapshot files are under snapshot/database and snapshot/verification.
+[2026-03-11 09:58:40 +0700] DONE   export_remote_database_snapshot (1773197920s)
+[2026-03-11 09:58:40 +0700] START  export_remote_storage_objects
+No storage buckets found.
+[2026-03-11 09:58:43 +0700] DONE   export_remote_storage_objects (1773197923s)
+[2026-03-11 09:58:43 +0700] START  export_remote_project_config
+Config export finished. See snapshot/verification/config_export_status.txt
+[2026-03-11 09:58:48 +0700] DONE   export_remote_project_config (1773197928s)
+[2026-03-11 09:58:48 +0700] START  restore_snapshot_to_local
+Stopped services: [supabase_imgproxy_CatatanPsikolog supabase_analytics_CatatanPsikolog supabase_vector_CatatanPsikolog supabase_pooler_CatatanPsikolog]
+[1/6] Applying role snapshot (best-effort)...
+[2/6] Dropping non-system schemas in local DB...
+[3/6] Restoring schema...
+[4/6] Restoring data (replica mode for FK cycles)...
+[5/6] Syncing storage binary objects into local storage API...
+[6/6] Capturing local row estimates for verification...
+Local restore complete.
+[2026-03-11 09:58:50 +0700] DONE   restore_snapshot_to_local (1773197930s)
+[2026-03-11 09:58:50 +0700] START  verify_exact_counts
+Stopped services: [supabase_imgproxy_CatatanPsikolog supabase_analytics_CatatanPsikolog supabase_vector_CatatanPsikolog supabase_pooler_CatatanPsikolog]
+Exact count comparison complete.
+[2026-03-11 09:59:10 +0700] DONE   verify_exact_counts (1773197950s)
+[2026-03-11 09:59:10 +0700] SYNC ALL VERBOSE COMPLETED
+[2026-03-11 09:59:10 +0700] LOG FILE: snapshot/verification/sync_all_verbose_20260311_095726.log
+[2026-03-11 09:59:10 +0700] LATEST LOG: snapshot/verification/sync_all_verbose_latest.log
