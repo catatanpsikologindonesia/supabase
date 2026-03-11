@@ -1,0 +1,21 @@
+# OS artifacts
+.DS_Store
+
+# Local environment files
+.env
+.env.*
+!.env.example
+!.env.prod.example
+
+# Supabase CLI local runtime state
+supabase/.temp/
+supabase/.branches/_current_branch
+
+# Generated operation logs
+snapshot/verification/local_restore.log
+snapshot/verification/sync_all_verbose_*.log
+snapshot/verification/sync_all_verbose_latest.log
+snapshot/functions/functions_download.log
+snapshot/storage/*.cp.log
+snapshot/storage/*.cp.err
+snapshot/config/*.err

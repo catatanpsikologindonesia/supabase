@@ -1,45 +1,45 @@
 # CatatanPsikolog Supabase Mirror
 
-Repositori ini menyimpan pipeline untuk menarik snapshot Supabase remote dan merestorasinya ke Supabase local dengan target parity setinggi mungkin (schema, data, role, RLS/policy, storage objects, dan konfigurasi proyek yang bisa diekspor via CLI).
+This repository contains an operational pipeline to mirror a remote Supabase project into a local Supabase stack with high parity across database, auth tables, RLS policies, functions (if any), storage objects, and exportable project configuration.
 
-## Tujuan
+## Purpose
 
-- Menyediakan workflow **remote -> snapshot -> local restore -> verification** yang konsisten.
-- Menjaga hasil lokal sedekat mungkin dengan environment remote (1:1 untuk komponen yang dapat diekspor/restore).
-- Menyediakan artefak audit agar tim bisa menelusuri status sinkronisasi.
+- Provide a repeatable `remote -> snapshot -> local restore -> verification` workflow.
+- Keep local state as close as possible to remote for development, QA, and troubleshooting.
+- Produce auditable artifacts for team validation and handover.
 
-## Cakupan 1:1
+## Parity Scope
 
-Yang dicakup pipeline ini:
-- Database schema dan data (`public`, `auth`, `storage`, `realtime`, dan skema non-system lain yang bisa didump).
-- Roles/globals (best-effort sesuai privilege koneksi dump).
-- RLS/policies/functions yang ikut dalam dump schema.
-- Storage objects (termasuk file biner) bila bucket/objek tersedia di remote.
-- Metadata konfigurasi proyek yang tersedia dari Supabase CLI.
+Included in parity workflow:
+- Database schema and data for non-system schemas (including `public`, `auth`, `storage`, `realtime`, and others that are dumpable).
+- Roles/globals snapshot (best effort based on effective dump privileges).
+- RLS policies, triggers, and SQL functions captured in schema dumps.
+- Storage object binary export/import when buckets/objects exist.
+- Remote project configuration that is available via Supabase CLI APIs.
 
-Yang **bukan** 1:1 penuh (batas platform/plan Supabase):
-- Fitur managed yang plan-gated (contoh: custom domain, vanity subdomain).
-- Komponen internal hosted infrastructure yang tidak diekspor sebagai artefak SQL/API publik.
+Not fully clonable 1:1 (platform constraints):
+- Plan-gated hosted features (for example custom domains or vanity subdomains).
+- Internal managed infrastructure details not exposed by Supabase dump/API interfaces.
 
-## Struktur Direktori
+## Repository Layout
 
-- `scripts/` - script operasional export, restore, dan verifikasi.
-- `snapshot/` - hasil export remote, hasil restore, dan laporan verifikasi.
-- `supabase/` - project lokal Supabase CLI (`config.toml`, migrations/snippets lokal, dsb).
-- `knowledge/` - dokumentasi tim/agent (tidak mempengaruhi runtime Supabase).
-- `Makefile` - entry point command harian.
+- `scripts/`: export, restore, verification, and full-sync scripts.
+- `snapshot/`: exported snapshots and verification outputs.
+- `supabase/`: local Supabase project config/runtime context.
+- `knowledge/`: team and agent documentation (outside runtime path).
+- `Makefile`: primary command entrypoint.
 
-## Prasyarat
+## Prerequisites
 
-- Docker Desktop aktif.
-- Supabase CLI sudah terpasang dan `supabase login` sudah dilakukan.
-- Project remote sudah terhubung (`supabase link`) di konteks workdir ini.
-- `libpq` binaries tersedia di:
+- Docker Desktop running.
+- Supabase CLI installed and authenticated (`supabase login`).
+- Linked remote project in this workdir context.
+- `libpq` binaries available at:
   - `/opt/homebrew/opt/libpq/bin/psql`
   - `/opt/homebrew/opt/libpq/bin/pg_dump`
   - `/opt/homebrew/opt/libpq/bin/pg_dumpall`
 
-## Command Utama
+## Commands
 
 ```bash
 make help
@@ -50,52 +50,54 @@ make sync-all
 make sync-all-verbose
 ```
 
-Penjelasan singkat:
-- `make export-all`: export database, storage objects, dan config remote ke `snapshot/`.
-- `make restore`: restore snapshot ke Supabase lokal.
-- `make verify`: verifikasi exact row count remote vs local pada schema target.
-- `make sync-all`: jalankan export + restore + verify end-to-end.
-- `make sync-all-verbose`: sama seperti `sync-all` dengan log audit bertimestamp.
+Command summary:
+- `make export-all`: export database, storage objects, and project configuration.
+- `make restore`: restore snapshot into local Supabase.
+- `make verify`: run exact table row-count comparison (remote vs local).
+- `make sync-all`: run export + restore + verify end-to-end.
+- `make sync-all-verbose`: same as `sync-all` with timestamped audit logging.
 
-## Alur Kerja Rekomendasi
+## Recommended Workflow
 
-1. Jalankan sinkronisasi penuh:
+1. Run full sync:
 
 ```bash
 make sync-all-verbose
 ```
 
-2. Cek hasil verifikasi:
-- `snapshot/verification/exact_count_mismatch_total.txt` harus `0`.
-- `snapshot/verification/exact_count_compare.txt` untuk detail per tabel.
-- `snapshot/verification/config_export_status.txt` untuk status export konfigurasi.
-- `snapshot/verification/storage_export_status.txt` untuk status bucket/object export.
+2. Validate parity outputs:
+- `snapshot/verification/exact_count_mismatch_total.txt` should be `0`.
+- `snapshot/verification/exact_count_compare.txt` contains per-table results.
+- `snapshot/verification/config_export_status.txt` contains config export status.
+- `snapshot/verification/storage_export_status.txt` contains storage export status.
 
-3. Jika mismatch, investigasi lewat log:
+3. Investigate issues if mismatch is detected:
 - `snapshot/verification/sync_all_verbose_latest.log`
 - `snapshot/verification/local_restore.log`
 
-## Catatan Operasional
+## Security Notes
 
-- Script restore melakukan drop schema non-system target sebelum apply snapshot.
-- Restore data dijalankan dengan replica mode untuk mengatasi FK cycle saat import.
-- Untuk storage, pipeline menarik dan menyalin file biner (bukan metadata saja) jika bucket/object tersedia.
+- Treat `snapshot/` data as potentially sensitive.
+- Review content before publishing to any public repository.
+- Do not place secrets in `knowledge/` documents.
 
-## Keamanan
+## Repository Hygiene
 
-- Jangan commit kredensial sensitif di luar kebutuhan operasional yang sudah disepakati tim.
-- Review konten `snapshot/config/` dan `snapshot/database/` sebelum publish ke repositori publik.
-- Folder `knowledge/` tidak boleh berisi secret.
+This repository intentionally ignores local runtime and transient logs via `.gitignore`, including:
+- `supabase/.temp/`
+- verbose sync logs
+- local restore logs
+- temporary CLI error/log files
 
-## Troubleshooting Cepat
+## Troubleshooting
 
-- Error binary `psql/pg_dump/pg_dumpall` tidak ditemukan:
-  - Pastikan `libpq` terpasang dan path sesuai di script.
-- Error Supabase CLI auth/link:
-  - Ulangi `supabase login` dan validasi project link.
-- Verifikasi mismatch:
-  - Jalankan ulang `make sync-all-verbose`, lalu cek file compare/log di `snapshot/verification/`.
+- Missing `psql/pg_dump/pg_dumpall` binaries:
+  - Install `libpq` and ensure expected paths are available.
+- Supabase authentication or link failures:
+  - Re-run `supabase login` and verify project link.
+- Count mismatch after restore:
+  - Re-run `make sync-all-verbose`, then inspect verification outputs in `snapshot/verification/`.
 
 ---
 
-Maintainer notes: lihat dokumen di `knowledge/` untuk SOP tim, checklist operasional, dan panduan agent.
+For operational SOP and team onboarding, see the files under `knowledge/`.
