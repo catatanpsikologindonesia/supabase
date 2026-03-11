@@ -80,6 +80,8 @@ make sync-all-verbose
 - Treat `snapshot/` data as potentially sensitive.
 - Review content before publishing to any public repository.
 - Do not place secrets in `knowledge/` documents.
+- Follow [SECURITY.md](SECURITY.md) for vulnerability reporting and handling.
+- Follow [REDACTION_POLICY.md](REDACTION_POLICY.md) before sharing artifacts outside the trusted team boundary.
 
 ## Repository Hygiene
 
@@ -88,6 +90,12 @@ This repository intentionally ignores local runtime and transient logs via `.git
 - verbose sync logs
 - local restore logs
 - temporary CLI error/log files
+
+## CI Checks
+
+GitHub Actions runs on `push` and `pull_request` to `main` and validates:
+- Bash script syntax (`bash -n scripts/*.sh`)
+- Repository structure and baseline files (`scripts/ci_validate_repo.sh`)
 
 ## Troubleshooting
 
