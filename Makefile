@@ -2,42 +2,81 @@ SHELL := /bin/bash
 
 .DEFAULT_GOAL := help
 
-.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose
+.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local restore-local sync-auth sync-cron sync-storage verify-local-remote mirror-remote-to-local push-remote push-staging push-prod
 
 help:
-	@echo "Targets:"
-	@echo "  make export-db       # Export remote database snapshot"
-	@echo "  make export-storage  # Export remote storage objects (binary files)"
-	@echo "  make export-config   # Export remote project config"
-	@echo "  make export-all      # Run all export steps"
-	@echo "  make restore         # Restore snapshot into local Supabase"
-	@echo "  make verify          # Exact count verification (remote vs local)"
-	@echo "  make verify-fast     # Row estimate + checksum verification"
-	@echo "  make sync-all        # Export + restore + verify end-to-end"
-	@echo "  make sync-all-verbose # Same as sync-all with timestamped audit log"
+	@echo "Available targets:"
+	@echo "  make export-db"
+	@echo "  make export-storage"
+	@echo "  make export-config"
+	@echo "  make export-all"
+	@echo "  make restore"
+	@echo "  make verify"
+	@echo "  make verify-fast"
+	@echo "  make sync-all"
+	@echo "  make sync-all-verbose"
+	@echo "  make pull-snapshot"
+	@echo "  make start-local"
+	@echo "  make restore-local"
+	@echo "  make sync-auth"
+	@echo "  make sync-cron"
+	@echo "  make sync-storage"
+	@echo "  make verify-local-remote"
+	@echo "  make mirror-remote-to-local"
+	@echo "  make push-staging"
+	@echo "  make push-prod"
+	@echo "  make push-remote"
 
-export-db:
-	./scripts/export_remote_database_snapshot.sh
+export-db: pull-snapshot
 
-export-storage:
-	./scripts/export_remote_storage_objects.sh
+export-storage: sync-storage
 
 export-config:
-	./scripts/export_remote_project_config.sh
+	@echo "Config export is covered by pull-snapshot for CatatanPsikolog."
 
-export-all: export-db export-storage export-config
+export-all: pull-snapshot sync-storage
 
-restore:
-	./scripts/restore_snapshot_to_local.sh
+restore: restore-local
 
-verify:
-	./scripts/verify_exact_counts.sh
+verify: verify-local-remote
 
-verify-fast:
-	./scripts/verify_snapshot_vs_local.sh
+verify-fast: verify-local-remote
 
-sync-all: export-all restore verify
+sync-all: mirror-remote-to-local
 	@echo "Sync complete. See snapshot/verification for reports."
 
 sync-all-verbose:
-	./scripts/sync_all_verbose.sh
+	./scripts/full_mirror_remote_to_local.sh
+
+pull-snapshot:
+	./scripts/pull_remote_snapshot.sh
+
+start-local:
+	./scripts/start_local_stack.sh
+
+restore-local:
+	./scripts/restore_local_db.sh
+
+sync-auth:
+	./scripts/sync_auth_remote_to_local.sh
+
+sync-cron:
+	./scripts/sync_cron_remote_to_local.sh
+
+sync-storage:
+	./scripts/sync_storage_remote_to_local.sh
+
+verify-local-remote:
+	./scripts/verify_local_remote_diff.sh
+
+mirror-remote-to-local:
+	./scripts/full_mirror_remote_to_local.sh
+
+push-staging:
+	ENV_FILE="$(CURDIR)/.env.staging" EXPECTED_PROJECT_REF="ixwaaziifteubxkxtdwj" ./scripts/push_remote_changes.sh
+
+push-prod:
+	ENV_FILE="$(CURDIR)/.env.prod" ./scripts/push_remote_changes.sh
+
+push-remote:
+	$(MAKE) push-staging

@@ -1,111 +1,113 @@
 # CatatanPsikolog Supabase Mirror
 
-This repository contains an operational pipeline to mirror a remote Supabase project into a local Supabase stack with high parity across database, auth tables, RLS policies, functions (if any), storage objects, and exportable project configuration.
+Operational mirror for the **CatatanPsikolog** Supabase project.
 
-## Purpose
+This repository is the team baseline for:
 
-- Provide a repeatable `remote -> snapshot -> local restore -> verification` workflow.
-- Keep local state as close as possible to remote for development, QA, and troubleshooting.
-- Produce auditable artifacts for team validation and handover.
+- pulling remote state into local
+- verifying local/remote parity
+- applying local schema/function updates
+- pushing safely to staging/production
 
-## Parity Scope
+## Scope
 
-Included in parity workflow:
-- Database schema and data for non-system schemas (including `public`, `auth`, `storage`, `realtime`, and others that are dumpable).
-- Roles/globals snapshot (best effort based on effective dump privileges).
-- RLS policies, triggers, and SQL functions captured in schema dumps.
-- Storage object binary export/import when buckets/objects exist.
-- Remote project configuration that is available via Supabase CLI APIs.
+The mirror covers business-critical Supabase assets:
 
-Not fully clonable 1:1 (platform constraints):
-- Plan-gated hosted features (for example custom domains or vanity subdomains).
-- Internal managed infrastructure details not exposed by Supabase dump/API interfaces.
+- PostgreSQL schema and data (database dump + SQL snapshot)
+- `public` RPC/functions inventory
+- Auth parity checks (`auth.users`, `auth.identities`)
+- Storage object parity checks and binary sync
+- Edge Functions source and deployment
+- `pg_cron` job parity
 
 ## Repository Layout
 
-- `scripts/`: export, restore, verification, and full-sync scripts.
-- `snapshot/`: exported snapshots and verification outputs.
-- `supabase/`: local Supabase project config/runtime context.
-- `knowledge/`: team and agent documentation (outside runtime path).
-- `Makefile`: primary command entrypoint.
+- `supabase/`  
+  Supabase CLI workspace (`config.toml`, `migrations/`, `functions/`).
+- `scripts/`  
+  Pull/sync/verify/push automation.
+- `snapshot/database/`  
+  Latest database snapshot artifacts (`db_full_snapshot.dump`, `schema_snapshot.sql`, `db_*.txt`).
+- `snapshot/functions/`  
+  Edge Functions metadata snapshots.
+- `snapshot/verification/`  
+  Generated parity reports (`verify_local_remote_<timestamp>/`).
+- `knowledge/`  
+  Agent/team knowledge (non-runtime docs).
+- `Makefile`  
+  Standard command entry points.
 
 ## Prerequisites
 
-- Docker Desktop running.
-- Supabase CLI installed and authenticated (`supabase login`).
-- Linked remote project in this workdir context.
-- `libpq` binaries available at:
-  - `/opt/homebrew/opt/libpq/bin/psql`
-  - `/opt/homebrew/opt/libpq/bin/pg_dump`
-  - `/opt/homebrew/opt/libpq/bin/pg_dumpall`
+- Supabase CLI
+- Docker runtime (Colima or Docker Desktop)
+- `psql` / `pg_restore` (libpq)
+- `jq`
 
-## Commands
+## Environment Files
 
-```bash
-make help
-make export-all
-make restore
-make verify
-make sync-all
-make sync-all-verbose
-```
+Secrets are loaded by scripts and are gitignored.
 
-Command summary:
-- `make export-all`: export database, storage objects, and project configuration.
-- `make restore`: restore snapshot into local Supabase.
-- `make verify`: run exact table row-count comparison (remote vs local).
-- `make sync-all`: run export + restore + verify end-to-end.
-- `make sync-all-verbose`: same as `sync-all` with timestamped audit logging.
+- `.env.local` for local mirror operations
+- `.env.staging` for staging push target
+- `.env.prod` for production push target
+- `.env.prod.example` as template
 
-## Recommended Workflow
+## Daily Workflow
 
-1. Run full sync:
+### 1. Sync remote to local mirror
 
 ```bash
-make sync-all-verbose
+make mirror-remote-to-local
 ```
 
-2. Validate parity outputs:
-- `snapshot/verification/exact_count_mismatch_total.txt` should be `0`.
-- `snapshot/verification/exact_count_compare.txt` contains per-table results.
-- `snapshot/verification/config_export_status.txt` contains config export status.
-- `snapshot/verification/storage_export_status.txt` contains storage export status.
+### 2. Verify parity
 
-3. Investigate issues if mismatch is detected:
-- `snapshot/verification/sync_all_verbose_latest.log`
-- `snapshot/verification/local_restore.log`
+```bash
+make verify-local-remote
+```
 
-## Security Notes
+### 3. Apply local changes (SQL, migration, edge function)
 
-- Treat `snapshot/` data as potentially sensitive.
-- Review content before publishing to any public repository.
-- Do not place secrets in `knowledge/` documents.
-- Follow [SECURITY.md](SECURITY.md) for vulnerability reporting and handling.
-- Follow [REDACTION_POLICY.md](REDACTION_POLICY.md) before sharing artifacts outside the trusted team boundary.
+Edit files under `supabase/` and/or run SQL migration workflow.
 
-## Repository Hygiene
+### 4. Push
 
-This repository intentionally ignores local runtime and transient logs via `.gitignore`, including:
-- `supabase/.temp/`
-- verbose sync logs
-- local restore logs
-- temporary CLI error/log files
+```bash
+make push-staging
+# after staging validation
+make push-prod
+```
 
-## CI Checks
+`make push-remote` is an alias to `make push-staging`.
 
-GitHub Actions runs on `push` and `pull_request` to `main` and validates:
-- Bash script syntax (`bash -n scripts/*.sh`)
-- Repository structure and baseline files (`scripts/ci_validate_repo.sh`)
+## Push Safety Guarantees
 
-## Troubleshooting
+`scripts/push_remote_changes.sh` enforces:
 
-- Missing `psql/pg_dump/pg_dumpall` binaries:
-  - Install `libpq` and ensure expected paths are available.
-- Supabase authentication or link failures:
-  - Re-run `supabase login` and verify project link.
-- Count mismatch after restore:
-  - Re-run `make sync-all-verbose`, then inspect verification outputs in `snapshot/verification/`.
+1. local-vs-remote preflight verification
+2. explicit operator confirmation on mismatch
+3. remote backup snapshot before deployment
+4. `supabase db push`
+5. edge function deployment
+6. post-push verification
 
----
+## Local/Remote Resolution Strategy
 
-For operational SOP and team onboarding, see the files under `knowledge/`.
+Remote DB connectivity uses linked project metadata from Supabase CLI.
+
+If direct DB host is unreachable from the current network, scripts automatically fallback to the Supabase pooler so mirror/verify remains reproducible.
+
+## Knowledge Index
+
+Start here for onboarding and agent execution context:
+
+1. `knowledge/README.md`
+2. `knowledge/TEAM_GUIDE.md`
+3. `knowledge/OPERATIONS_CHECKLIST.md`
+4. `knowledge/SUPABASE_SCHEMA_MAP.md`
+
+## Project Identity
+
+- Project name: `CatatanPsikolog`
+- Staging project ref: `ixwaaziifteubxkxtdwj`

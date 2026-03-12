@@ -1,0 +1,15 @@
+public.appointments
+public.clinic_memberships
+public.clinic_patients
+public.clinics
+public.cognitive_assessments
+public.developmental_history
+public.patient_clinic_consents
+public.patient_family_data
+public.patient_invitations
+public.patient_personal_data
+public.patient_visits
+public.patients
+public.referrals_and_feedback
+public.therapy_sessions
+public.users

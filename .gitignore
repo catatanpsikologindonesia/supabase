@@ -1,21 +1,19 @@
-# OS artifacts
-.DS_Store
-
-# Local environment files
-.env
+# Secrets / local env
+.env.local
+.env.staging
+.env.prod
 .env.*
-!.env.example
 !.env.prod.example
 
-# Supabase CLI local runtime state
+# Temporary artifacts
+.tmp_storage_sync/
+.tmp_push/
+.tmp_verify/
+snapshot/verification/verify_local_remote_*/
 supabase/.temp/
-supabase/.branches/_current_branch
+supabase/.branches/
 
-# Generated operation logs
-snapshot/verification/local_restore.log
-snapshot/verification/sync_all_verbose_*.log
-snapshot/verification/sync_all_verbose_latest.log
-snapshot/functions/functions_download.log
-snapshot/storage/*.cp.log
-snapshot/storage/*.cp.err
-snapshot/config/*.err
+# OS / editor noise
+.DS_Store
+*.swp
+*.swo

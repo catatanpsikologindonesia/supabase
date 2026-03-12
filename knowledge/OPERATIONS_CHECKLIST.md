@@ -1,25 +1,37 @@
-# Operations Checklist
+# Pre-Push Checklist
 
-## Sebelum Sync
-1. Pastikan login Supabase CLI valid (`supabase projects list`).
-2. Pastikan koneksi internet stabil.
-3. Pastikan disk cukup untuk dump SQL + log.
+Use this checklist before running `make push-staging` or `make push-prod`.
 
-## Saat Sync
-1. Jalankan `make sync-all-verbose`.
-2. Tunggu sampai status `SYNC ALL VERBOSE COMPLETED`.
-3. Cek ada/tidak error di `sync_all_verbose_latest.log`.
+## Mandatory checks
 
-## Setelah Sync
-1. Cek mismatch count:
-   - `snapshot/verification/exact_count_mismatch_total.txt` harus `0`.
-2. Cek status export config:
-   - `snapshot/verification/config_export_status.txt`.
-3. Cek status storage:
-   - `snapshot/verification/storage_export_status.txt`.
+- [ ] `make verify-local-remote` returns `VERIFY OK` (or mismatch is understood and intentional)
+- [ ] Correct target env file exists:
+  - staging: `.env.staging`
+  - production: `.env.prod`
+- [ ] `SUPABASE_PROJECT_REF` matches intended target
+- [ ] Edge function source changes are committed under `supabase/functions/*`
+- [ ] No secrets are staged in git (`.env.*`, PAT files)
 
-## Troubleshooting Cepat
-- Jika `supabase start` gagal karena port bentrok, cek port di `supabase/config.toml`.
-- Jika timeout API Supabase, rerun command yang gagal.
-- Jika ingin audit detail step-by-step, pakai file:
-  - `snapshot/verification/sync_all_verbose_latest.log`.
+## Command sequence
+
+```bash
+make verify-local-remote
+make push-staging
+```
+
+If staging is good:
+
+```bash
+make push-prod
+```
+
+## If mismatch appears
+
+1. Read generated diff files under `snapshot/verification/verify_local_remote_<timestamp>/`
+2. Decide whether mismatch is expected
+3. If expected, continue push with explicit confirmation
+4. If unexpected, re-run mirror sync first:
+
+```bash
+make mirror-remote-to-local
+```

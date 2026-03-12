@@ -1,13 +1,18 @@
-# Knowledge Base
+# AI Knowledge Base (Supabase Mirror)
 
-Folder ini dibuat untuk dokumentasi tim/agent dan **tidak mempengaruhi runtime Supabase** karena berada di luar `supabase/`.
+This folder is intentionally documentation-only.
+It does not affect Supabase runtime or deployment behavior.
 
-## Isi
-- `TEAM_GUIDE.md` - onboarding cepat untuk developer/tim.
-- `AGENT_GUIDE.md` - aturan kerja agent agar aman.
-- `OPERATIONS_CHECKLIST.md` - checklist operasional harian/sinkronisasi.
+## Purpose
 
-## Prinsip
-- Simpan catatan, keputusan, dan runbook di sini.
-- Jangan taruh secret/API key sensitif di file knowledge.
-- Jangan pindahkan folder ini ke dalam `supabase/`.
+Help engineers/agents quickly understand how this mirror is operated safely:
+
+- what is considered source-of-truth
+- how to verify parity
+- how to push without breaking staging/production
+
+## Read this first
+
+1. `knowledge/TEAM_GUIDE.md`
+2. `knowledge/OPERATIONS_CHECKLIST.md`
+3. `knowledge/SUPABASE_SCHEMA_MAP.md`

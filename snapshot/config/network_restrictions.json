@@ -1,3 +1,0 @@
-DB Allowed IPv4 CIDRs: &[0.0.0.0/0]
-DB Allowed IPv6 CIDRs: &[::/0]
-Restrictions applied successfully: false

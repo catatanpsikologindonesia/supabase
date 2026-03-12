@@ -1,35 +1,49 @@
-# Team Guide
+# Operations Guide
 
-## Workspace
-- Root: `/Users/guntur/Lintas Buana Sistem Digital/Catatan Psikolog/Supabase/CatatanPsikolog`
-- Folder penting:
-  - `supabase/` untuk runtime local stack.
-  - `scripts/` untuk export/restore/verify.
-  - `snapshot/` untuk hasil sinkronisasi.
-  - `knowledge/` untuk dokumentasi tim.
+## Core model
 
-## Menjalankan Local Supabase
+- Remote Supabase is the active shared environment.
+- Local Supabase mirror is used for safe iteration and validation.
+- Pushes to remote must be explicit and guarded.
+
+## Source of truth
+
+- Runtime schema/data parity target: remote <-> local (verified via scripts).
+- Edge Functions runtime source for deployment: `supabase/functions/*`.
+- Push safety gate: `scripts/push_remote_changes.sh`.
+
+## Standard workflow
+
+### 1) Refresh local mirror from remote
+
 ```bash
-cd "/Users/guntur/Lintas Buana Sistem Digital/Catatan Psikolog/Supabase/CatatanPsikolog"
-supabase start --exclude vector,logflare
+make mirror-remote-to-local
 ```
 
-Endpoint:
-- API: `http://127.0.0.1:55321`
-- Studio: `http://127.0.0.1:55323`
-- DB: `postgresql://postgres:postgres@127.0.0.1:55322/postgres`
+### 2) Verify parity
 
-## Sinkronisasi Remote -> Local
-- Standar:
 ```bash
-make sync-all
-```
-- Dengan audit log timestamp:
-```bash
-make sync-all-verbose
+make verify-local-remote
 ```
 
-## File Verifikasi
-- `snapshot/verification/exact_count_compare.txt`
-- `snapshot/verification/exact_count_mismatch_total.txt`
-- `snapshot/verification/sync_all_verbose_latest.log`
+### 3) Apply local changes
+
+Modify SQL/functions/files as required.
+
+### 4) Push to staging
+
+```bash
+make push-staging
+```
+
+### 5) Push to production (after staging validation)
+
+```bash
+make push-prod
+```
+
+## Important behavior
+
+- Push performs preflight verify.
+- If mismatch is found, push asks for confirmation (`yes/no`).
+- Push also creates a backup snapshot before deploying.

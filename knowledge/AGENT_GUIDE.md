@@ -1,26 +1,25 @@
-# Agent Guide
+# Agent Notes
 
-## Tujuan
-Menjaga perubahan agent tetap aman, repeatable, dan tidak merusak setup Supabase local.
+## Objective
 
-## Aturan Aman
-1. Dokumentasi baru taruh di `knowledge/`.
-2. Jangan ubah port di `supabase/config.toml` tanpa persetujuan tim.
-3. Jangan hapus `snapshot/` kecuali diminta eksplisit.
-4. Jangan commit secret/token ke repo.
-5. Untuk sinkronisasi, gunakan script/Makefile yang sudah ada.
+Maintain strict local/remote parity for the CatatanPsikolog Supabase project and push safely.
 
-## Command yang Direkomendasikan
-- Export snapshot remote:
-  - `./scripts/export_remote_database_snapshot.sh`
-  - `./scripts/export_remote_storage_objects.sh`
-  - `./scripts/export_remote_project_config.sh`
-- Restore lokal:
-  - `./scripts/restore_snapshot_to_local.sh`
-- Verify:
-  - `./scripts/verify_exact_counts.sh`
-  - `./scripts/verify_snapshot_vs_local.sh`
+## Do
 
-## Jalur Cepat
-- `make sync-all`
-- `make sync-all-verbose`
+- Use Make targets from repository root.
+- Run parity check before push.
+- Keep environment-specific pushes separated (`push-staging`, `push-prod`).
+- Treat `supabase/functions/*` as deployable edge function source.
+
+## Do not
+
+- Do not commit secret files (`.env.local`, `.env.staging`, `.env.prod`).
+- Do not bypass push preflight checks.
+- Do not push directly to production before staging verification.
+
+## Fast start
+
+```bash
+make verify-local-remote
+make push-staging
+```
