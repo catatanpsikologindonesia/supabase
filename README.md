@@ -53,6 +53,9 @@ Secrets are loaded by scripts and are gitignored.
 - `.env.prod` for production push target
 - `.env.prod.example` as template
 
+`SUPABASE_PAT_FILE` must point to a local file path on each developer machine
+(do not commit PAT files or absolute paths).
+
 ## Daily Workflow
 
 ### 1. Sync remote to local mirror
