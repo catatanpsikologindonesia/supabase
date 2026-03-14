@@ -1,6 +1,6 @@
 # CatatanPsikolog Supabase Schema Map
 
-Last updated: 2026-03-12
+Last updated: 2026-03-14
 Source artifacts:
 
 - `snapshot/database/schema_snapshot.sql`
@@ -86,7 +86,18 @@ Policy SQL is available in:
 Storage and cron schemas are mirrored as part of dump/snapshot.
 Operational parity checks focus on business-facing domains and object inventories.
 
-## 6) Agent Change Protocol
+## 7) Mandatory Local Stack Schemas
+
+To prevent PostgREST errors (PGRST002), the following schemas must exist in the local database:
+
+- `public`: Core business logic.
+- `graphql_public`: Required for PostgREST cache.
+- `extensions`: Required for Supabase CLI and extra search paths.
+
+> [!IMPORTANT]
+> If these schemas are missing, PostgREST will fail to serve requests, leading to "Unauthorized" errors in the portal. Ensure the `ensure_system_schemas` migration is applied.
+
+## 8) Agent Change Protocol
 
 When agent modifies schema/function:
 
