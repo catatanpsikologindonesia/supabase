@@ -52,6 +52,18 @@ pg_restore \
 psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -c \
   "CREATE SCHEMA IF NOT EXISTS _realtime; GRANT ALL ON SCHEMA _realtime TO supabase_admin;"
 
+# Ensure system schemas required by PostgREST/Supabase exist.
+psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -c \
+  "CREATE SCHEMA IF NOT EXISTS graphql_public;"
+psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -c \
+  "CREATE SCHEMA IF NOT EXISTS extensions;"
+psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -c \
+  "GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;"
+psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -c \
+  "GRANT USAGE ON SCHEMA graphql_public TO postgres, anon, authenticated, service_role;"
+psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -c \
+  "GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;"
+
 # Quick verify
 psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc \
   "select 'public_tables='||count(*) from pg_tables where schemaname='public';"
