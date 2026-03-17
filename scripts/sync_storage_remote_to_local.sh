@@ -172,7 +172,9 @@ PY
 
 guess_content_type() {
   local object_name="$1"
-  case "${object_name,,}" in
+  local object_name_lc
+  object_name_lc="$(printf '%s' "$object_name" | tr '[:upper:]' '[:lower:]')"
+  case "$object_name_lc" in
     *.png) echo "image/png" ;;
     *.jpg|*.jpeg) echo "image/jpeg" ;;
     *.webp) echo "image/webp" ;;

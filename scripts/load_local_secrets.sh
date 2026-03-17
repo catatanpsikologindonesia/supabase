@@ -13,6 +13,29 @@ fi
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 
+resolve_pat_file() {
+  local candidate
+  if [[ -n "${SUPABASE_PAT_FILE:-}" && -f "${SUPABASE_PAT_FILE}" ]]; then
+    printf '%s\n' "${SUPABASE_PAT_FILE}"
+    return 0
+  fi
+
+  for candidate in \
+    "${ROOT_DIR}/../../../PAT/supabase_pat.txt" \
+    "${ROOT_DIR}/../../PAT/supabase_pat.txt" \
+    "${HOME}/PAT/supabase_pat.txt" \
+    "${HOME}/.supabase/pat.txt"
+  do
+    if [[ -f "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+SUPABASE_PAT_FILE="$(resolve_pat_file || true)"
 if [[ -z "${SUPABASE_PAT_FILE:-}" || ! -f "${SUPABASE_PAT_FILE}" ]]; then
   echo "SUPABASE_PAT_FILE is missing or invalid in ${ENV_LABEL}" >&2
   exit 1
@@ -31,6 +54,6 @@ if [[ -z "${SUPABASE_PROJECT_REF:-}" ]]; then
   exit 1
 fi
 
-export SUPABASE_DB_PASSWORD SUPABASE_PROJECT_REF
+export SUPABASE_DB_PASSWORD SUPABASE_PROJECT_REF SUPABASE_PAT_FILE
 
 echo "Loaded local secrets for project ${SUPABASE_PROJECT_REF}."

@@ -8,6 +8,7 @@ export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 
 # Colima compatibility for Supabase CLI Docker socket mount behavior.
 mkdir -p "$HOME/.docker/run"
+rm -f "$HOME/.docker/run/docker.sock"
 ln -sf "$HOME/.colima/default/docker.sock" "$HOME/.docker/run/docker.sock"
 export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"
 
@@ -60,6 +61,9 @@ if [[ -z "$PUBLIC_TABLES" || "$PUBLIC_TABLES" -lt 1 ]]; then
   exit 1
 fi
 echo "public_tables=${PUBLIC_TABLES}"
+
+AUTH_USERS="$(psql "$LOCAL_PSQL" -Atc "select count(*) from auth.users;")"
+echo "auth_users=${AUTH_USERS}"
 
 CORE_TABLES_PRESENT="$(psql "$LOCAL_PSQL" -Atc "select (to_regclass('public.users') is not null and to_regclass('public.clinics') is not null)::text;")"
 if [[ "$CORE_TABLES_PRESENT" != "true" ]]; then

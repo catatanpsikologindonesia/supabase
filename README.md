@@ -64,7 +64,15 @@ For day-to-day frontend dev, use:
 
 - `make run-local` from `catatan-psikolog-user-portal`
 
-This command now auto-runs mirror prep (`make prepare-local`) + frontend contract sync + preflight checks.
+This command now auto-runs mirror start (`make start-local`) + frontend contract sync + preflight checks.
+
+Quick checklist:
+
+- frontend harian: jalankan `make run-local` dari `catatan-psikolog-user-portal`, bukan `make prepare-local` langsung
+- `make start-local` di repo ini hanya menyalakan service lokal dan tidak menghapus/restore data
+- untuk sync 1:1 dari remote ke local, jalankan `make mirror-remote-to-local` secara eksplisit
+- kalau struktur folder lokal beda, set `SUPABASE_MIRROR_DIR` di `scripts/.env.local` portal
+- port penting: API `55321`, DB `55322`, Studio `55323`, Mailpit `55324`
 
 ### 1. Sync remote to local mirror
 

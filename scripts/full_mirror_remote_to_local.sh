@@ -11,6 +11,7 @@ source "$ROOT_DIR/scripts/load_remote_db_env.sh"
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 
 mkdir -p "$HOME/.docker/run"
+rm -f "$HOME/.docker/run/docker.sock"
 ln -sf "$HOME/.colima/default/docker.sock" "$HOME/.docker/run/docker.sock"
 export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"
 
@@ -55,6 +56,7 @@ fi
 REMOTE_AUTH_USERS=$(psql "$REMOTE_URI" -qAtc "set role postgres; select count(*) from auth.users;")
 REMOTE_AUTH_IDENTITIES=$(psql "$REMOTE_URI" -qAtc "set role postgres; select count(*) from auth.identities;")
 REMOTE_STORAGE_OBJECTS=$(psql "$REMOTE_URI" -qAtc "set role postgres; select count(*) from storage.objects;")
+REMOTE_STORAGE_OBJECTS=$(psql "$REMOTE_URI" -qAtc "set role postgres; select count(*) from storage.objects where name <> '.emptyFolderPlaceholder' and name !~ '/\\.emptyFolderPlaceholder$';")
 
 LOCAL_PUBLIC_TABLES=$(psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc "select count(*) from pg_tables where schemaname='public';")
 LOCAL_PUBLIC_FUNCTIONS=$(psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public';")
@@ -66,7 +68,7 @@ else
 fi
 LOCAL_AUTH_USERS=$(psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc "select count(*) from auth.users;")
 LOCAL_AUTH_IDENTITIES=$(psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc "select count(*) from auth.identities;")
-LOCAL_STORAGE_OBJECTS=$(psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc "select count(*) from storage.objects;")
+LOCAL_STORAGE_OBJECTS=$(psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc "select count(*) from storage.objects where name <> '.emptyFolderPlaceholder' and name !~ '/\\.emptyFolderPlaceholder$';")
 
 REMOTE_COUNTS=$(
   cat <<EOF

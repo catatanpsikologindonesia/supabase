@@ -18,6 +18,7 @@ export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 
 # Colima compatibility for Supabase CLI Docker socket mount behavior.
 mkdir -p "$HOME/.docker/run"
+rm -f "$HOME/.docker/run/docker.sock"
 ln -sf "$HOME/.colima/default/docker.sock" "$HOME/.docker/run/docker.sock"
 export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"
 
@@ -39,12 +40,13 @@ else
     "DROP EXTENSION IF EXISTS pg_cron CASCADE;" >/dev/null || true
 fi
 
-# Restore public + cron to avoid managed schema ownership conflicts in auth/storage internals.
+# Restore auth + public + cron from the snapshot so local auth stays in parity
+# with remote. This runs only on explicit mirror/prepare flows, not on normal app start.
 export PGPASSWORD="postgres"
 pg_restore \
   --clean --if-exists \
   --no-owner --no-privileges \
-  -n public -n cron \
+  -n auth -n public -n cron \
   -h 127.0.0.1 -p 55322 -U postgres -d postgres \
   "$DUMP_FILE" || true
 
@@ -64,9 +66,17 @@ psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=
 psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -c \
   "GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;"
 
+# Remove local-only helper functions so explicit mirror runs stay 1:1 with remote.
+psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -c \
+  "DROP FUNCTION IF EXISTS public.debug_auth();"
+psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -c \
+  "DROP FUNCTION IF EXISTS public.get_my_uid();"
+
 # Quick verify
 psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc \
   "select 'public_tables='||count(*) from pg_tables where schemaname='public';"
+psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc \
+  "select 'auth_users='||count(*) from auth.users;"
 psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc \
   "select 'pg_cron_enabled='||(exists(select 1 from pg_extension where extname='pg_cron'));"
 

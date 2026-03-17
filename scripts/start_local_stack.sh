@@ -6,18 +6,28 @@ cd "$ROOT_DIR"
 LOCAL_PSQL="postgresql://postgres:postgres@127.0.0.1:55322/postgres"
 
 mkdir -p "$HOME/.docker/run"
+rm -f "$HOME/.docker/run/docker.sock"
 ln -sf "$HOME/.colima/default/docker.sock" "$HOME/.docker/run/docker.sock"
 export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 
-AUTO_PREPARE_LOCAL_ON_START="${AUTO_PREPARE_LOCAL_ON_START:-1}"
+AUTO_PREPARE_LOCAL_ON_START="${AUTO_PREPARE_LOCAL_ON_START:-0}"
 
 if [[ "$AUTO_PREPARE_LOCAL_ON_START" == "1" ]]; then
   echo "Preparing local DB baseline before starting full stack..."
   bash scripts/prepare_local_db.sh
 else
-  echo "Skipping local DB prepare (set AUTO_PREPARE_LOCAL_ON_START=1 to enable)."
+  echo "Skipping local DB prepare to preserve current local data (set AUTO_PREPARE_LOCAL_ON_START=1 to enable)."
 fi
+
+status_output="$(supabase status 2>&1 || true)"
+if [[ "$status_output" == *"Stopped services:"* ]]; then
+  echo "Restarting local Supabase stack to enable API services..."
+  supabase stop >/dev/null
+fi
+
+echo "Starting full local Supabase stack..."
+supabase start >/dev/null
 
 psql "$LOCAL_PSQL" -v ON_ERROR_STOP=1 -c \
   "CREATE SCHEMA IF NOT EXISTS graphql_public;" >/dev/null
