@@ -68,7 +68,10 @@ cp -f "$DUMP_FILE" ".tmp_push/db_full_snapshot.before_push.${BACKUP_TS}.dump"
 echo "[3/6] Push DB migrations..."
 supabase db push
 
-echo "[4/6] Deploy edge functions..."
+echo "[4/7] Sync storage binaries + bucket metadata..."
+bash scripts/sync_storage_local_to_remote.sh
+
+echo "[5/7] Deploy edge functions..."
 if [[ -d "supabase/functions" ]]; then
   while IFS= read -r fn_dir; do
     slug="$(basename "$fn_dir")"
@@ -77,7 +80,7 @@ if [[ -d "supabase/functions" ]]; then
   done < <(find supabase/functions -mindepth 1 -maxdepth 1 -type d | sort)
 fi
 
-echo "[5/6] Verify deployed functions..."
+echo "[6/7] Verify deployed functions..."
 supabase functions list --project-ref "$SUPABASE_PROJECT_REF" --output json > .tmp_push/remote_functions_after_push.json
 
 LOCAL_FUNCTIONS_SORTED="$(find supabase/functions -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort || true)"
@@ -92,12 +95,13 @@ if [[ -n "$LOCAL_FUNCTIONS_SORTED" ]]; then
   done <<<"$LOCAL_FUNCTIONS_SORTED"
 fi
 
-echo "[6/6] Verify key parity counts (public tables/functions)..."
+echo "[7/7] Verify key parity counts (public tables/functions + storage objects)..."
 # shellcheck disable=SC1091
 source "$ROOT_DIR/scripts/load_remote_db_env.sh"
 REMOTE_COUNTS=$(psql "$REMOTE_URI" -Atc "
 select 'public_tables='||count(*) from pg_tables where schemaname='public';
 select 'public_functions='||count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public';
+select 'storage_objects='||count(*) from storage.objects where name <> '.emptyFolderPlaceholder' and name !~ '/\\.emptyFolderPlaceholder$';
 ")
 printf "%s\n" "$REMOTE_COUNTS" > .tmp_push/remote_counts_after_push.txt
 cat .tmp_push/remote_counts_after_push.txt
