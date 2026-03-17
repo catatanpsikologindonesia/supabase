@@ -58,11 +58,33 @@ Secrets are loaded by scripts and are gitignored.
 
 ## Daily Workflow
 
+## Team Entry Point
+
+For day-to-day frontend dev, use:
+
+- `make run-local` from `catatan-psikolog-user-portal`
+
+This command now auto-runs mirror prep (`make prepare-local`) + frontend contract sync + preflight checks.
+
 ### 1. Sync remote to local mirror
 
 ```bash
 make mirror-remote-to-local
 ```
+
+### 1b. Prepare local DB for frontend/agent work
+
+Use this when you want a deterministic local baseline without manual migration troubleshooting.
+
+```bash
+make prepare-local
+```
+
+What it does:
+
+- restores local DB from `snapshot/database/db_full_snapshot.dump`
+- re-applies every SQL migration under `supabase/migrations/`
+- validates key local artifact (`public` table count)
 
 ### 2. Verify parity
 

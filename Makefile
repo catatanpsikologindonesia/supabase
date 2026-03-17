@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 .DEFAULT_GOAL := help
 
-.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local restore-local sync-auth sync-cron sync-storage verify-local-remote mirror-remote-to-local push-remote push-staging push-prod
+.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local restore-local prepare-local sync-auth sync-cron sync-storage verify-local-remote mirror-remote-to-local push-remote push-staging push-prod
 
 help:
 	@echo "Available targets:"
@@ -18,6 +18,7 @@ help:
 	@echo "  make pull-snapshot"
 	@echo "  make start-local"
 	@echo "  make restore-local"
+	@echo "  make prepare-local"
 	@echo "  make sync-auth"
 	@echo "  make sync-cron"
 	@echo "  make sync-storage"
@@ -56,6 +57,9 @@ start-local:
 
 restore-local:
 	./scripts/restore_local_db.sh
+
+prepare-local:
+	./scripts/prepare_local_db.sh
 
 sync-auth:
 	./scripts/sync_auth_remote_to_local.sh
