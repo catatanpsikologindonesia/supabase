@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 .DEFAULT_GOAL := help
 
-.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local restore-local prepare-local sync-auth sync-cron sync-storage verify-local-remote mirror-remote-to-local push-remote push-staging push-prod
+.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local restore-local prepare-local sync-auth sync-cron sync-storage verify-local-remote mirror-remote-to-local guard-local-sync knowledge-language-check push-remote push-staging push-prod
 
 help:
 	@echo "Available targets:"
@@ -24,6 +24,8 @@ help:
 	@echo "  make sync-storage"
 	@echo "  make verify-local-remote"
 	@echo "  make mirror-remote-to-local"
+	@echo "  make guard-local-sync"
+	@echo "  make knowledge-language-check"
 	@echo "  make push-staging"
 	@echo "  make push-prod"
 	@echo "  make push-remote"
@@ -75,6 +77,12 @@ verify-local-remote:
 
 mirror-remote-to-local:
 	./scripts/full_mirror_remote_to_local.sh
+
+guard-local-sync:
+	./scripts/guard_local_sync.sh
+
+knowledge-language-check:
+	./scripts/check_knowledge_language.sh --all
 
 push-staging:
 	ENV_FILE="$(CURDIR)/.env.staging" EXPECTED_PROJECT_REF="ixwaaziifteubxkxtdwj" ./scripts/push_remote_changes.sh
