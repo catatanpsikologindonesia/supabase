@@ -57,7 +57,7 @@ psql "$LOCAL_PSQL" -Atc "select 'auth_users='||count(*) from auth.users; select 
 
 echo "[7/8] Collect edge functions..."
 supabase functions list --project-ref "$SUPABASE_PROJECT_REF" --output json | jq -r '.[].slug' | sort > "$OUT_DIR/remote_functions_slugs.txt"
-find supabase/functions -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort > "$OUT_DIR/local_functions_slugs.txt"
+find supabase/functions -mindepth 1 -maxdepth 1 -type d ! -name "_*" -exec basename {} \; | sort > "$OUT_DIR/local_functions_slugs.txt"
 
 echo "[8/8] Compare..."
 MISMATCH=0

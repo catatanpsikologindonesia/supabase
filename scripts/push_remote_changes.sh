@@ -77,13 +77,13 @@ if [[ -d "supabase/functions" ]]; then
     slug="$(basename "$fn_dir")"
     echo "  - deploy ${slug}"
     supabase functions deploy "$slug" --project-ref "$SUPABASE_PROJECT_REF"
-  done < <(find supabase/functions -mindepth 1 -maxdepth 1 -type d | sort)
+  done < <(find supabase/functions -mindepth 1 -maxdepth 1 -type d ! -name "_*" | sort)
 fi
 
 echo "[6/7] Verify deployed functions..."
 supabase functions list --project-ref "$SUPABASE_PROJECT_REF" --output json > .tmp_push/remote_functions_after_push.json
 
-LOCAL_FUNCTIONS_SORTED="$(find supabase/functions -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort || true)"
+LOCAL_FUNCTIONS_SORTED="$(find supabase/functions -mindepth 1 -maxdepth 1 -type d ! -name "_*" -exec basename {} \; | sort || true)"
 REMOTE_FUNCTIONS_SORTED="$(jq -r '.[].slug' .tmp_push/remote_functions_after_push.json | sort || true)"
 
 if [[ -n "$LOCAL_FUNCTIONS_SORTED" ]]; then
