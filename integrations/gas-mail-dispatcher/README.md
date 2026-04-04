@@ -27,7 +27,7 @@ Nilainya harus sama persis dengan env Supabase:
 
 ## Edge Functions
 
-- `send-registration-invite`
+- `send-patient-invitation`
 - `send-referral-pin`
 
 ## Payload Contract

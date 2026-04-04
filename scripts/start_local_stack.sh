@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 LOCAL_PSQL="postgresql://postgres:postgres@127.0.0.1:55322/postgres"
+PROJECT_ID="$(awk -F= '/^project_id[[:space:]]*=/{gsub(/[ "\r]/, "", $2); print $2; exit}' supabase/config.toml)"
 
 mkdir -p "$HOME/.docker/run"
 rm -f "$HOME/.docker/run/docker.sock"
@@ -12,6 +13,36 @@ export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 
 AUTO_PREPARE_LOCAL_ON_START="${AUTO_PREPARE_LOCAL_ON_START:-0}"
+
+if [[ -f ".env.local" ]]; then
+  set -a
+  # Load tracked local env so Supabase edge runtime secrets resolve during local start.
+  source ".env.local"
+  set +a
+fi
+
+cleanup_project_containers() {
+  local mode="${1:-all}"
+  local names=""
+
+  if [[ "$mode" == "exited" ]]; then
+    names="$(docker ps -a --format '{{.Names}} {{.Status}}' | awk -v project_id="$PROJECT_ID" '
+      index($1, "supabase_") == 1 && $1 ~ ("_" project_id "$") && $2 == "Exited" { print $1 }
+    ')"
+  else
+    names="$(docker ps -a --format '{{.Names}}' | awk -v project_id="$PROJECT_ID" '
+      index($1, "supabase_") == 1 && $1 ~ ("_" project_id "$") { print }
+    ')"
+  fi
+
+  if [[ -n "$names" ]]; then
+    echo "Removing ${mode} local Supabase containers for project ${PROJECT_ID}..."
+    while IFS= read -r container_name; do
+      [[ -n "$container_name" ]] || continue
+      docker rm -f "$container_name" >/dev/null
+    done <<< "$names"
+  fi
+}
 
 if [[ "$AUTO_PREPARE_LOCAL_ON_START" == "1" ]]; then
   echo "Preparing local DB baseline before starting full stack..."
@@ -26,8 +57,19 @@ if [[ "$status_output" == *"Stopped services:"* ]]; then
   supabase stop >/dev/null
 fi
 
+cleanup_project_containers exited
+
 echo "Starting full local Supabase stack..."
-supabase start >/dev/null
+start_output="$(supabase start 2>&1)" || {
+  if [[ "$start_output" == *"failed to create docker container"* && "$start_output" == *"already in use by container"* ]]; then
+    echo "Detected stale local Supabase containers for project ${PROJECT_ID}. Retrying once after cleanup..."
+    cleanup_project_containers all
+    supabase start >/dev/null
+  else
+    echo "$start_output" >&2
+    exit 1
+  fi
+}
 
 psql "$LOCAL_PSQL" -v ON_ERROR_STOP=1 -c \
   "CREATE SCHEMA IF NOT EXISTS graphql_public;" >/dev/null

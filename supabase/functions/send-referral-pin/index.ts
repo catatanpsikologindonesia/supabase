@@ -12,6 +12,7 @@ type ReferralPinPayload = {
   referral_id?: unknown;
   portal_base_url?: unknown;
   expires_at?: unknown;
+  recipient_timezone?: unknown;
 };
 
 function asTrimmedString(value: unknown): string {
@@ -20,6 +21,18 @@ function asTrimmedString(value: unknown): string {
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function resolveDisplayTimezone(timezone: string): string {
+  const candidate = timezone.trim();
+  if (!candidate) return 'Asia/Jakarta';
+
+  try {
+    new Intl.DateTimeFormat('id-ID', { timeZone: candidate }).format(new Date());
+    return candidate;
+  } catch {
+    return 'Asia/Jakarta';
+  }
 }
 
 serve(async (req) => {
@@ -60,6 +73,7 @@ serve(async (req) => {
     const referralId = asTrimmedString(payload.referral_id);
     const portalBaseUrl = asTrimmedString(payload.portal_base_url);
     const expiresAtRaw = asTrimmedString(payload.expires_at);
+    const recipientTimezone = resolveDisplayTimezone(asTrimmedString(payload.recipient_timezone));
 
     if (!email || !patientName || !destination || !pin || !referralId || !portalBaseUrl || !expiresAtRaw) {
       return jsonResponse({
@@ -112,7 +126,7 @@ serve(async (req) => {
       destination,
       pin,
       referralUrl,
-      expiresText: expiresAt.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }),
+      expiresText: expiresAt.toLocaleString('id-ID', { timeZone: recipientTimezone }),
     });
 
     await dispatchMail({

@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-type AllowedRole = 'admin' | 'psychologist';
+type AllowedRole = 'clinic_staff';
 
 function resolveServiceRoleKey(): string {
   const candidates = [
@@ -65,12 +65,12 @@ export async function requirePortalRole(
     .eq('id', user.id)
     .maybeSingle<{ role: AllowedRole | 'patient' | null }>();
 
-  if (profileError || !profile || (profile.role !== 'admin' && profile.role !== 'psychologist')) {
+  if (profileError || !profile || profile.role !== 'clinic_staff') {
     return {
       ok: false,
       status: 403,
       code: 'FORBIDDEN',
-      message: 'Akses ditolak. Hanya psikolog/admin yang diizinkan.',
+      message: 'Akses ditolak. Hanya staf klinik yang diizinkan.',
     };
   }
 

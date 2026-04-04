@@ -3374,4 +3374,3 @@ CREATE POLICY users_select_own ON public.users FOR SELECT TO authenticated USING
 --
 
 \unrestrict 4V4WV09APbckAi51hyAPGEdbUiIQmPbjTwgO5cHa3AeO2zseVcC6hN63DfxXtuq
-

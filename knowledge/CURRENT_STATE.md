@@ -1,40 +1,42 @@
-# Current State (Catatan Psikolog Supabase)
+# Current State
 
-Last audited: 2026-04-04 (Asia/Jakarta)
+Last updated: 2026-04-05
 
 ## Repository Role
 
-Supabase mirror and migration source for Catatan Psikolog backend.
+This repository is the operational Supabase home for Catatan Psikolog. It owns local stack startup, mirror automation, snapshots, migrations, edge functions, and deployment workflows.
 
-## Git/Branch Snapshot
+## Local Stack
 
-- Branch: `main`
-- Mail-dispatch workstream in progress:
-  - `supabase/functions/_shared/http.ts`
-  - `supabase/functions/_shared/auth.ts`
-  - `supabase/functions/_shared/mail_dispatcher.ts`
-  - `supabase/functions/_shared/email_templates/registration_invite.ts`
-  - `supabase/functions/_shared/email_templates/referral_pin.ts`
-  - `supabase/functions/send-registration-invite/index.ts`
-  - `supabase/functions/send-referral-pin/index.ts`
-  - `integrations/gas-mail-dispatcher/Code.gs`
-  - `integrations/gas-mail-dispatcher/README.md`
+- local startup is handled by `make start-local`
+- startup loads `.env.local`
+- stale Docker container conflicts are cleaned up automatically when possible
+- local startup preserves existing local data unless a restore or mirror command is explicitly used
 
-## Verification Notes
+## Email Delivery
 
-- Local migration directory exists and contains one migration file.
-- `supabase migration list` could not be fully verified against remote because credentials failed (`password authentication failed for user postgres`).
-- Supabase edge mail flow now exists for Catatan Psikolog and is intended to replace direct SMTP sending from the Next.js user portal.
-- GAS dispatcher contract mirrors Catatan Dokter architecture, but this repository remains a separate project with its own env/deploy/secrets.
+Outbound email is now driven by edge functions plus a Google Apps Script dispatcher.
 
-## Operational Action
+Active functions:
 
-- Confirm remote DB credentials before any migration reconciliation or production push.
-- Before deploying mail flow:
-  - set Supabase edge env `MAIL_DISPATCHER_WEBHOOK_URL`
-  - set Supabase edge env `MAIL_WEBHOOK_SECRET`
-  - set Apps Script `MAIL_WEBHOOK_SECRET`
-  - deploy `send-registration-invite`
-  - deploy `send-referral-pin`
-- Repo policy for this private project:
-  - tracked env files may include active secrets and should be updated in-repo when environment config changes.
+- `send-patient-invitation`
+- `send-referral-pin`
+
+Invitation variants:
+
+- `registration_required`
+- `consent_required`
+- `info_only`
+
+## Timezone Handling
+
+- email templates accept `recipient_timezone`
+- raw timezone labels such as `(Asia/Jakarta)` have been removed from rendered email text
+- fallback timezone remains `Asia/Jakarta`
+
+## Operational Notes
+
+- use `make start-local` for normal development
+- use `make prepare-local` for a reproducible restore-based baseline
+- use `make mirror-remote-to-local` only when you intentionally want a full remote refresh
+- edge mail secrets are wired through `supabase/config.toml`

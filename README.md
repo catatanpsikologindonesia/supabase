@@ -1,146 +1,78 @@
-# CatatanPsikolog Supabase Mirror
+# Catatan Psikolog Supabase
 
-Operational mirror for the **CatatanPsikolog** Supabase project.
+Operational Supabase repository for the Catatan Psikolog product line. This repository is the source of truth for local mirror workflows, snapshots, migrations, edge functions, and controlled remote deployments.
 
-This repository is the team baseline for:
+## What This Repository Owns
 
-- pulling remote state into local
-- verifying local/remote parity
-- applying local schema/function updates
-- pushing safely to staging/production
+- Supabase CLI workspace under `supabase/`
+- database snapshots and verification outputs under `snapshot/`
+- local mirror, restore, and deploy scripts under `scripts/`
+- Google Apps Script based email delivery integration
+- repository knowledge under `knowledge/`
 
-## Scope
+## Main Capabilities
 
-The mirror covers business-critical Supabase assets:
-
-- PostgreSQL schema and data (database dump + SQL snapshot)
-- `public` RPC/functions inventory
-- Auth parity checks (`auth.users`, `auth.identities`)
-- Storage object parity checks and binary sync
-- Edge Functions source and deployment
-- `pg_cron` job parity
-
-## Repository Layout
-
-- `supabase/`  
-  Supabase CLI workspace (`config.toml`, `migrations/`, `functions/`).
-- `scripts/`  
-  Pull/sync/verify/push automation.
-- `snapshot/database/`  
-  Latest database snapshot artifacts (`db_full_snapshot.dump`, `schema_snapshot.sql`, `db_*.txt`).
-- `snapshot/functions/`  
-  Edge Functions metadata snapshots.
-- `snapshot/verification/`  
-  Generated parity reports (`verify_local_remote_<timestamp>/`).
-- `knowledge/`  
-  Agent/team knowledge (non-runtime docs).
-- `Makefile`  
-  Standard command entry points.
+- start the local Supabase stack safely without forcing a restore
+- restore or fully mirror remote state into the local stack
+- verify local versus remote parity
+- deploy schema and edge-function changes to staging or production
+- host the Catatan Psikolog outbound email edge functions
 
 ## Prerequisites
 
 - Supabase CLI
-- Docker runtime (Colima or Docker Desktop)
-- `psql` / `pg_restore` (libpq)
+- Docker runtime
+- `psql`
+- `pg_restore`
 - `jq`
 
 ## Environment Files
 
-Secrets are loaded by scripts and are gitignored.
+This private repository currently keeps active environment files in git.
 
-- `.env.local` for local mirror operations
-- `.env.staging` for staging push target
-- `.env.prod` for production push target
-- `.env.prod.example` as template
+- `.env.local`
+- `.env.local.keys`
+- `.env.staging`
+- `.env.prod`
 
-`SUPABASE_PAT_FILE` must point to a local file path on each developer machine
-(do not commit PAT files or absolute paths).
+Important mail-related values:
 
-## Daily Workflow
+- `MAIL_DISPATCHER_WEBHOOK_URL`
+- `MAIL_WEBHOOK_SECRET`
 
-## Team Entry Point
-
-For day-to-day frontend dev, use:
-
-- `make run-local` from `catatan-psikolog-user-portal`
-
-This command now auto-runs mirror start (`make start-local`) + frontend contract sync + preflight checks.
-
-Quick checklist:
-
-- frontend harian: jalankan `make run-local` dari `catatan-psikolog-user-portal`, bukan `make prepare-local` langsung
-- `make start-local` di repo ini hanya menyalakan service lokal dan tidak menghapus/restore data
-- untuk sync 1:1 dari remote ke local, jalankan `make mirror-remote-to-local` secara eksplisit
-- kalau struktur folder lokal beda, set `SUPABASE_MIRROR_DIR` di `scripts/.env.local` portal
-- port penting: API `55321`, DB `55322`, Studio `55323`, Mailpit `55324`
-
-### 1. Sync remote to local mirror
+## Common Commands
 
 ```bash
-make mirror-remote-to-local
-```
-
-### 1b. Prepare local DB for frontend/agent work
-
-Use this when you want a deterministic local baseline without manual migration troubleshooting.
-
-```bash
+make start-local
 make prepare-local
-```
-
-What it does:
-
-- restores local DB from `snapshot/database/db_full_snapshot.dump`
-- re-applies every SQL migration under `supabase/migrations/`
-- validates key local artifact (`public` table count)
-
-### 2. Verify parity
-
-```bash
+make mirror-remote-to-local
 make verify-local-remote
-```
-
-### 3. Apply local changes (SQL, migration, edge function)
-
-Edit files under `supabase/` and/or run SQL migration workflow.
-
-### 4. Push
-
-```bash
 make push-staging
-# after staging validation
 make push-prod
 ```
 
-`make push-remote` is an alias to `make push-staging`.
+## Local Ports
 
-## Push Safety Guarantees
+- API `55321`
+- DB `55322`
+- Studio `55323`
+- Mailpit `55324`
 
-`scripts/push_remote_changes.sh` enforces:
+## Email Delivery
 
-1. local-vs-remote preflight verification
-2. explicit operator confirmation on mismatch
-3. remote backup snapshot before deployment
-4. `supabase db push`
-5. edge function deployment
-6. post-push verification
+The current delivery path is edge-function based and posts to a Google Apps Script dispatcher.
 
-## Local/Remote Resolution Strategy
+Active mail functions:
 
-Remote DB connectivity uses linked project metadata from Supabase CLI.
+- `send-patient-invitation`
+- `send-referral-pin`
 
-If direct DB host is unreachable from the current network, scripts automatically fallback to the Supabase pooler so mirror/verify remains reproducible.
+`send-patient-invitation` supports:
 
-## Knowledge Index
+- `registration_required`
+- `consent_required`
+- `info_only`
 
-Start here for onboarding and agent execution context:
+## Documentation
 
-1. `knowledge/README.md`
-2. `knowledge/TEAM_GUIDE.md`
-3. `knowledge/OPERATIONS_CHECKLIST.md`
-4. `knowledge/SUPABASE_SCHEMA_MAP.md`
-
-## Project Identity
-
-- Project name: `CatatanPsikolog`
-- Staging project ref: `ixwaaziifteubxkxtdwj`
+Start with [knowledge/README.md](./knowledge/README.md).
