@@ -28,6 +28,13 @@ Invitation variants:
 - `consent_required`
 - `info_only`
 
+## Email Security State
+
+- edge mail functions no longer trust raw recipient and content payloads from the portal
+- `send-patient-invitation` now resolves invitation data from `patient_invitations` by `invitation_id`
+- `send-referral-pin` now resolves referral and patient data from the database by `referral_id`
+- both functions verify that the authenticated staff user owns the related membership before an email can be sent
+
 ## Timezone Handling
 
 - email templates accept `recipient_timezone`

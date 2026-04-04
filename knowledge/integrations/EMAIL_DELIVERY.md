@@ -9,6 +9,22 @@ Catatan Psikolog email delivery is handled by Supabase edge functions that forwa
 - `send-patient-invitation`
 - `send-referral-pin`
 
+## Trusted Inputs
+
+The portal no longer sends trusted email content payloads to these functions.
+
+- `send-patient-invitation` accepts `invitation_id`, `registration_base_url`, and `recipient_timezone`
+- `send-referral-pin` accepts `referral_id`, `portal_base_url`, and `recipient_timezone`
+
+The functions resolve recipients, flow data, clinic context, referral details, and related content from the database.
+
+## Ownership Checks
+
+- invitation emails require the authenticated staff user to match the `invited_by_membership_id` owner
+- referral emails require the authenticated staff user to match the `practitioner_membership_id` owner
+
+This reduces the risk of a leaked clinic staff token being used to send arbitrary branded email payloads.
+
 ## Invitation Variants
 
 `send-patient-invitation` serves three variants:

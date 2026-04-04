@@ -9,15 +9,8 @@ import { jsonResponse, preflight, requestIdFrom } from '../_shared/http.ts';
 import { dispatchMail } from '../_shared/mail_dispatcher.ts';
 
 type PatientInvitationPayload = {
-  email?: unknown;
-  flow?: unknown;
-  token?: unknown;
+  invitation_id?: unknown;
   registration_base_url?: unknown;
-  expires_at?: unknown;
-  clinic_name?: unknown;
-  session_start_at?: unknown;
-  session_end_at?: unknown;
-  session_timezone?: unknown;
   recipient_timezone?: unknown;
 };
 
@@ -68,18 +61,11 @@ serve(async (req) => {
     }
 
     const payload = (await req.json()) as PatientInvitationPayload;
-    const email = asTrimmedString(payload.email).toLowerCase();
-    const flow = asTrimmedString(payload.flow);
-    const token = asTrimmedString(payload.token);
+    const invitationId = asTrimmedString(payload.invitation_id);
     const registrationBaseUrl = asTrimmedString(payload.registration_base_url);
-    const expiresAtRaw = asTrimmedString(payload.expires_at);
-    const clinicName = asTrimmedString(payload.clinic_name);
-    const sessionStartAtRaw = asTrimmedString(payload.session_start_at);
-    const sessionEndAtRaw = asTrimmedString(payload.session_end_at);
-    const sessionTimezone = asTrimmedString(payload.session_timezone) || 'Asia/Jakarta';
-    const recipientTimezone = asTrimmedString(payload.recipient_timezone) || sessionTimezone;
+    const recipientTimezone = asTrimmedString(payload.recipient_timezone);
 
-    if (!email || !flow || !clinicName || !sessionStartAtRaw || !sessionEndAtRaw) {
+    if (!invitationId || !registrationBaseUrl) {
       return jsonResponse({
         req,
         requestId,
@@ -90,31 +76,95 @@ serve(async (req) => {
       });
     }
 
-    if (!isValidEmail(email)) {
+    const { data: invitation, error: invitationError } = await auth.supabase
+      .from('patient_invitations')
+      .select(
+        'id, email, token, expires_at, flow, clinic_id, invited_by_membership_id, session_start_at, session_end_at, session_timezone',
+      )
+      .eq('id', invitationId)
+      .maybeSingle<{
+        id: string;
+        email: string;
+        token: string;
+        expires_at: string;
+        flow: PatientInvitationFlow;
+        clinic_id: string;
+        invited_by_membership_id: string | null;
+        session_start_at: string | null;
+        session_end_at: string | null;
+        session_timezone: string | null;
+      }>();
+
+    if (invitationError || !invitation) {
+      return jsonResponse({
+        req,
+        requestId,
+        status: 404,
+        success: false,
+        code: 'BAD_REQUEST',
+        message: 'Data undangan pasien tidak ditemukan.',
+      });
+    }
+
+    if (!invitation.invited_by_membership_id) {
+      return jsonResponse({
+        req,
+        requestId,
+        status: 403,
+        success: false,
+        code: 'FORBIDDEN',
+        message: 'Undangan pasien tidak memiliki membership pengundang yang valid.',
+      });
+    }
+
+    const { data: membership } = await auth.supabase
+      .from('clinic_memberships')
+      .select('id')
+      .eq('id', invitation.invited_by_membership_id)
+      .eq('user_id', auth.userId)
+      .eq('is_active', true)
+      .maybeSingle<{ id: string }>();
+
+    if (!membership) {
+      return jsonResponse({
+        req,
+        requestId,
+        status: 403,
+        success: false,
+        code: 'FORBIDDEN',
+        message: 'Undangan pasien tidak dapat dikirim dari akun ini.',
+      });
+    }
+
+    const { data: clinic } = await auth.supabase
+      .from('clinics')
+      .select('name')
+      .eq('id', invitation.clinic_id)
+      .maybeSingle<{ name: string | null }>();
+
+    const email = invitation.email.trim().toLowerCase();
+    const flow = invitation.flow;
+    const token = invitation.token.trim();
+    const clinicName = clinic?.name?.trim() || 'Catatan Psikolog';
+    const sessionTimezone = (invitation.session_timezone ?? '').trim() || 'Asia/Jakarta';
+    const displayTimezone = recipientTimezone || sessionTimezone;
+    const sessionStartAt = invitation.session_start_at ? new Date(invitation.session_start_at) : null;
+    const sessionEndAt = invitation.session_end_at ? new Date(invitation.session_end_at) : null;
+
+    if (!isValidEmail(email) || !isValidFlow(flow)) {
       return jsonResponse({
         req,
         requestId,
         status: 400,
         success: false,
         code: 'BAD_REQUEST',
-        message: 'Alamat email undangan tidak valid.',
+        message: 'Data undangan pasien tidak valid.',
       });
     }
 
-    if (!isValidFlow(flow)) {
-      return jsonResponse({
-        req,
-        requestId,
-        status: 400,
-        success: false,
-        code: 'BAD_REQUEST',
-        message: 'Flow undangan pasien tidak valid.',
-      });
-    }
-
-    const sessionStartAt = new Date(sessionStartAtRaw);
-    const sessionEndAt = new Date(sessionEndAtRaw);
     if (
+      !sessionStartAt ||
+      !sessionEndAt ||
       Number.isNaN(sessionStartAt.getTime()) ||
       Number.isNaN(sessionEndAt.getTime())
     ) {
@@ -143,7 +193,7 @@ serve(async (req) => {
     let expiresText: string | undefined;
     if (flow !== 'info_only') {
       registrationUrl = new URL(`/register/${token}`, registrationBaseUrl).toString();
-      const expiresAt = expiresAtRaw ? new Date(expiresAtRaw) : null;
+      const expiresAt = invitation.expires_at ? new Date(invitation.expires_at) : null;
       expiresText =
         expiresAt && !Number.isNaN(expiresAt.getTime())
           ? `Link ini berlaku sampai ${expiresAt.toLocaleString('id-ID', {
@@ -160,7 +210,7 @@ serve(async (req) => {
       sessionText: formatSessionRangeText(
         sessionStartAt,
         sessionEndAt,
-        recipientTimezone,
+        displayTimezone,
       ),
     });
 

@@ -9,5 +9,6 @@ This folder contains focused operational, architectural, policy, and agent docum
 3. `operations/LOCAL_STACK_AND_MIRROR.md`
 4. `operations/DEPLOYMENT_AND_PARITY.md`
 5. `integrations/EMAIL_DELIVERY.md`
-6. `policies/DOCUMENTATION_LANGUAGE_POLICY.md`
-7. `agents/WORKING_RULES.md`
+6. `policies/SECURITY.md`
+7. `policies/DOCUMENTATION_LANGUAGE_POLICY.md`
+8. `agents/WORKING_RULES.md`

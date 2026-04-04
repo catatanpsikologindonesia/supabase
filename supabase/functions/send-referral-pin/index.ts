@@ -5,13 +5,8 @@ import { jsonResponse, preflight, requestIdFrom } from '../_shared/http.ts';
 import { dispatchMail } from '../_shared/mail_dispatcher.ts';
 
 type ReferralPinPayload = {
-  email?: unknown;
-  patient_name?: unknown;
-  destination?: unknown;
-  pin?: unknown;
   referral_id?: unknown;
   portal_base_url?: unknown;
-  expires_at?: unknown;
   recipient_timezone?: unknown;
 };
 
@@ -66,16 +61,11 @@ serve(async (req) => {
     }
 
     const payload = (await req.json()) as ReferralPinPayload;
-    const email = asTrimmedString(payload.email).toLowerCase();
-    const patientName = asTrimmedString(payload.patient_name);
-    const destination = asTrimmedString(payload.destination);
-    const pin = asTrimmedString(payload.pin);
     const referralId = asTrimmedString(payload.referral_id);
     const portalBaseUrl = asTrimmedString(payload.portal_base_url);
-    const expiresAtRaw = asTrimmedString(payload.expires_at);
     const recipientTimezone = resolveDisplayTimezone(asTrimmedString(payload.recipient_timezone));
 
-    if (!email || !patientName || !destination || !pin || !referralId || !portalBaseUrl || !expiresAtRaw) {
+    if (!referralId || !portalBaseUrl) {
       return jsonResponse({
         req,
         requestId,
@@ -86,30 +76,73 @@ serve(async (req) => {
       });
     }
 
-    if (!isValidEmail(email)) {
+    const { data: referral, error: referralError } = await auth.supabase
+      .from('referrals_and_feedback')
+      .select('id, patient_id, destination, secure_pin, expires_at, practitioner_membership_id')
+      .eq('id', referralId)
+      .maybeSingle<{
+        id: string;
+        patient_id: string;
+        destination: string;
+        secure_pin: string;
+        expires_at: string;
+        practitioner_membership_id: string | null;
+      }>();
+
+    if (referralError || !referral || !referral.practitioner_membership_id) {
       return jsonResponse({
         req,
         requestId,
-        status: 400,
+        status: 404,
         success: false,
         code: 'BAD_REQUEST',
-        message: 'Alamat email pasien tidak valid.',
+        message: 'Data referral tidak ditemukan.',
       });
     }
 
-    if (!/^\d{6}$/.test(pin)) {
+    const { data: membership } = await auth.supabase
+      .from('clinic_memberships')
+      .select('id')
+      .eq('id', referral.practitioner_membership_id)
+      .eq('user_id', auth.userId)
+      .eq('is_active', true)
+      .maybeSingle<{ id: string }>();
+
+    if (!membership) {
       return jsonResponse({
         req,
         requestId,
-        status: 400,
+        status: 403,
         success: false,
-        code: 'BAD_REQUEST',
-        message: 'PIN rujukan harus terdiri dari 6 digit.',
+        code: 'FORBIDDEN',
+        message: 'Referral ini tidak dapat dikirim dari akun ini.',
       });
     }
 
+    const { data: patient } = await auth.supabase
+      .from('patients')
+      .select('email, full_name')
+      .eq('id', referral.patient_id)
+      .maybeSingle<{ email: string | null; full_name: string | null }>();
+
+    const email = patient?.email?.trim().toLowerCase() ?? '';
+    const patientName = patient?.full_name?.trim() || 'Pasien';
+    const destination = referral.destination.trim();
+    const pin = referral.secure_pin.trim();
     const referralUrl = new URL(`/rujukan/${referralId}`, portalBaseUrl).toString();
-    const expiresAt = new Date(expiresAtRaw);
+    const expiresAt = new Date(referral.expires_at);
+
+    if (!isValidEmail(email) || !/^\d{6}$/.test(pin)) {
+      return jsonResponse({
+        req,
+        requestId,
+        status: 400,
+        success: false,
+        code: 'BAD_REQUEST',
+        message: 'Data referral tidak valid untuk pengiriman email.',
+      });
+    }
+
     if (Number.isNaN(expiresAt.getTime())) {
       return jsonResponse({
         req,
