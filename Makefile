@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 .DEFAULT_GOAL := help
 
-.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local restore-local prepare-local sync-auth sync-cron sync-storage verify-local-remote mirror-remote-to-local guard-local-sync knowledge-language-check push-remote push-staging push-prod
+.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local restore-local prepare-local sync-auth sync-cron sync-cron-jobs sync-extensions sync-storage sync-storage-policies verify-local-remote mirror-remote-to-local guard-local-sync knowledge-language-check push-remote push-staging push-prod
 
 help:
 	@echo "Available targets:"
@@ -21,7 +21,10 @@ help:
 	@echo "  make prepare-local"
 	@echo "  make sync-auth"
 	@echo "  make sync-cron"
+	@echo "  make sync-cron-jobs"
+	@echo "  make sync-extensions"
 	@echo "  make sync-storage"
+	@echo "  make sync-storage-policies"
 	@echo "  make verify-local-remote"
 	@echo "  make mirror-remote-to-local"
 	@echo "  make guard-local-sync"
@@ -69,8 +72,17 @@ sync-auth:
 sync-cron:
 	./scripts/sync_cron_remote_to_local.sh
 
+sync-cron-jobs:
+	./scripts/sync_cron_jobs.sh
+
+sync-extensions:
+	./scripts/sync_extensions.sh
+
 sync-storage:
 	./scripts/sync_storage_remote_to_local.sh
+
+sync-storage-policies:
+	./scripts/sync_storage_policies.sh
 
 verify-local-remote:
 	./scripts/verify_local_remote_diff.sh
