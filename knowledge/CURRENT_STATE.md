@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-04-05
+Last updated: 2026-04-21
 
 ## Repository Role
 
@@ -11,7 +11,16 @@ This repository is the operational Supabase home for Catatan Psikolog. It owns l
 - local startup is handled by `make start-local`
 - startup loads `.env.local`
 - stale Docker container conflicts are cleaned up automatically when possible
-- local startup preserves existing local data unless a restore or mirror command is explicitly used
+- local startup now restores the local DB snapshot by default before opening the full stack
+- local restore includes the `storage` schema and restores binary storage contents from `snapshot/storage/objects/` via the local Storage API when that artifact exists
+- local startup avoids replaying the full historical migration chain during normal boot
+- local startup can remain safe even when remote features like `pg_cron` or storage buckets are not present yet
+
+## Current Runtime Feature Availability
+
+- `pg_cron` is not currently enabled on the active Catatan Psikolog remote project
+- storage buckets and storage objects are currently empty on the active Catatan Psikolog remote project
+- local startup and snapshot flows now remain compatible with that reduced feature surface without changing the source-of-truth workflow
 
 ## Email Delivery
 
@@ -44,6 +53,7 @@ Invitation variants:
 ## Operational Notes
 
 - use `make start-local` for normal development
-- use `make prepare-local` for a reproducible restore-based baseline
+- use `make prepare-local` only when you explicitly need restore + migration replay
 - use `make mirror-remote-to-local` only when you intentionally want a full remote refresh
+- if local storage binaries change, run `make export-storage` so repository snapshots stay aligned with the local source of truth
 - edge mail secrets are wired through `supabase/config.toml`

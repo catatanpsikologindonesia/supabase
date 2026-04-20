@@ -40,15 +40,22 @@ else
     "DROP EXTENSION IF EXISTS pg_cron CASCADE;" >/dev/null || true
 fi
 
-# Restore auth + public + cron from the snapshot so local auth stays in parity
-# with remote. This runs only on explicit mirror/prepare flows, not on normal app start.
+# Restore auth + public + cron + storage from the local snapshot so local Studio
+# exposes the same operational surfaces captured by the repository baseline.
 export PGPASSWORD="postgres"
 pg_restore \
   --clean --if-exists \
   --no-owner --no-privileges \
-  -n auth -n public -n cron \
+  -n auth -n public -n cron -n storage \
   -h 127.0.0.1 -p 55322 -U postgres -d postgres \
   "$DUMP_FILE" || true
+
+CRON_FILE="$ROOT_DIR/snapshot/database/cron_jobs_export.sql"
+if [[ "$REMOTE_HAS_PG_CRON" -eq 1 && -f "$CRON_FILE" && -s "$CRON_FILE" ]]; then
+  psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -c \
+    "select cron.unschedule(jobid) from cron.job order by jobid;" >/dev/null || true
+  psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -f "$CRON_FILE" >/dev/null
+fi
 
 # Realtime service expects _realtime schema to exist.
 psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 -c \

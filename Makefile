@@ -2,12 +2,13 @@ SHELL := /bin/bash
 
 .DEFAULT_GOAL := help
 
-.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local restore-local prepare-local sync-auth sync-cron sync-cron-jobs sync-extensions sync-storage sync-storage-policies verify-local-remote mirror-remote-to-local guard-local-sync knowledge-language-check push-remote push-staging push-prod
+.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local restore-local prepare-local sync-auth sync-cron sync-cron-jobs sync-extensions sync-storage sync-storage-policies verify-local-remote mirror-remote-to-local guard-local-sync knowledge-language-check push-remote push-staging push-prod restore-storage
 
 help:
 	@echo "Available targets:"
 	@echo "  make export-db"
 	@echo "  make export-storage"
+	@echo "  make restore-storage"
 	@echo "  make export-config"
 	@echo "  make export-all"
 	@echo "  make restore"
@@ -35,7 +36,11 @@ help:
 
 export-db: pull-snapshot
 
-export-storage: sync-storage
+export-storage:
+	./scripts/export_local_storage_snapshot.sh
+
+restore-storage:
+	./scripts/restore_local_storage_snapshot.sh
 
 export-config:
 	@echo "Config export is covered by pull-snapshot for CatatanPsikolog."

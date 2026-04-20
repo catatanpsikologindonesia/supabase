@@ -2,6 +2,11 @@
 set -euo pipefail
 
 if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
+  # shellcheck disable=SC1091
+  source "$(cd "$(dirname "$0")/.." && pwd)/scripts/load_local_secrets.sh" >/dev/null 2>&1 || true
+fi
+
+if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
   echo "SUPABASE_ACCESS_TOKEN is required" >&2
   exit 1
 fi
@@ -233,6 +238,7 @@ while IFS= read -r bucket_b64; do
           full_obj_name="${prefix}${obj_name}"
         fi
         [[ "$full_obj_name" == ".emptyFolderPlaceholder" || "$full_obj_name" == */".emptyFolderPlaceholder" ]] && continue
+        [[ "$full_obj_name" == ".keep" || "$full_obj_name" == */".keep" ]] && continue
         content_type="$obj_mime"
         if [[ -z "$content_type" || "$content_type" == "null" || "$content_type" == "application/octet-stream" ]]; then
           content_type="$(guess_content_type "$full_obj_name")"

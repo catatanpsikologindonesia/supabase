@@ -12,7 +12,7 @@ ln -sf "$HOME/.colima/default/docker.sock" "$HOME/.docker/run/docker.sock"
 export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 
-AUTO_PREPARE_LOCAL_ON_START="${AUTO_PREPARE_LOCAL_ON_START:-0}"
+AUTO_PREPARE_LOCAL_ON_START="${AUTO_PREPARE_LOCAL_ON_START:-1}"
 
 if [[ -f ".env.local" ]]; then
   set -a
@@ -45,10 +45,10 @@ cleanup_project_containers() {
 }
 
 if [[ "$AUTO_PREPARE_LOCAL_ON_START" == "1" ]]; then
-  echo "Preparing local DB baseline before starting full stack..."
-  bash scripts/prepare_local_db.sh
+  echo "Restoring local DB baseline before starting full stack..."
+  bash scripts/restore_local_db.sh
 else
-  echo "Skipping local DB prepare to preserve current local data (set AUTO_PREPARE_LOCAL_ON_START=1 to enable)."
+  echo "Skipping local DB restore to preserve current local data (set AUTO_PREPARE_LOCAL_ON_START=1 to enable)."
 fi
 
 status_output="$(supabase status 2>&1 || true)"
@@ -81,6 +81,9 @@ psql "$LOCAL_PSQL" -v ON_ERROR_STOP=1 -c \
   "GRANT USAGE ON SCHEMA graphql_public TO postgres, anon, authenticated, service_role;" >/dev/null
 psql "$LOCAL_PSQL" -v ON_ERROR_STOP=1 -c \
   "GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;" >/dev/null
+
+echo "Restoring local storage binaries snapshot..."
+bash scripts/restore_local_storage_snapshot.sh
 
 api_port="$(awk -F= '
   /^\[api\]/ { in_api=1; next }
