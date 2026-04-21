@@ -30,6 +30,7 @@ Active functions:
 
 - `send-patient-invitation`
 - `send-referral-pin`
+- `verify-referral-pin`
 
 Invitation variants:
 
@@ -49,6 +50,12 @@ Invitation variants:
 - email templates accept `recipient_timezone`
 - raw timezone labels such as `(Asia/Jakarta)` have been removed from rendered email text
 - fallback timezone remains `Asia/Jakarta`
+
+## Public Verification Surface
+
+- referral PIN verification is now exposed through public edge function `verify-referral-pin`
+- intended caller is the public referral page in `catatan-psikolog-user-portal`
+- the function verifies input, calls RPC `verify_referral_pin`, and normalizes fallback labels before returning a public-safe payload
 
 ## Operational Notes
 

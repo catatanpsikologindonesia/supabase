@@ -2,6 +2,8 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'https://www.catatanpsikolog.id',
   'https://catatanpsikolog.id',
   'https://app.catatanpsikolog.id',
+  'https://staging.catatanpsikolog.id',
+  'https://staging-app.catatanpsikolog.id',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
 ] as const;
@@ -53,7 +55,11 @@ export type ApiCode =
   | 'BAD_REQUEST'
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
-  | 'INTERNAL_ERROR';
+  | 'INTERNAL_ERROR'
+  | 'INVALID_INPUT'
+  | 'REFERRAL_NOT_FOUND'
+  | 'REFERRAL_EXPIRED'
+  | 'INVALID_PIN';
 
 export function requestIdFrom(req: Request): string {
   return req.headers.get('x-request-id')?.trim() || crypto.randomUUID();
