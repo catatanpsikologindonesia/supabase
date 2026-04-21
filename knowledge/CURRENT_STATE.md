@@ -30,6 +30,7 @@ Active functions:
 
 - `send-patient-invitation`
 - `send-referral-pin`
+- `accept-patient-consent`
 - `verify-referral-pin`
 
 Invitation variants:
@@ -56,6 +57,12 @@ Invitation variants:
 - referral PIN verification is now exposed through public edge function `verify-referral-pin`
 - intended caller is the public referral page in `catatan-psikolog-user-portal`
 - the function verifies input, calls RPC `verify_referral_pin`, and normalizes fallback labels before returning a public-safe payload
+
+## Public Consent Surface
+
+- patient consent acceptance is now exposed through public edge function `accept-patient-consent`
+- intended caller is the public consent flow in `catatan-psikolog-user-portal`
+- the function forwards consent IP and user-agent metadata to RPC `accept_patient_consent_by_token`
 
 ## Operational Notes
 
