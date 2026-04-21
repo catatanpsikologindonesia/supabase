@@ -30,6 +30,7 @@ Active functions:
 
 - `create-patient-invitation`
 - `create-referral`
+- `submit-patient-registration`
 - `send-patient-invitation`
 - `send-referral-pin`
 - `accept-patient-consent`
@@ -83,6 +84,12 @@ Invitation variants:
 - referral creation is now exposed through authenticated edge function `create-referral`
 - intended caller is the therapy workspace in `catatan-psikolog-user-portal`
 - the function generates the PIN, persists the referral, and then triggers `send-referral-pin`
+
+## Public Registration Surface
+
+- patient registration submit is now exposed through public edge function `submit-patient-registration`
+- intended caller is the registration wizard in `catatan-psikolog-user-portal`
+- the function preserves the current sign-up/sign-in fallback orchestration while removing the Next route from the active runtime path
 
 ## Operational Notes
 
