@@ -1,7 +1,5 @@
 # Temporary artifacts
-.tmp_storage_sync/
-.tmp_push/
-.tmp_verify/
+.tmp_*/
 snapshot/verification/verify_local_remote_*/
 supabase/.temp/
 supabase/.branches/

@@ -19,8 +19,8 @@
     "name": "send-patient-invitation",
     "slug": "send-patient-invitation",
     "status": "ACTIVE",
-    "updated_at": 1776347859144,
-    "verify_jwt": true,
-    "version": 4
+    "updated_at": 1776355581831,
+    "verify_jwt": false,
+    "version": 5
   }
 ]
