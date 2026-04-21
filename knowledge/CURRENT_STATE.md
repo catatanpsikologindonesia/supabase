@@ -64,6 +64,12 @@ Invitation variants:
 - intended caller is the public consent flow in `catatan-psikolog-user-portal`
 - the function forwards consent IP and user-agent metadata to RPC `accept_patient_consent_by_token`
 
+## Authenticated Therapy Write Surface
+
+- therapy session persistence is now exposed through DB RPC `save_therapy_session_entry`
+- intended caller is the authenticated therapy workspace in `catatan-psikolog-user-portal`
+- the function enforces practitioner access plus clinic/patient/visit consistency before inserting into `therapy_sessions`
+
 ## Operational Notes
 
 - use `make start-local` for normal development
