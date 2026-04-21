@@ -28,6 +28,7 @@ Outbound email is now driven by edge functions plus a Google Apps Script dispatc
 
 Active functions:
 
+- `create-patient-invitation`
 - `send-patient-invitation`
 - `send-referral-pin`
 - `accept-patient-consent`
@@ -69,6 +70,12 @@ Invitation variants:
 - therapy session persistence is now exposed through DB RPC `save_therapy_session_entry`
 - intended caller is the authenticated therapy workspace in `catatan-psikolog-user-portal`
 - the function enforces practitioner access plus clinic/patient/visit consistency before inserting into `therapy_sessions`
+
+## Authenticated Invitation Surface
+
+- patient invitation creation is now exposed through authenticated edge function `create-patient-invitation`
+- intended caller is the invite modal in `catatan-psikolog-user-portal`
+- the function creates the invitation via RPC and immediately triggers `send-patient-invitation`
 
 ## Operational Notes
 
