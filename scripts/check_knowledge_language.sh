@@ -61,7 +61,7 @@ while IFS= read -r rel; do
     violations=1
   fi
 
-  if [[ "$rel" == knowledge/*.md ]] && [[ -f "$rel" ]]; then
+  if [[ "$rel" == knowledge/* ]] && [[ "$rel" == *.md ]] && [[ -f "$rel" ]]; then
     if rg -n -i "$CONTENT_BANNED" "$rel" >/tmp/knowledge_lang_hits.$$ 2>/dev/null; then
       echo "[content] Non-English/Indonesian text detected in: $rel"
       head -n 5 /tmp/knowledge_lang_hits.$$
