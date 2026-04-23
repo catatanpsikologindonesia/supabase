@@ -59,8 +59,8 @@ elif [[ "$VERIFY_EXIT" -ne 0 ]]; then
   exit 1
 fi
 
-echo "[2/10] Backup remote snapshot before push..."
-bash scripts/pull_remote_snapshot.sh
+echo "[2/10] Backup remote snapshot before push (Skipping function download)..."
+PULL_REMOTE_FUNCTIONS=0 bash scripts/pull_remote_snapshot.sh
 BACKUP_TS="$(date +%Y%m%d_%H%M%S)"
 cp -f "$SCHEMA_FILE" ".tmp_push/schema_snapshot.before_push.${BACKUP_TS}.sql"
 cp -f "$DUMP_FILE" ".tmp_push/db_full_snapshot.before_push.${BACKUP_TS}.dump"

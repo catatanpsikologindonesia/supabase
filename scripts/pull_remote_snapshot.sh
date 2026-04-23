@@ -15,6 +15,8 @@ SNAPSHOT_DB_DIR="$ROOT_DIR/snapshot/database"
 SNAPSHOT_FN_DIR="$ROOT_DIR/snapshot/functions"
 mkdir -p supabase/functions "$SNAPSHOT_DB_DIR" "$SNAPSHOT_FN_DIR"
 
+PULL_REMOTE_FUNCTIONS="${PULL_REMOTE_FUNCTIONS:-1}"
+
 # Pull schema through pg_dump (public+cron only, compatible with CLI linked role).
 pg_dump --schema-only --no-owner --no-privileges \
   --role "postgres" \
@@ -40,11 +42,15 @@ psql "$REMOTE_URI" -qAtc \
   "set role postgres; select extname from pg_extension where extname in ('pg_cron') order by 1;" > "$SNAPSHOT_DB_DIR/db_extensions.txt"
 
 # Edge Functions
-supabase functions list --project-ref "$SUPABASE_PROJECT_REF" --output json > "$SNAPSHOT_FN_DIR/functions_list.json"
-jq -r '.[].slug' "$SNAPSHOT_FN_DIR/functions_list.json" | while read -r slug; do
-  [[ -z "$slug" ]] && continue
-  supabase functions download "$slug" --project-ref "$SUPABASE_PROJECT_REF" --use-api >/dev/null
-  echo "Downloaded function: $slug"
-done
+if [[ "$PULL_REMOTE_FUNCTIONS" == "1" ]]; then
+  supabase functions list --project-ref "$SUPABASE_PROJECT_REF" --output json > "$SNAPSHOT_FN_DIR/functions_list.json"
+  jq -r '.[].slug' "$SNAPSHOT_FN_DIR/functions_list.json" | while read -r slug; do
+    [[ -z "$slug" ]] && continue
+    supabase functions download "$slug" --project-ref "$SUPABASE_PROJECT_REF" --use-api >/dev/null
+    echo "Downloaded function: $slug"
+  done
+else
+  echo "Skipping remote edge function download (PULL_REMOTE_FUNCTIONS=0)."
+fi
 
 echo "Done. Snapshot updated in: $ROOT_DIR (remote connection: ${REMOTE_CONNECTION_MODE})"
