@@ -1,4 +1,47 @@
 {
-  "generated_at": "2026-03-17T19:46:39Z",
-  "functions": []
+  "generated_at": "2026-04-23T17:58:13Z",
+  "functions": [
+    {
+      "slug": "send-referral-pin",
+      "verify_jwt": true,
+      "version": 8,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "send-patient-invitation",
+      "verify_jwt": true,
+      "version": 8,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "accept-patient-consent",
+      "verify_jwt": true,
+      "version": 1,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "create-patient-invitation",
+      "verify_jwt": true,
+      "version": 1,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "create-referral",
+      "verify_jwt": true,
+      "version": 1,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "submit-patient-registration",
+      "verify_jwt": true,
+      "version": 1,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "verify-referral-pin",
+      "verify_jwt": true,
+      "version": 1,
+      "status": "ACTIVE"
+    }
+  ]
 }

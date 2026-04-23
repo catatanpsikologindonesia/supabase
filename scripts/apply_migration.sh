@@ -77,6 +77,7 @@ if supabase migration up; then
     PORTAL_NAMES=(
         "catatan-psikolog-user-portal"
         "catatan-psikolog-admin-portal"
+        "catatan-psikolog-landing-page"
     )
 
     for name in "${PORTAL_NAMES[@]}"; do

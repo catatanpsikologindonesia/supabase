@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 .DEFAULT_GOAL := help
 
-.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local restore-local prepare-local sync-auth sync-cron sync-cron-jobs sync-extensions sync-storage sync-storage-policies verify-local-remote mirror-remote-to-local guard-local-sync knowledge-language-check push-remote push-staging push-prod restore-storage
+.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local restore-local prepare-local sync-auth sync-cron sync-cron-jobs sync-extensions sync-storage sync-storage-policies verify-local-remote mirror-remote-to-local guard-local-sync knowledge-language-check push-remote push-staging push-prod restore-storage db-reset
 
 help:
 	@echo "Available targets:"
@@ -71,6 +71,10 @@ restore-local:
 prepare-local:
 	./scripts/prepare_local_db.sh
 
+db-reset:
+	./scripts/guard_destructive.sh "supabase db reset"
+	supabase db reset
+
 sync-auth:
 	./scripts/sync_auth_remote_to_local.sh
 
@@ -93,6 +97,7 @@ verify-local-remote:
 	./scripts/verify_local_remote_diff.sh
 
 mirror-remote-to-local:
+	@if [[ "${ALLOW_DESTRUCTIVE_AUTH_SYNC}" == "1" ]]; then ./scripts/guard_destructive.sh "Full Mirror with Destructive Auth Sync"; fi
 	./scripts/full_mirror_remote_to_local.sh
 
 guard-local-sync:

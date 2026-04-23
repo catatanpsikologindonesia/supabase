@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-04-21
+Last updated: 2026-04-24
 
 ## Repository Role
 
@@ -96,5 +96,10 @@ Invitation variants:
 - use `make start-local` for normal development
 - use `make prepare-local` only when you explicitly need restore + migration replay
 - use `make mirror-remote-to-local` only when you intentionally want a full remote refresh
+- **Universal Automated Migration & Sync Protocol (April 2024)**:
+  - New migrations must be executed via `scripts/apply_migration.sh`.
+  - The script automatically handles: Migration creation, DB apply, Knowledge mirroring, Auto-Squash, and Global Frontend Sync for all Psikolog portals.
+- **Global Baseline Reconstruction (April 2024)**:
+  - All legacy migrations have been consolidated into a single clean source of truth (`supabase/migrations/`) to ensure environmental parity and resolved schema drift.
 - if local storage binaries change, run `make export-storage` so repository snapshots stay aligned with the local source of truth
 - edge mail secrets are wired through `supabase/config.toml`

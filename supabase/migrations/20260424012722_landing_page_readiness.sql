@@ -1170,6 +1170,106 @@ $$;
 ALTER FUNCTION "public"."rls_auto_enable"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text" DEFAULT NULL::"text", "input_clinical_notes" "text" DEFAULT NULL::"text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  inserted_session_id uuid;
+begin
+  if auth.uid() is null then
+    return jsonb_build_object(
+      'status', 'error',
+      'code', 'AUTH_REQUIRED',
+      'message', 'Sesi login tidak ditemukan.'
+    );
+  end if;
+
+  if target_clinic_id is null or not public.has_practitioner_access(target_clinic_id) then
+    return jsonb_build_object(
+      'status', 'error',
+      'code', 'FORBIDDEN',
+      'message', 'Akses practitioner untuk klinik aktif tidak ditemukan.'
+    );
+  end if;
+
+  if target_patient_id is null or target_visit_id is null then
+    return jsonb_build_object(
+      'status', 'error',
+      'code', 'INVALID_INPUT',
+      'message', 'Pasien atau kunjungan tidak valid.'
+    );
+  end if;
+
+  if input_session_date is null or input_session_time is null then
+    return jsonb_build_object(
+      'status', 'error',
+      'code', 'INVALID_INPUT',
+      'message', 'Tanggal atau jam sesi tidak valid.'
+    );
+  end if;
+
+  if input_activity_type is null or btrim(input_activity_type) = '' then
+    return jsonb_build_object(
+      'status', 'error',
+      'code', 'INVALID_INPUT',
+      'message', 'Jenis aktivitas wajib diisi.'
+    );
+  end if;
+
+  if input_clinical_notes is null or btrim(input_clinical_notes) = '' then
+    return jsonb_build_object(
+      'status', 'error',
+      'code', 'INVALID_INPUT',
+      'message', 'Catatan klinis wajib diisi.'
+    );
+  end if;
+
+  if not exists (
+    select 1
+    from public.patient_visits pv
+    where pv.id = target_visit_id
+      and pv.clinic_id = target_clinic_id
+      and pv.patient_id = target_patient_id
+  ) then
+    return jsonb_build_object(
+      'status', 'error',
+      'code', 'VISIT_NOT_FOUND',
+      'message', 'Visit tidak ditemukan pada klinik aktif.'
+    );
+  end if;
+
+  insert into public.therapy_sessions (
+    clinic_id,
+    visit_id,
+    session_date,
+    session_time,
+    activity_type,
+    subject,
+    clinical_notes
+  ) values (
+    target_clinic_id,
+    target_visit_id,
+    input_session_date,
+    input_session_time,
+    btrim(input_activity_type),
+    nullif(btrim(coalesce(input_subject, '')), ''),
+    btrim(input_clinical_notes)
+  )
+  returning id into inserted_session_id;
+
+  return jsonb_build_object(
+    'status', 'success',
+    'message', 'Catatan sesi terapi berhasil disimpan.',
+    'sessionId', inserted_session_id
+  );
+end;
+$$;
+
+
+ALTER FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."submit_patient_registration"("invite_token" "text", "registration_payload" "jsonb") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -2160,6 +2260,10 @@ CREATE TABLE IF NOT EXISTS "public"."clinics" (
 ALTER TABLE "public"."clinics" OWNER TO "postgres";
 
 
+COMMENT ON TABLE "public"."clinics" IS 'Infrastructure and Landing Page readiness finalized.';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."cognitive_assessments" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "visit_id" "uuid" NOT NULL,
@@ -2373,10 +2477,6 @@ CREATE TABLE IF NOT EXISTS "public"."therapy_sessions" (
 
 
 ALTER TABLE "public"."therapy_sessions" OWNER TO "postgres";
-
-
-COMMENT ON TABLE "public"."therapy_sessions" IS 'Primary table for tracking therapist-patient therapy sessions.';
-
 
 
 CREATE TABLE IF NOT EXISTS "public"."users" (
@@ -3208,6 +3308,12 @@ GRANT ALL ON FUNCTION "public"."is_portal_staff"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "anon";
 GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") TO "service_role";
 
 
 
