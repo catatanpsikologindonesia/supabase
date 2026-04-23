@@ -1,0 +1,1 @@
+- 2026-04-24 20260424004623: Applied document_therapy_table
