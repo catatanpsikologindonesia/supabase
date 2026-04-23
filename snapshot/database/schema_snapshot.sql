@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict sNctYYHZfI5AwLa8HYBFQe1TnkON4DG2buCHv4alQ78cYQ61psQggpP0yFcnydG
+\restrict u0kP8kZRRtqMepQIasyV0KXpyKMPdO9iJo39xXeRUcSDNRxm0n3BG8bNCke99vC
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.3
@@ -3474,5 +3474,5 @@ CREATE POLICY users_select_own ON public.users FOR SELECT TO authenticated USING
 -- PostgreSQL database dump complete
 --
 
-\unrestrict sNctYYHZfI5AwLa8HYBFQe1TnkON4DG2buCHv4alQ78cYQ61psQggpP0yFcnydG
+\unrestrict u0kP8kZRRtqMepQIasyV0KXpyKMPdO9iJo39xXeRUcSDNRxm0n3BG8bNCke99vC
 
