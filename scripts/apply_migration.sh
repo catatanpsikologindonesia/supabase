@@ -120,16 +120,21 @@ if supabase migration up; then
         echo "==> WARNING: Squash failed. Skipping cleanup."
     fi
 
-    # 7. Refresh local source-of-truth snapshot
-    echo "==> [7/9] Refreshing local database snapshot artifacts..."
+    # 7. SCHEMA HEARTBEAT (Makes sync visible in Git even if no schema changes)
+    echo "==> [7/10] Updating schema heartbeat comment..."
+    HEARTBEAT_SQL="COMMENT ON SCHEMA public IS 'Last Synchronized: $(date "+%Y-%m-%d %H:%M:%S") | Source: $MIGRATION_NAME';"
+    psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -q -c "$HEARTBEAT_SQL"
+
+    # 8. Refresh local source-of-truth snapshot
+    echo "==> [8/10] Refreshing local database snapshot artifacts..."
     mkdir -p "$SNAPSHOT_DB_DIR"
     supabase db dump --local --schema public --file "$SNAPSHOT_DB_DIR/schema_snapshot.sql"
     PGPASSWORD="postgres" pg_dump -Fc --no-owner --no-privileges \
       -h 127.0.0.1 -p 54322 -U postgres -d postgres \
       -f "$SNAPSHOT_DB_DIR/db_full_snapshot.dump"
 
-    # 8. FRONTEND SYNC (Global Discovery Bridge)
-    echo "==> [8/9] Searching and Syncing frontend portals..."
+    # 9. FRONTEND SYNC (Global Discovery Bridge)
+    echo "==> [9/10] Searching and Syncing frontend portals..."
     PORTAL_NAMES=(
         "catatan-psikolog-user-portal"
         "catatan-psikolog-admin-portal"
@@ -146,7 +151,7 @@ if supabase migration up; then
             echo "    [!] Skip: Portal '$name' not found."
         fi
     done
-    echo "==> [9/9] All systems synchronized."
+    echo "==> [10/10] All systems synchronized."
 
 else
     echo "==> ERROR: Failed to apply migration. Please check your SQL syntax."

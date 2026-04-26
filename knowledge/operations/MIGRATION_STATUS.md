@@ -35,3 +35,5 @@ Local files (active):
 - 2026-04-26 20260426194402: Applied landing_page_sync_upgrade
 - 2026-04-26 20260426194705: Applied final_health_check
 - 2026-04-26 20260426195202: Applied final_final_check
+- 2026-04-26 20260426200654: Applied heartbeat_verification
+- 2026-04-26 20260426200950: Applied heartbeat_verification_fixed

@@ -19,7 +19,7 @@ CREATE SCHEMA IF NOT EXISTS "public";
 ALTER SCHEMA "public" OWNER TO "pg_database_owner";
 
 
-COMMENT ON SCHEMA "public" IS 'standard public schema';
+COMMENT ON SCHEMA "public" IS 'Last Synchronized: 2026-04-26 20:10:06 | Source: heartbeat_verification_fixed';
 
 
 SET default_tablespace = '';
