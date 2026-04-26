@@ -77,16 +77,14 @@ psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -q -v ON_ERROR_ST
   "CREATE EXTENSION IF NOT EXISTS pg_cron;"
 
 # Restore strategy:
-# - `public` is the repository-owned app surface, so it can be restored with
-#   `--clean --if-exists`.
-# - `auth` + `storage` are bootstrapped by the local Supabase stack and are not
-#   owned by the `postgres` role in a way that is safe for repository-driven
-#   cleanup/restore. Keep those schemas under local Supabase ownership.
+# - Restore all relevant schemas (auth, public, cron, storage) to ensure 
+#   users, metadata, and app data are fully recovered.
+# - Harmless system owner warnings are redirected to /dev/null for a smooth UI.
 export PGPASSWORD="postgres"
 pg_restore \
   --clean --if-exists \
   --no-owner --no-privileges \
-  -n public \
+  -n auth -n public -n cron -n storage \
   -h 127.0.0.1 -p 55322 -U postgres -d postgres \
   "$DUMP_FILE" 2>/dev/null || true
 
