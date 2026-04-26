@@ -1,0 +1,8 @@
+project_ref=ixwaaziifteubxkxtdwj
+remote_connection_mode=pooler
+auth.users=4
+public.users=4
+public.clinics=4
+public.clinic_memberships=3
+public.patients=1
+public.patient_invitations=20

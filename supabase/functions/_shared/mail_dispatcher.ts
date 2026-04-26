@@ -1,3 +1,5 @@
+import { MailDispatchError } from './mail_flow_errors.ts';
+
 const MAIL_DISPATCHER_TIMEOUT_MS = 10_000;
 
 export type DispatchMailInput = {
@@ -20,7 +22,9 @@ type MailDispatcherResponse = {
 function requireEnv(name: string): string {
   const value = Deno.env.get(name)?.trim() ?? '';
   if (!value) {
-    throw new Error(`${name} is not configured`);
+    throw new MailDispatchError('MAIL_ENV_MISSING', `${name} is not configured`, {
+      missingEnv: name,
+    });
   }
   return value;
 }
@@ -108,17 +112,33 @@ export async function dispatchMail(input: DispatchMailInput): Promise<void> {
     try {
       parsed = responseText ? (JSON.parse(responseText) as MailDispatcherResponse) : null;
     } catch {
-      throw new Error('mail dispatcher returned non-JSON response');
+      throw new MailDispatchError(
+        'MAIL_DISPATCH_INVALID_RESPONSE',
+        'mail dispatcher returned non-JSON response',
+        { httpStatus: response.status },
+      );
     }
 
     if (!response.ok || !parsed?.success) {
-      throw new Error(parsed?.message?.trim() || 'mail dispatcher rejected request');
+      throw new MailDispatchError(
+        !response.ok ? 'MAIL_DISPATCH_HTTP_ERROR' : 'MAIL_DISPATCH_REJECTED',
+        parsed?.message?.trim() || 'mail dispatcher rejected request',
+        {
+          httpStatus: response.status,
+          dispatcherCode: parsed?.code ?? null,
+          dispatcherRequestId: parsed?.request_id ?? null,
+          dispatcherHttpStatus: parsed?.http_status ?? null,
+        },
+      );
     }
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('mail dispatcher request timed out');
+      throw new MailDispatchError('MAIL_DISPATCH_TIMEOUT', 'mail dispatcher request timed out');
     }
-    throw error;
+    if (error instanceof MailDispatchError) {
+      throw error;
+    }
+    throw new MailDispatchError('MAIL_DISPATCH_UNKNOWN', error instanceof Error ? error.message : 'unknown mail dispatcher error');
   } finally {
     clearTimeout(timeout);
   }

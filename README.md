@@ -43,12 +43,14 @@ Important mail-related values:
 ### Golden Development Workflow
 
 The recommended entry point is from any frontend portal root:
-- `make run-local`: Full stack start, DB/Auth restore, type sync.
+- `make run-local`: Full stack start that preserves the current local DB state and syncs frontend schema.
 - `make run-local-fast`: Incremental start (preserves existing local data).
+- `make run-local-restore`: Explicit baseline restore before app start.
 
 ### Supabase Commands (from this repo)
 ```bash
-make start-local              # Normal start (with auto-restore)
+make start-local              # Normal start (preserves current local DB)
+make start-local-restore      # Start stack and restore local baseline snapshot
 make pull-snapshot            # Refresh local artifacts from production
 bash scripts/apply_migration.sh "<name>" "<sql>" # Automated migration & sync
 make verify-local-remote      # Parity check

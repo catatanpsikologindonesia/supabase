@@ -16,6 +16,17 @@ SNAPSHOT_FN_DIR="$ROOT_DIR/snapshot/functions"
 mkdir -p supabase/functions "$SNAPSHOT_DB_DIR" "$SNAPSHOT_FN_DIR"
 
 PULL_REMOTE_FUNCTIONS="${PULL_REMOTE_FUNCTIONS:-1}"
+EXPECTED_PROJECT_REF="${EXPECTED_PROJECT_REF:-${SUPABASE_PROJECT_REF}}"
+
+if [[ -z "${SUPABASE_PROJECT_REF:-}" ]]; then
+  echo "SUPABASE_PROJECT_REF is not loaded. Aborting snapshot pull." >&2
+  exit 1
+fi
+
+if [[ "${SUPABASE_PROJECT_REF}" != "${EXPECTED_PROJECT_REF}" ]]; then
+  echo "Project ref mismatch. Expected ${EXPECTED_PROJECT_REF}, got ${SUPABASE_PROJECT_REF}." >&2
+  exit 1
+fi
 
 # Pull schema through pg_dump
 pg_dump --schema-only --no-owner --no-privileges \
@@ -36,6 +47,17 @@ psql "$REMOTE_URI" -Atc \
   "select schemaname||'.'||viewname from pg_views where schemaname not in ('pg_catalog','information_schema') order by 1;" > "$SNAPSHOT_DB_DIR/db_views.txt"
 psql "$REMOTE_URI" -Atc \
   "select extname from pg_extension order by 1;" > "$SNAPSHOT_DB_DIR/db_extensions.txt"
+
+psql "$REMOTE_URI" -Atc "
+select 'project_ref=${SUPABASE_PROJECT_REF}';
+select 'remote_connection_mode=${REMOTE_CONNECTION_MODE}';
+select 'auth.users='||count(*) from auth.users;
+select 'public.users='||count(*) from public.users;
+select 'public.clinics='||count(*) from public.clinics;
+select 'public.clinic_memberships='||count(*) from public.clinic_memberships;
+select 'public.patients='||count(*) from public.patients;
+select 'public.patient_invitations='||count(*) from public.patient_invitations;
+" > "$SNAPSHOT_DB_DIR/db_counts.txt"
 
 # Edge Functions
 if [[ "$PULL_REMOTE_FUNCTIONS" == "1" ]]; then

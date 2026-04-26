@@ -27,6 +27,40 @@ export function createServiceRoleClient() {
   return createClient(supabaseUrl, resolveServiceRoleKey());
 }
 
+function resolvePublicAnonKey(req: Request): string {
+  const headerKey = req.headers.get('apikey')?.trim() ?? '';
+  const envCandidates = [
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '',
+  ].map((value) => value.trim());
+
+  for (const key of [headerKey, ...envCandidates]) {
+    if (!key) continue;
+    return key;
+  }
+
+  throw new Error('Missing anon/publishable key for authenticated edge client.');
+}
+
+export function createRequestAuthClient(req: Request) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')?.trim() ?? '';
+  if (!supabaseUrl) {
+    throw new Error('SUPABASE_URL is not configured.');
+  }
+
+  const authHeader = req.headers.get('authorization')?.trim() ?? '';
+  return createClient(supabaseUrl, resolvePublicAnonKey(req), {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: authHeader
+      ? {
+          headers: {
+            Authorization: authHeader,
+          },
+        }
+      : undefined,
+  });
+}
+
 export async function requirePortalRole(
   req: Request,
 ): Promise<

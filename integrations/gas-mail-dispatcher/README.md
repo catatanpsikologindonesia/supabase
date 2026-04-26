@@ -19,6 +19,7 @@ Nilainya harus sama persis dengan env Supabase:
 
 - sender name: `Catatan Psikolog Support`
 - sender address: `support@catatanpsikolog.id`
+- if the Apps Script executor account does not have `support@catatanpsikolog.id` configured as a valid Gmail alias, the dispatcher will automatically fall back to the account default sender address
 
 ## Required Supabase Env
 

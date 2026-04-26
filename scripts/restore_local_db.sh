@@ -18,6 +18,11 @@ fi
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 export PGOPTIONS='-c client_min_messages=warning'
 PROJECT_ID="$(awk -F= '/^project_id[[:space:]]*=/{gsub(/[ "\r]/, "", $2); print $2; exit}' supabase/config.toml)"
+COUNTS_FILE="$ROOT_DIR/snapshot/database/db_counts.txt"
+RESTORE_ERR_LOG="$ROOT_DIR/.tmp_restore_local_db.err.log"
+DB_CONTAINER_NAME="supabase_db_${PROJECT_ID}"
+CONTAINER_DUMP_PATH="/tmp/codex_restore_db_full_snapshot.dump"
+RESTORE_AUTH_SNAPSHOT_AFTER_FULL_RESTORE="${RESTORE_AUTH_SNAPSHOT_AFTER_FULL_RESTORE:-0}"
 
 # Colima compatibility for Supabase CLI Docker socket mount behavior.
 mkdir -p "$HOME/.docker/run"
@@ -77,16 +82,21 @@ psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -q -v ON_ERROR_ST
   "CREATE EXTENSION IF NOT EXISTS pg_cron;"
 
 # Restore strategy:
-# - Restore all relevant schemas (auth, public, cron, storage) to ensure 
-#   users, metadata, and app data are fully recovered.
-# - Harmless system owner warnings are redirected to /dev/null for a smooth UI.
-export PGPASSWORD="postgres"
-pg_restore \
-  --clean --if-exists \
-  --no-owner --no-privileges \
-  -n auth -n public -n cron -n storage \
-  -h 127.0.0.1 -p 55322 -U postgres -d postgres \
-  "$DUMP_FILE" 2>/dev/null || true
+# - Run pg_restore inside the local Postgres container instead of from the host.
+# - This avoids mismatched client behavior and ownership/clean anomalies seen
+#   when the host binary restores into the active Supabase local database.
+# - We still capture stderr to a workspace log for post-failure diagnosis.
+rm -f "$RESTORE_ERR_LOG"
+docker cp "$DUMP_FILE" "${DB_CONTAINER_NAME}:${CONTAINER_DUMP_PATH}"
+docker exec "$DB_CONTAINER_NAME" sh -lc "
+  pg_restore \
+    --clean --if-exists \
+    --no-owner --no-privileges \
+    -U postgres -d postgres \
+    '${CONTAINER_DUMP_PATH}' \
+    >/tmp/codex_restore_local_db.out 2>/tmp/codex_restore_local_db.err || true
+"
+docker exec "$DB_CONTAINER_NAME" sh -lc "cat /tmp/codex_restore_local_db.err" >"$RESTORE_ERR_LOG" || true
 
 CRON_FILE="$ROOT_DIR/snapshot/database/cron_jobs_export.sql"
 if [[ -f "$CRON_FILE" && -s "$CRON_FILE" ]]; then
@@ -99,10 +109,11 @@ if [[ -f "$CRON_FILE" && -s "$CRON_FILE" ]]; then
   fi
 fi
 
-# Restore auth data from local snapshot (saved by sync_auth_remote_to_local.sh).
-# This allows make run-local to work fully offline — no internet required.
+# Restore auth data from local snapshot only by explicit opt-in.
+# The full snapshot now includes auth schema+data, so truncating auth.* CASCADE
+# after the main restore can wipe dependent public business data through FK chains.
 AUTH_DUMP="$ROOT_DIR/snapshot/database/auth_snapshot.dump"
-if [[ -f "$AUTH_DUMP" ]]; then
+if [[ "$RESTORE_AUTH_SNAPSHOT_AFTER_FULL_RESTORE" == "1" && -f "$AUTH_DUMP" ]]; then
   psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -q -v ON_ERROR_STOP=1 <<'SQL' || true
 DO $$
 DECLARE
@@ -119,6 +130,8 @@ SQL
   pg_restore --clean --if-exists --no-owner --no-privileges -n auth \
     -h 127.0.0.1 -p 55322 -U postgres -d postgres \
     "$AUTH_DUMP" 2>/dev/null || true
+elif [[ -f "$AUTH_DUMP" ]]; then
+  echo "Skipping auth snapshot restore by default. Set RESTORE_AUTH_SNAPSHOT_AFTER_FULL_RESTORE=1 to force it."
 fi
 
 # Realtime service expects _realtime schema to exist.
@@ -178,11 +191,52 @@ psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -q -v ON_ERROR_ST
   "DROP FUNCTION IF EXISTS public.get_my_uid();"
 
 # Quick verify
-psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc \
-  "select 'public_tables='||count(*) from pg_tables where schemaname='public';"
-psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc \
-  "select 'auth_users='||count(*) from auth.users;"
-psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc \
-  "select 'pg_cron_enabled='||(exists(select 1 from pg_extension where extname='pg_cron'));"
+read_count_expectation() {
+  local key="$1"
+  [[ -f "$COUNTS_FILE" ]] || return 1
+  awk -F= -v key="$key" '$1 == key { print $2; exit }' "$COUNTS_FILE"
+}
+
+assert_count_matches() {
+  local label="$1"
+  local sql="$2"
+  local expected="$3"
+  local actual
+  actual="$(psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -Atc "$sql")"
+  echo "${label}=${actual}"
+  if [[ -n "$expected" && "$actual" != "$expected" ]]; then
+    echo "Restore verification failed for ${label}: expected ${expected}, got ${actual}." >&2
+    exit 1
+  fi
+}
+
+assert_count_matches "public_tables" \
+  "select count(*) from pg_tables where schemaname='public';" \
+  ""
+assert_count_matches "auth_users" \
+  "select count(*) from auth.users;" \
+  "$(read_count_expectation "auth.users" || true)"
+assert_count_matches "public_users" \
+  "select count(*) from public.users;" \
+  "$(read_count_expectation "public.users" || true)"
+assert_count_matches "public_clinics" \
+  "select count(*) from public.clinics;" \
+  "$(read_count_expectation "public.clinics" || true)"
+assert_count_matches "public_clinic_memberships" \
+  "select count(*) from public.clinic_memberships;" \
+  "$(read_count_expectation "public.clinic_memberships" || true)"
+assert_count_matches "public_patients" \
+  "select count(*) from public.patients;" \
+  "$(read_count_expectation "public.patients" || true)"
+assert_count_matches "public_patient_invitations" \
+  "select count(*) from public.patient_invitations;" \
+  "$(read_count_expectation "public.patient_invitations" || true)"
+assert_count_matches "pg_cron_enabled" \
+  "select case when exists(select 1 from pg_extension where extname='pg_cron') then '1' else '0' end;" \
+  ""
+
+if [[ -f "$RESTORE_ERR_LOG" && -s "$RESTORE_ERR_LOG" ]]; then
+  echo "Restore warnings logged to $RESTORE_ERR_LOG"
+fi
 
 echo "Done. Local DB restored from $DUMP_FILE"

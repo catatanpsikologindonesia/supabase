@@ -1,5 +1,7 @@
 import { requirePortalRole } from '../_shared/auth.ts';
 import { jsonResponse, preflight, requestIdFrom } from '../_shared/http.ts';
+import { isMailDispatchError } from '../_shared/mail_flow_errors.ts';
+import { sendReferralPinMail } from '../_shared/referral_pin_mail.ts';
 
 type CreateReferralPayload = {
   clinic_id?: unknown;
@@ -8,7 +10,6 @@ type CreateReferralPayload = {
   destination?: unknown;
   notes?: unknown;
   expires_at?: unknown;
-  recipient_timezone?: unknown;
   portal_base_url?: unknown;
 };
 
@@ -20,18 +21,6 @@ function generatePin() {
   const bytes = new Uint32Array(1);
   crypto.getRandomValues(bytes);
   return (bytes[0] % 1_000_000).toString().padStart(6, '0');
-}
-
-function resolveSessionTimezone(timezone?: string) {
-  const candidate = timezone?.trim();
-  if (!candidate) return 'Asia/Jakarta';
-
-  try {
-    new Intl.DateTimeFormat('id-ID', { timeZone: candidate }).format(new Date());
-    return candidate;
-  } catch {
-    return 'Asia/Jakarta';
-  }
 }
 
 Deno.serve(async (req) => {
@@ -56,7 +45,6 @@ Deno.serve(async (req) => {
     const destination = asTrimmedString(payload.destination);
     const notes = asTrimmedString(payload.notes);
     const expiresAtRaw = asTrimmedString(payload.expires_at);
-    const recipientTimezone = resolveSessionTimezone(asTrimmedString(payload.recipient_timezone));
     const portalBaseUrl = asTrimmedString(payload.portal_base_url);
 
     if (!clinicId || !patientId || !visitId || destination.length < 2 || notes.length < 5 || !expiresAtRaw || !portalBaseUrl) {
@@ -136,34 +124,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    const mailHeaders: HeadersInit = {
-      'Content-Type': 'application/json',
-      Authorization: req.headers.get('authorization') ?? '',
-    };
-    const apikey = req.headers.get('apikey');
-    if (apikey) {
-      mailHeaders.apikey = apikey;
-    }
-
-    const mailResponse = await fetch(`${new URL(req.url).origin}/functions/v1/send-referral-pin`, {
-      method: 'POST',
-      headers: mailHeaders,
-      body: JSON.stringify({
-        referral_id: referral.id,
-        portal_base_url: portalBaseUrl,
-        recipient_timezone: recipientTimezone,
-      }),
-    });
-
-    const mailText = await mailResponse.text();
-    let mailPayload: Record<string, unknown> | null = null;
     try {
-      mailPayload = mailText ? JSON.parse(mailText) as Record<string, unknown> : null;
-    } catch {
-      mailPayload = null;
-    }
-
-    if (!mailResponse.ok || mailPayload?.success === false) {
+      await sendReferralPinMail({
+        supabase: auth.supabase,
+        userId: auth.userId,
+        requestId,
+        referralId: referral.id,
+        portalBaseUrl,
+      });
+    } catch (error) {
+      const mailFailureReason = isMailDispatchError(error) ? error.reason : 'MAIL_DISPATCH_UNKNOWN';
+      const mailFailureMessage = error instanceof Error ? error.message : 'unknown mail failure';
+      console.error('[create-referral][mail-fallback]', requestId, {
+        referralId: referral.id,
+        reason: mailFailureReason,
+        message: mailFailureMessage,
+        details: isMailDispatchError(error) ? error.details ?? null : null,
+      });
       return jsonResponse({
         req,
         requestId,
@@ -171,7 +148,7 @@ Deno.serve(async (req) => {
         success: true,
         code: 'OK',
         message: 'Referral tersimpan, tetapi email PIN gagal dikirim. Gunakan PIN fallback di bawah.',
-        data: { generatedPin: pin },
+        data: { generatedPin: pin, mailFailureReason },
       });
     }
 

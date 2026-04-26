@@ -54,7 +54,7 @@ function doPost(e) {
       mailOptions.replyTo = validation.data.reply_to;
     }
 
-    if (validation.data.use_custom_from) {
+    if (validation.data.use_custom_from && canUseCustomFrom_()) {
       mailOptions.from = MAIL_SENDER_ADDRESS;
     }
 
@@ -151,6 +151,11 @@ function getMailWebhookSecret_() {
     throw new Error('MAIL_WEBHOOK_SECRET is not configured');
   }
   return secret;
+}
+
+function canUseCustomFrom_() {
+  var aliases = GmailApp.getAliases();
+  return aliases.indexOf(MAIL_SENDER_ADDRESS) !== -1;
 }
 
 function buildSigningString_(timestamp, requestId, to, subject, html, replyTo, useCustomFrom) {

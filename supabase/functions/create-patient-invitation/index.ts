@@ -1,9 +1,12 @@
-import { requirePortalRole } from '../_shared/auth.ts';
+import { createRequestAuthClient, requirePortalRole } from '../_shared/auth.ts';
 import { jsonResponse, preflight, requestIdFrom } from '../_shared/http.ts';
+import { isMailDispatchError } from '../_shared/mail_flow_errors.ts';
+import { sendPatientInvitationMail } from '../_shared/patient_invitation_mail.ts';
 
 type InvitationFlow = 'registration_required' | 'consent_required' | 'info_only';
 
 type CreateInvitationPayload = {
+  clinic_id?: unknown;
   email?: unknown;
   session_date?: unknown;
   session_time?: unknown;
@@ -98,6 +101,7 @@ Deno.serve(async (req) => {
     }
 
     const payload = (await req.json()) as CreateInvitationPayload;
+    const clinicId = asTrimmedString(payload.clinic_id);
     const email = asTrimmedString(payload.email).toLowerCase();
     const sessionDate = asTrimmedString(payload.session_date);
     const sessionTime = asTrimmedString(payload.session_time);
@@ -105,6 +109,9 @@ Deno.serve(async (req) => {
     const recipientTimezone = resolveSessionTimezone(asTrimmedString(payload.recipient_timezone));
     const registrationBaseUrl = asTrimmedString(payload.registration_base_url);
 
+    if (!clinicId) {
+      return jsonResponse({ req, requestId, status: 400, success: false, code: 'BAD_REQUEST', message: 'Klinik aktif tidak valid.' });
+    }
     if (!isValidEmail(email)) {
       return jsonResponse({ req, requestId, status: 400, success: false, code: 'BAD_REQUEST', message: 'Email tidak valid.' });
     }
@@ -122,6 +129,7 @@ Deno.serve(async (req) => {
       .from('clinic_memberships')
       .select('id, clinic_id')
       .eq('user_id', auth.userId)
+      .eq('clinic_id', clinicId)
       .eq('is_active', true)
       .order('is_owner', { ascending: false })
       .order('created_at', { ascending: true })
@@ -132,7 +140,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ req, requestId, status: 403, success: false, code: 'FORBIDDEN', message: 'Membership klinik aktif tidak ditemukan.' });
     }
 
-    const { data: rpcData, error: rpcError } = await auth.supabase.rpc('create_patient_invitation_with_schedule', {
+    const requestAuthClient = createRequestAuthClient(req);
+    const { data: rpcData, error: rpcError } = await requestAuthClient.rpc('create_patient_invitation_with_schedule', {
       target_clinic_id: activeMembership.clinic_id,
       invited_by_membership_id: activeMembership.id,
       patient_email: email,
@@ -168,38 +177,29 @@ Deno.serve(async (req) => {
       return jsonResponse({ req, requestId, status: 500, success: false, code: 'INTERNAL_ERROR', message: 'ID undangan tidak ditemukan dari server.' });
     }
 
-    const mailHeaders: HeadersInit = {
-      'Content-Type': 'application/json',
-      Authorization: req.headers.get('authorization') ?? '',
-    };
-    const apikey = req.headers.get('apikey');
-    if (apikey) {
-      mailHeaders.apikey = apikey;
-    }
-
-    const mailResponse = await fetch(`${new URL(req.url).origin}/functions/v1/send-patient-invitation`, {
-      method: 'POST',
-      headers: mailHeaders,
-      body: JSON.stringify({
-        invitation_id: rpcResult.invitationId,
-        registration_base_url: registrationBaseUrl,
-        recipient_timezone: recipientTimezone,
-      }),
-    });
-
-    const mailText = await mailResponse.text();
-    let mailPayload: Record<string, unknown> | null = null;
     try {
-      mailPayload = mailText ? JSON.parse(mailText) as Record<string, unknown> : null;
-    } catch {
-      mailPayload = null;
-    }
-
-    if (!mailResponse.ok || mailPayload?.success === false) {
+      await sendPatientInvitationMail({
+        supabase: auth.supabase,
+        userId: auth.userId,
+        requestId,
+        invitationId: rpcResult.invitationId,
+        registrationBaseUrl,
+        recipientTimezone,
+      });
+    } catch (error) {
+      const mailFailureReason = isMailDispatchError(error) ? error.reason : 'MAIL_DISPATCH_UNKNOWN';
+      const mailFailureMessage = error instanceof Error ? error.message : 'unknown mail failure';
+      console.error('[create-patient-invitation][mail-fallback]', requestId, {
+        invitationId: rpcResult.invitationId,
+        flow: rpcResult.flow ?? null,
+        reason: mailFailureReason,
+        message: mailFailureMessage,
+        details: isMailDispatchError(error) ? error.details ?? null : null,
+      });
       const fallbackRegistrationUrl =
         rpcResult.flow === 'info_only' || !rpcResult.token
           ? null
-          : `${registrationBaseUrl.replace(/\/$/, '')}/register/${rpcResult.token}`;
+          : `${registrationBaseUrl.replace(/\/$/, '')}/register?token=${encodeURIComponent(rpcResult.token)}`;
 
       return jsonResponse({
         req,
@@ -213,6 +213,7 @@ Deno.serve(async (req) => {
             : 'Undangan tersimpan, tetapi pengiriman email gagal. Gunakan link fallback di bawah.',
         data: {
           flow: rpcResult.flow ?? null,
+          mailFailureReason,
           fallbackRegistrationUrl,
         },
       });

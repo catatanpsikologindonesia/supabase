@@ -1,6 +1,6 @@
 # Agent Protocol (Catatan Psikolog Supabase)
 
-Follow the **Golden Rule of Knowledge** defined in the root `AGENTS.md`.
+Follow the **Golden Rule of Knowledge** defined in the workspace root `PROJECT_CONTEXT.md`.
 
 ## Specific Backend Rules:
 1. **Migrations**: NEVER use `supabase migration up` or create SQL files manually. Use `scripts/apply_migration.sh`.

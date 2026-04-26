@@ -3,7 +3,7 @@
 This document serves as the foundational truth for the `Supabase/CatatanPsikolog` repository.
 
 ## System Architecture Overview
-The Supabase project is the central data layer for the Catatan Psikolog ecosystem, which primarily serves the `catatan-psikolog-user-portal` Next.js frontend.
+The Supabase project is the central data layer for the Catatan Psikolog ecosystem, which primarily serves the `catatan-psikolog-user-portal` React + Vite SPA frontend.
 
 ### Core Modules
 - **PostgreSQL Database:** Handles multi-tenant clinic data, patient records, therapy sessions, and referrals.

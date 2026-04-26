@@ -12,7 +12,7 @@ ln -sf "$HOME/.colima/default/docker.sock" "$HOME/.docker/run/docker.sock"
 export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 
-AUTO_PREPARE_LOCAL_ON_START="${AUTO_PREPARE_LOCAL_ON_START:-1}"
+AUTO_PREPARE_LOCAL_ON_START="${AUTO_PREPARE_LOCAL_ON_START:-0}"
 
 if [[ -f ".env.local" ]]; then
   set -a
@@ -89,8 +89,9 @@ run_supabase_start_quiet >/dev/null || {
 if [[ "$AUTO_PREPARE_LOCAL_ON_START" == "1" ]]; then
   echo "Restoring local DB baseline before starting full stack..."
   bash scripts/restore_local_db.sh
+  echo "Local DB baseline verification passed."
 else
-  echo "Skipping local DB restore to preserve current local data (set AUTO_PREPARE_LOCAL_ON_START=1 to enable)."
+  echo "Preserving current local DB state (set AUTO_PREPARE_LOCAL_ON_START=1 to restore baseline on start)."
 fi
 
 

@@ -4,6 +4,8 @@
 
 Catatan Psikolog email delivery is handled by Supabase edge functions that forward requests to a Google Apps Script dispatcher.
 
+Authenticated orchestration functions now call shared in-repo mail helpers directly when they need immediate post-write delivery, instead of performing HTTP self-calls into sibling edge functions during local runtime.
+
 ## Active Edge Functions
 
 - `send-patient-invitation`
@@ -40,6 +42,10 @@ Required mail secrets:
 - `MAIL_DISPATCHER_WEBHOOK_URL`
 - `MAIL_WEBHOOK_SECRET`
 
+Current deployed dispatcher endpoint (active as of 2026-04-27):
+
+- `https://script.google.com/macros/s/AKfycbwSntcwwDc4bnsTfH51xL6ZgMjep_xHp8CDp57oxU2iyc7NQFYfuWOMZKfUAeHNw1JC1g/exec`
+
 These are exposed to edge functions through `edge_runtime.secrets` in `supabase/config.toml`.
 
 ## Timezone Handling
@@ -51,3 +57,8 @@ These are exposed to edge functions through `edge_runtime.secrets` in `supabase/
 ## Branding
 
 Current email brand family is based on `#A5A5D3`.
+
+## Sender Behavior
+
+- preferred sender address: `support@catatanpsikolog.id`
+- if the Apps Script executor account does not expose that alias, the dispatcher falls back to the executor default sender address

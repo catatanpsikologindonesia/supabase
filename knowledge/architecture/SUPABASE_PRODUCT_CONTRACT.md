@@ -12,7 +12,7 @@ This document outlines the detailed consumption of this Supabase project (`Catat
 
 **Status:** Consumes multiple Supabase features extensively.
 
-The user portal is a Next.js application for clinic staff and patients. It directly communicates with this Supabase instance for authentication, database operations, and edge functions.
+The user portal is a React + Vite SPA for clinic staff and patients. It directly communicates with this Supabase instance for authentication, database operations, and edge functions.
 
 ### Tables Consumed Directly (via Supabase JS Client)
 - `appointments`
@@ -55,4 +55,4 @@ Frontend callers are located in `src/lib/edge-public.ts`.
 #### Edge Functions Without Frontend Callers
 - `send-patient-invitation`
 - `send-referral-pin`
-These functions are not directly invoked by the frontend code. They are triggered by database webhooks or internal services (e.g., when a patient invitation row is inserted or updated).
+These functions are not directly invoked by the frontend code. They are reusable mail-delivery surfaces used by authenticated orchestration helpers and operational testing flows.
