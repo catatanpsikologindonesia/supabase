@@ -27,3 +27,6 @@ Local files (active):
 - 2026-04-24 20260424010519: Applied final_verification_verified
 - 2026-04-24 20260424012443: Applied infrastructure_final_parity
 - 2026-04-24 20260424012722: Applied landing_page_readiness
+- 2026-04-26 20260426191130: Applied dummy_migration_test
+- 2026-04-26 20260426191222: Applied dummy_migration_test
+- 2026-04-26 20260426192022: Applied final_verification

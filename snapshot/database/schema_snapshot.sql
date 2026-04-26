@@ -1,16 +1,9 @@
---
--- PostgreSQL database dump
---
 
-\restrict u0kP8kZRRtqMepQIasyV0KXpyKMPdO9iJo39xXeRUcSDNRxm0n3BG8bNCke99vC
 
--- Dumped from database version 17.6
--- Dumped by pg_dump version 18.3
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -19,46 +12,37 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
---
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
 
-CREATE SCHEMA public;
+CREATE SCHEMA IF NOT EXISTS "public";
 
 
---
--- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON SCHEMA public IS 'standard public schema';
+ALTER SCHEMA "public" OWNER TO "pg_database_owner";
 
 
---
--- Name: adhd_indication; Type: TYPE; Schema: public; Owner: -
---
+COMMENT ON SCHEMA "public" IS 'standard public schema';
 
-CREATE TYPE public.adhd_indication AS ENUM (
+
+
+CREATE TYPE "public"."adhd_indication" AS ENUM (
     'possible_adhd',
     'not_adhd'
 );
 
 
---
--- Name: appointment_status; Type: TYPE; Schema: public; Owner: -
---
+ALTER TYPE "public"."adhd_indication" OWNER TO "postgres";
 
-CREATE TYPE public.appointment_status AS ENUM (
+
+CREATE TYPE "public"."appointment_status" AS ENUM (
     'scheduled',
     'completed',
     'cancelled'
 );
 
 
---
--- Name: autism_indication; Type: TYPE; Schema: public; Owner: -
---
+ALTER TYPE "public"."appointment_status" OWNER TO "postgres";
 
-CREATE TYPE public.autism_indication AS ENUM (
+
+CREATE TYPE "public"."autism_indication" AS ENUM (
     'high_risk',
     'low_risk',
     'other_disorder',
@@ -66,44 +50,40 @@ CREATE TYPE public.autism_indication AS ENUM (
 );
 
 
---
--- Name: birth_process; Type: TYPE; Schema: public; Owner: -
---
+ALTER TYPE "public"."autism_indication" OWNER TO "postgres";
 
-CREATE TYPE public.birth_process AS ENUM (
+
+CREATE TYPE "public"."birth_process" AS ENUM (
     'normal',
     'sc',
     'assisted'
 );
 
 
---
--- Name: consent_source; Type: TYPE; Schema: public; Owner: -
---
+ALTER TYPE "public"."birth_process" OWNER TO "postgres";
 
-CREATE TYPE public.consent_source AS ENUM (
+
+CREATE TYPE "public"."consent_source" AS ENUM (
     'registration_wizard',
     'invite_consent_page',
     'backfill'
 );
 
 
---
--- Name: patient_invitation_flow; Type: TYPE; Schema: public; Owner: -
---
+ALTER TYPE "public"."consent_source" OWNER TO "postgres";
 
-CREATE TYPE public.patient_invitation_flow AS ENUM (
+
+CREATE TYPE "public"."patient_invitation_flow" AS ENUM (
     'registration_required',
     'consent_required',
     'info_only'
 );
 
 
---
--- Name: patient_invitation_used_reason; Type: TYPE; Schema: public; Owner: -
---
+ALTER TYPE "public"."patient_invitation_flow" OWNER TO "postgres";
 
-CREATE TYPE public.patient_invitation_used_reason AS ENUM (
+
+CREATE TYPE "public"."patient_invitation_used_reason" AS ENUM (
     'registration_completed',
     'consent_accepted',
     'info_only_notified',
@@ -113,22 +93,20 @@ CREATE TYPE public.patient_invitation_used_reason AS ENUM (
 );
 
 
---
--- Name: practitioner_profession; Type: TYPE; Schema: public; Owner: -
---
+ALTER TYPE "public"."patient_invitation_used_reason" OWNER TO "postgres";
 
-CREATE TYPE public.practitioner_profession AS ENUM (
+
+CREATE TYPE "public"."practitioner_profession" AS ENUM (
     'psychologist',
     'counselor',
     'other'
 );
 
 
---
--- Name: user_role; Type: TYPE; Schema: public; Owner: -
---
+ALTER TYPE "public"."practitioner_profession" OWNER TO "postgres";
 
-CREATE TYPE public.user_role AS ENUM (
+
+CREATE TYPE "public"."user_role" AS ENUM (
     'admin',
     'psychologist',
     'patient',
@@ -136,11 +114,10 @@ CREATE TYPE public.user_role AS ENUM (
 );
 
 
---
--- Name: visit_status; Type: TYPE; Schema: public; Owner: -
---
+ALTER TYPE "public"."user_role" OWNER TO "postgres";
 
-CREATE TYPE public.visit_status AS ENUM (
+
+CREATE TYPE "public"."visit_status" AS ENUM (
     'scheduled',
     'in_progress',
     'completed',
@@ -148,13 +125,12 @@ CREATE TYPE public.visit_status AS ENUM (
 );
 
 
---
--- Name: accept_patient_consent_by_token(text, text, text); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER TYPE "public"."visit_status" OWNER TO "postgres";
 
-CREATE FUNCTION public.accept_patient_consent_by_token(invite_token text, consent_ip text DEFAULT NULL::text, consent_user_agent text DEFAULT NULL::text) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text" DEFAULT NULL::"text", "consent_user_agent" "text" DEFAULT NULL::"text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 declare
   invitation_row public.patient_invitations%rowtype;
@@ -360,13 +336,12 @@ end;
 $$;
 
 
---
--- Name: add_clinic_member_by_email(uuid, text, boolean, boolean, public.practitioner_profession, uuid); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") OWNER TO "postgres";
 
-CREATE FUNCTION public.add_clinic_member_by_email(target_clinic_id uuid, member_email text, assign_staff boolean DEFAULT true, assign_practitioner boolean DEFAULT false, member_profession public.practitioner_profession DEFAULT NULL::public.practitioner_profession, actor_user_id uuid DEFAULT auth.uid()) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean DEFAULT true, "assign_practitioner" boolean DEFAULT false, "member_profession" "public"."practitioner_profession" DEFAULT NULL::"public"."practitioner_profession", "actor_user_id" "uuid" DEFAULT "auth"."uid"()) RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 declare
   normalized_email text;
@@ -483,13 +458,12 @@ end;
 $$;
 
 
---
--- Name: create_clinic_with_owner(text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean, "assign_practitioner" boolean, "member_profession" "public"."practitioner_profession", "actor_user_id" "uuid") OWNER TO "postgres";
 
-CREATE FUNCTION public.create_clinic_with_owner(clinic_name text, clinic_slug text DEFAULT NULL::text, owner_user_id uuid DEFAULT auth.uid()) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text" DEFAULT NULL::"text", "owner_user_id" "uuid" DEFAULT "auth"."uid"()) RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 declare
   normalized_name text;
@@ -595,13 +569,12 @@ end;
 $$;
 
 
---
--- Name: create_patient_from_auth_user(text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") OWNER TO "postgres";
 
-CREATE FUNCTION public.create_patient_from_auth_user(auth_email text, auth_user_id uuid, invite_token text) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."create_patient_from_auth_user"("auth_email" "text", "auth_user_id" "uuid", "invite_token" "text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 declare
   invitation_row public.patient_invitations%rowtype;
@@ -711,13 +684,12 @@ end;
 $$;
 
 
---
--- Name: create_patient_invitation_with_schedule(uuid, uuid, text, date, time without time zone, integer, text, integer); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."create_patient_from_auth_user"("auth_email" "text", "auth_user_id" "uuid", "invite_token" "text") OWNER TO "postgres";
 
-CREATE FUNCTION public.create_patient_invitation_with_schedule(target_clinic_id uuid, invited_by_membership_id uuid, patient_email text, session_date date, session_time time without time zone, duration_minutes integer DEFAULT 45, session_timezone text DEFAULT 'Asia/Jakarta'::text, invitation_ttl_hours integer DEFAULT 72) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text", "session_date" "date", "session_time" time without time zone, "duration_minutes" integer DEFAULT 45, "session_timezone" "text" DEFAULT 'Asia/Jakarta'::"text", "invitation_ttl_hours" integer DEFAULT 72) RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 declare
   normalized_email text;
@@ -971,13 +943,12 @@ end;
 $$;
 
 
---
--- Name: get_invitation_by_token(text); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text", "session_date" "date", "session_time" time without time zone, "duration_minutes" integer, "session_timezone" "text", "invitation_ttl_hours" integer) OWNER TO "postgres";
 
-CREATE FUNCTION public.get_invitation_by_token(invite_token text) RETURNS TABLE(email text, expires_at timestamp with time zone, is_used boolean, clinic_id uuid, clinic_name text, flow public.patient_invitation_flow, used_reason public.patient_invitation_used_reason, session_start_at timestamp with time zone, session_end_at timestamp with time zone, session_timezone text, target_patient_id uuid)
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."get_invitation_by_token"("invite_token" "text") RETURNS TABLE("email" "text", "expires_at" timestamp with time zone, "is_used" boolean, "clinic_id" "uuid", "clinic_name" "text", "flow" "public"."patient_invitation_flow", "used_reason" "public"."patient_invitation_used_reason", "session_start_at" timestamp with time zone, "session_end_at" timestamp with time zone, "session_timezone" "text", "target_patient_id" "uuid")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
   select
     pi.email,
@@ -998,13 +969,12 @@ CREATE FUNCTION public.get_invitation_by_token(invite_token text) RETURNS TABLE(
 $$;
 
 
---
--- Name: handle_new_auth_user(); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."get_invitation_by_token"("invite_token" "text") OWNER TO "postgres";
 
-CREATE FUNCTION public.handle_new_auth_user() RETURNS trigger
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."handle_new_auth_user"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 declare
   incoming_role text;
@@ -1023,13 +993,12 @@ end;
 $$;
 
 
---
--- Name: has_active_membership(uuid); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."handle_new_auth_user"() OWNER TO "postgres";
 
-CREATE FUNCTION public.has_active_membership(target_clinic_id uuid) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."has_active_membership"("target_clinic_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
   select exists (
     select 1
@@ -1041,13 +1010,12 @@ CREATE FUNCTION public.has_active_membership(target_clinic_id uuid) RETURNS bool
 $$;
 
 
---
--- Name: has_ops_access(uuid); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."has_active_membership"("target_clinic_id" "uuid") OWNER TO "postgres";
 
-CREATE FUNCTION public.has_ops_access(target_clinic_id uuid) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."has_ops_access"("target_clinic_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
   select exists (
     select 1
@@ -1060,13 +1028,12 @@ CREATE FUNCTION public.has_ops_access(target_clinic_id uuid) RETURNS boolean
 $$;
 
 
---
--- Name: has_owner_access(uuid); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."has_ops_access"("target_clinic_id" "uuid") OWNER TO "postgres";
 
-CREATE FUNCTION public.has_owner_access(target_clinic_id uuid) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."has_owner_access"("target_clinic_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
   select exists (
     select 1
@@ -1079,13 +1046,12 @@ CREATE FUNCTION public.has_owner_access(target_clinic_id uuid) RETURNS boolean
 $$;
 
 
---
--- Name: has_patient_access(uuid); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."has_owner_access"("target_clinic_id" "uuid") OWNER TO "postgres";
 
-CREATE FUNCTION public.has_patient_access(target_patient_id uuid) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."has_patient_access"("target_patient_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
   select exists (
     select 1
@@ -1099,13 +1065,12 @@ CREATE FUNCTION public.has_patient_access(target_patient_id uuid) RETURNS boolea
 $$;
 
 
---
--- Name: has_practitioner_access(uuid); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."has_patient_access"("target_patient_id" "uuid") OWNER TO "postgres";
 
-CREATE FUNCTION public.has_practitioner_access(target_clinic_id uuid) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."has_practitioner_access"("target_clinic_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
   select exists (
     select 1
@@ -1118,13 +1083,12 @@ CREATE FUNCTION public.has_practitioner_access(target_clinic_id uuid) RETURNS bo
 $$;
 
 
---
--- Name: is_portal_staff(); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."has_practitioner_access"("target_clinic_id" "uuid") OWNER TO "postgres";
 
-CREATE FUNCTION public.is_portal_staff() RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."is_portal_staff"() RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
   select exists (
     select 1
@@ -1135,13 +1099,12 @@ CREATE FUNCTION public.is_portal_staff() RETURNS boolean
 $$;
 
 
---
--- Name: rls_auto_enable(); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."is_portal_staff"() OWNER TO "postgres";
 
-CREATE FUNCTION public.rls_auto_enable() RETURNS event_trigger
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'pg_catalog'
+
+CREATE OR REPLACE FUNCTION "public"."rls_auto_enable"() RETURNS "event_trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog'
     AS $$
 DECLARE
   cmd record;
@@ -1168,13 +1131,12 @@ END;
 $$;
 
 
---
--- Name: save_therapy_session_entry(uuid, uuid, uuid, date, time without time zone, text, text, text); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."rls_auto_enable"() OWNER TO "postgres";
 
-CREATE FUNCTION public.save_therapy_session_entry(target_clinic_id uuid, target_patient_id uuid, target_visit_id uuid, input_session_date date, input_session_time time without time zone, input_activity_type text, input_subject text DEFAULT NULL::text, input_clinical_notes text DEFAULT NULL::text) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text" DEFAULT NULL::"text", "input_clinical_notes" "text" DEFAULT NULL::"text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 declare
   inserted_session_id uuid;
@@ -1269,13 +1231,12 @@ end;
 $$;
 
 
---
--- Name: submit_patient_registration(text, jsonb); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") OWNER TO "postgres";
 
-CREATE FUNCTION public.submit_patient_registration(invite_token text, registration_payload jsonb) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."submit_patient_registration"("invite_token" "text", "registration_payload" "jsonb") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 declare
   invitation_row public.patient_invitations%rowtype;
@@ -1559,13 +1520,12 @@ end;
 $$;
 
 
---
--- Name: sync_clinic_membership_profile_defaults(); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."submit_patient_registration"("invite_token" "text", "registration_payload" "jsonb") OWNER TO "postgres";
 
-CREATE FUNCTION public.sync_clinic_membership_profile_defaults() RETURNS trigger
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."sync_clinic_membership_profile_defaults"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 declare
   raw_meta jsonb;
@@ -1604,13 +1564,12 @@ end;
 $$;
 
 
---
--- Name: update_patient_registration_by_user_id(text, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."sync_clinic_membership_profile_defaults"() OWNER TO "postgres";
 
-CREATE FUNCTION public.update_patient_registration_by_user_id(invite_token text, registration_payload jsonb, target_user_id uuid) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."update_patient_registration_by_user_id"("invite_token" "text", "registration_payload" "jsonb", "target_user_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 declare
   invitation_row public.patient_invitations%rowtype;
@@ -2076,13 +2035,12 @@ end;
 $$;
 
 
---
--- Name: verify_referral_pin(uuid, text); Type: FUNCTION; Schema: public; Owner: -
---
+ALTER FUNCTION "public"."update_patient_registration_by_user_id"("invite_token" "text", "registration_payload" "jsonb", "target_user_id" "uuid") OWNER TO "postgres";
 
-CREATE FUNCTION public.verify_referral_pin(referral_id uuid, input_pin text) RETURNS jsonb
-    LANGUAGE plpgsql STABLE SECURITY DEFINER
-    SET search_path TO 'public'
+
+CREATE OR REPLACE FUNCTION "public"."verify_referral_pin"("referral_id" "uuid", "input_pin" "text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 declare
   referral_row public.referrals_and_feedback%rowtype;
@@ -2188,1291 +2146,1119 @@ end;
 $$;
 
 
+ALTER FUNCTION "public"."verify_referral_pin"("referral_id" "uuid", "input_pin" "text") OWNER TO "postgres";
+
 SET default_tablespace = '';
 
-SET default_table_access_method = heap;
+SET default_table_access_method = "heap";
 
---
--- Name: appointments; Type: TABLE; Schema: public; Owner: -
---
 
-CREATE TABLE public.appointments (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    patient_id uuid NOT NULL,
-    start_time timestamp with time zone NOT NULL,
-    end_time timestamp with time zone NOT NULL,
-    status public.appointment_status DEFAULT 'scheduled'::public.appointment_status NOT NULL,
-    notes text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    clinic_id uuid NOT NULL,
-    clinic_patient_id uuid NOT NULL,
-    practitioner_membership_id uuid NOT NULL
+CREATE TABLE IF NOT EXISTS "public"."appointments" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "patient_id" "uuid" NOT NULL,
+    "start_time" timestamp with time zone NOT NULL,
+    "end_time" timestamp with time zone NOT NULL,
+    "status" "public"."appointment_status" DEFAULT 'scheduled'::"public"."appointment_status" NOT NULL,
+    "notes" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL,
+    "clinic_patient_id" "uuid" NOT NULL,
+    "practitioner_membership_id" "uuid" NOT NULL
 );
 
 
---
--- Name: clinic_memberships; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."appointments" OWNER TO "postgres";
 
-CREATE TABLE public.clinic_memberships (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    clinic_id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    is_owner boolean DEFAULT false NOT NULL,
-    is_staff boolean DEFAULT false NOT NULL,
-    is_practitioner boolean DEFAULT false NOT NULL,
-    profession public.practitioner_profession,
-    is_active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    full_name text,
-    email text,
-    birth_date date,
-    ktp_number character varying(32),
-    gender character varying(20),
-    address text,
-    phone character varying(32),
-    sip_number character varying(64)
+
+CREATE TABLE IF NOT EXISTS "public"."clinic_memberships" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "is_owner" boolean DEFAULT false NOT NULL,
+    "is_staff" boolean DEFAULT false NOT NULL,
+    "is_practitioner" boolean DEFAULT false NOT NULL,
+    "profession" "public"."practitioner_profession",
+    "is_active" boolean DEFAULT true NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "full_name" "text",
+    "email" "text",
+    "birth_date" "date",
+    "ktp_number" character varying(32),
+    "gender" character varying(20),
+    "address" "text",
+    "phone" character varying(32),
+    "sip_number" character varying(64)
 );
 
 
---
--- Name: clinic_patients; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."clinic_memberships" OWNER TO "postgres";
 
-CREATE TABLE public.clinic_patients (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    clinic_id uuid NOT NULL,
-    patient_id uuid NOT NULL,
-    mrn character varying(64) NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+
+CREATE TABLE IF NOT EXISTS "public"."clinic_patients" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL,
+    "patient_id" "uuid" NOT NULL,
+    "mrn" character varying(64) NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 
 
---
--- Name: clinics; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."clinic_patients" OWNER TO "postgres";
 
-CREATE TABLE public.clinics (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    name text NOT NULL,
-    slug character varying(120) NOT NULL,
-    owner_user_id uuid,
-    is_active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+
+CREATE TABLE IF NOT EXISTS "public"."clinics" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "slug" character varying(120) NOT NULL,
+    "owner_user_id" "uuid",
+    "is_active" boolean DEFAULT true NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 
 
---
--- Name: cognitive_assessments; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."clinics" OWNER TO "postgres";
 
-CREATE TABLE public.cognitive_assessments (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    visit_id uuid NOT NULL,
-    knows_letters boolean,
-    knows_colors boolean,
-    writes boolean,
-    counts boolean,
-    reads boolean,
-    reading_spelling boolean,
-    fluent_reading boolean,
-    reversed_letters boolean,
-    autism_indication public.autism_indication,
-    adhd_indication public.adhd_indication,
-    initial_conclusion text,
-    intervention_counseling_given boolean,
-    intervention_areas text,
-    other_medical_action text,
-    referral_action text,
-    assessment_result text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    clinic_id uuid NOT NULL
+
+COMMENT ON TABLE "public"."clinics" IS 'Infrastructure and Landing Page readiness finalized.';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."cognitive_assessments" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "visit_id" "uuid" NOT NULL,
+    "knows_letters" boolean,
+    "knows_colors" boolean,
+    "writes" boolean,
+    "counts" boolean,
+    "reads" boolean,
+    "reading_spelling" boolean,
+    "fluent_reading" boolean,
+    "reversed_letters" boolean,
+    "autism_indication" "public"."autism_indication",
+    "adhd_indication" "public"."adhd_indication",
+    "initial_conclusion" "text",
+    "intervention_counseling_given" boolean,
+    "intervention_areas" "text",
+    "other_medical_action" "text",
+    "referral_action" "text",
+    "assessment_result" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL
 );
 
 
---
--- Name: developmental_history; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."cognitive_assessments" OWNER TO "postgres";
 
-CREATE TABLE public.developmental_history (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    visit_id uuid NOT NULL,
-    mother_pregnancy_notes text,
-    birth_process public.birth_process,
-    gestational_age_weeks integer,
-    birth_weight_kg numeric(5,2),
-    birth_length_cm numeric(5,2),
-    walking_age_months integer,
-    speaking_age_months integer,
-    hearing_function text,
-    speech_articulation text,
-    vision_function text,
-    child_medical_history text,
-    special_notes text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    clinic_id uuid NOT NULL
+
+CREATE TABLE IF NOT EXISTS "public"."developmental_history" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "visit_id" "uuid" NOT NULL,
+    "mother_pregnancy_notes" "text",
+    "birth_process" "public"."birth_process",
+    "gestational_age_weeks" integer,
+    "birth_weight_kg" numeric(5,2),
+    "birth_length_cm" numeric(5,2),
+    "walking_age_months" integer,
+    "speaking_age_months" integer,
+    "hearing_function" "text",
+    "speech_articulation" "text",
+    "vision_function" "text",
+    "child_medical_history" "text",
+    "special_notes" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL
 );
 
 
---
--- Name: patient_clinic_consents; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."developmental_history" OWNER TO "postgres";
 
-CREATE TABLE public.patient_clinic_consents (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    clinic_id uuid NOT NULL,
-    patient_id uuid NOT NULL,
-    invitation_id uuid,
-    consent_version character varying(20) DEFAULT 'v1'::character varying NOT NULL,
-    consent_text text NOT NULL,
-    source public.consent_source DEFAULT 'registration_wizard'::public.consent_source NOT NULL,
-    accepted_at timestamp with time zone DEFAULT now() NOT NULL,
-    accepted_ip text,
-    accepted_user_agent text,
-    revoked_at timestamp with time zone,
-    revoked_reason text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+
+CREATE TABLE IF NOT EXISTS "public"."patient_clinic_consents" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL,
+    "patient_id" "uuid" NOT NULL,
+    "invitation_id" "uuid",
+    "consent_version" character varying(20) DEFAULT 'v1'::character varying NOT NULL,
+    "consent_text" "text" NOT NULL,
+    "source" "public"."consent_source" DEFAULT 'registration_wizard'::"public"."consent_source" NOT NULL,
+    "accepted_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "accepted_ip" "text",
+    "accepted_user_agent" "text",
+    "revoked_at" timestamp with time zone,
+    "revoked_reason" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 
 
---
--- Name: patient_family_data; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."patient_clinic_consents" OWNER TO "postgres";
 
-CREATE TABLE public.patient_family_data (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    patient_id uuid NOT NULL,
-    guardian_name text,
-    guardian_relation character varying(50),
-    guardian_phone character varying(32),
-    guardian_address text,
-    father_name text,
-    father_age integer,
-    father_education character varying(120),
-    father_occupation character varying(120),
-    mother_name text,
-    mother_age integer,
-    mother_education character varying(120),
-    mother_occupation character varying(120),
-    marital_status character varying(40),
-    number_of_children integer,
-    monthly_income numeric(12,2),
-    family_notes text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    clinic_id uuid NOT NULL
+
+CREATE TABLE IF NOT EXISTS "public"."patient_family_data" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "patient_id" "uuid" NOT NULL,
+    "guardian_name" "text",
+    "guardian_relation" character varying(50),
+    "guardian_phone" character varying(32),
+    "guardian_address" "text",
+    "father_name" "text",
+    "father_age" integer,
+    "father_education" character varying(120),
+    "father_occupation" character varying(120),
+    "mother_name" "text",
+    "mother_age" integer,
+    "mother_education" character varying(120),
+    "mother_occupation" character varying(120),
+    "marital_status" character varying(40),
+    "number_of_children" integer,
+    "monthly_income" numeric(12,2),
+    "family_notes" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL
 );
 
 
---
--- Name: patient_invitations; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."patient_family_data" OWNER TO "postgres";
 
-CREATE TABLE public.patient_invitations (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    email text NOT NULL,
-    token character varying(128) NOT NULL,
-    expires_at timestamp with time zone NOT NULL,
-    is_used boolean DEFAULT false NOT NULL,
-    used_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    clinic_id uuid NOT NULL,
-    invited_by_membership_id uuid,
-    flow public.patient_invitation_flow DEFAULT 'registration_required'::public.patient_invitation_flow NOT NULL,
-    session_start_at timestamp with time zone,
-    session_end_at timestamp with time zone,
-    session_timezone text DEFAULT 'Asia/Jakarta'::text,
-    target_patient_id uuid,
-    practitioner_membership_id uuid,
-    used_reason public.patient_invitation_used_reason,
-    replaced_by_invitation_id uuid,
-    appointment_id uuid,
-    CONSTRAINT patient_invitations_session_range_chk CHECK (((session_start_at IS NULL) OR (session_end_at IS NULL) OR (session_end_at > session_start_at)))
+
+CREATE TABLE IF NOT EXISTS "public"."patient_invitations" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "email" "text" NOT NULL,
+    "token" character varying(128) NOT NULL,
+    "expires_at" timestamp with time zone NOT NULL,
+    "is_used" boolean DEFAULT false NOT NULL,
+    "used_at" timestamp with time zone,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL,
+    "invited_by_membership_id" "uuid",
+    "flow" "public"."patient_invitation_flow" DEFAULT 'registration_required'::"public"."patient_invitation_flow" NOT NULL,
+    "session_start_at" timestamp with time zone,
+    "session_end_at" timestamp with time zone,
+    "session_timezone" "text" DEFAULT 'Asia/Jakarta'::"text",
+    "target_patient_id" "uuid",
+    "practitioner_membership_id" "uuid",
+    "used_reason" "public"."patient_invitation_used_reason",
+    "replaced_by_invitation_id" "uuid",
+    "appointment_id" "uuid",
+    CONSTRAINT "patient_invitations_session_range_chk" CHECK ((("session_start_at" IS NULL) OR ("session_end_at" IS NULL) OR ("session_end_at" > "session_start_at")))
 );
 
 
---
--- Name: patient_personal_data; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."patient_invitations" OWNER TO "postgres";
 
-CREATE TABLE public.patient_personal_data (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    patient_id uuid NOT NULL,
-    case_number character varying(64),
-    sex character varying(1),
-    birth_date date,
-    address text,
-    religion character varying(80),
-    education character varying(120),
-    occupation character varying(120),
-    hobby character varying(120),
-    referral_source text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    full_name text,
-    clinic_id uuid NOT NULL
+
+CREATE TABLE IF NOT EXISTS "public"."patient_personal_data" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "patient_id" "uuid" NOT NULL,
+    "case_number" character varying(64),
+    "sex" character varying(1),
+    "birth_date" "date",
+    "address" "text",
+    "religion" character varying(80),
+    "education" character varying(120),
+    "occupation" character varying(120),
+    "hobby" character varying(120),
+    "referral_source" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "full_name" "text",
+    "clinic_id" "uuid" NOT NULL
 );
 
 
---
--- Name: patient_visits; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."patient_personal_data" OWNER TO "postgres";
 
-CREATE TABLE public.patient_visits (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    patient_id uuid NOT NULL,
-    appointment_id uuid NOT NULL,
-    status public.visit_status DEFAULT 'scheduled'::public.visit_status NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    clinic_id uuid NOT NULL,
-    clinic_patient_id uuid NOT NULL
+
+CREATE TABLE IF NOT EXISTS "public"."patient_visits" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "patient_id" "uuid" NOT NULL,
+    "appointment_id" "uuid" NOT NULL,
+    "status" "public"."visit_status" DEFAULT 'scheduled'::"public"."visit_status" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL,
+    "clinic_patient_id" "uuid" NOT NULL
 );
 
 
---
--- Name: patients; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."patient_visits" OWNER TO "postgres";
 
-CREATE TABLE public.patients (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid,
-    mrn character varying(64) NOT NULL,
-    full_name text NOT NULL,
-    email text,
-    phone character varying(32),
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+
+CREATE TABLE IF NOT EXISTS "public"."patients" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid",
+    "mrn" character varying(64) NOT NULL,
+    "full_name" "text" NOT NULL,
+    "email" "text",
+    "phone" character varying(32),
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 
 
---
--- Name: referrals_and_feedback; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."patients" OWNER TO "postgres";
 
-CREATE TABLE public.referrals_and_feedback (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    visit_id uuid NOT NULL,
-    patient_id uuid NOT NULL,
-    destination character varying(120) NOT NULL,
-    notes text NOT NULL,
-    secure_pin character varying(6) NOT NULL,
-    expires_at timestamp with time zone NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    clinic_id uuid NOT NULL,
-    practitioner_membership_id uuid,
-    CONSTRAINT referrals_and_feedback_secure_pin_check CHECK (((secure_pin)::text ~ '^[0-9]{6}$'::text))
+
+CREATE TABLE IF NOT EXISTS "public"."referrals_and_feedback" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "visit_id" "uuid" NOT NULL,
+    "patient_id" "uuid" NOT NULL,
+    "destination" character varying(120) NOT NULL,
+    "notes" "text" NOT NULL,
+    "secure_pin" character varying(6) NOT NULL,
+    "expires_at" timestamp with time zone NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL,
+    "practitioner_membership_id" "uuid",
+    CONSTRAINT "referrals_and_feedback_secure_pin_check" CHECK ((("secure_pin")::"text" ~ '^[0-9]{6}$'::"text"))
 );
 
 
---
--- Name: therapy_sessions; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."referrals_and_feedback" OWNER TO "postgres";
 
-CREATE TABLE public.therapy_sessions (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    visit_id uuid NOT NULL,
-    session_date date NOT NULL,
-    session_time time without time zone NOT NULL,
-    activity_type character varying(120) NOT NULL,
-    subject text,
-    clinical_notes text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    clinic_id uuid NOT NULL
+
+CREATE TABLE IF NOT EXISTS "public"."therapy_sessions" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "visit_id" "uuid" NOT NULL,
+    "session_date" "date" NOT NULL,
+    "session_time" time without time zone NOT NULL,
+    "activity_type" character varying(120) NOT NULL,
+    "subject" "text",
+    "clinical_notes" "text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL
 );
 
 
---
--- Name: users; Type: TABLE; Schema: public; Owner: -
---
+ALTER TABLE "public"."therapy_sessions" OWNER TO "postgres";
 
-CREATE TABLE public.users (
-    id uuid NOT NULL,
-    role public.user_role DEFAULT 'clinic_staff'::public.user_role NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT users_role_supported_chk CHECK (((role)::text = ANY (ARRAY['clinic_staff'::text, 'patient'::text])))
+
+CREATE TABLE IF NOT EXISTS "public"."users" (
+    "id" "uuid" NOT NULL,
+    "role" "public"."user_role" DEFAULT 'clinic_staff'::"public"."user_role" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "users_role_supported_chk" CHECK ((("role")::"text" = ANY (ARRAY['clinic_staff'::"text", 'patient'::"text"])))
 );
 
 
---
--- Name: appointments appointments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
+ALTER TABLE "public"."users" OWNER TO "postgres";
 
-ALTER TABLE ONLY public.appointments
-    ADD CONSTRAINT appointments_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."appointments"
+    ADD CONSTRAINT "appointments_pkey" PRIMARY KEY ("id");
 
---
--- Name: clinic_memberships clinic_memberships_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.clinic_memberships
-    ADD CONSTRAINT clinic_memberships_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."clinic_memberships"
+    ADD CONSTRAINT "clinic_memberships_pkey" PRIMARY KEY ("id");
 
---
--- Name: clinic_memberships clinic_memberships_user_clinic_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.clinic_memberships
-    ADD CONSTRAINT clinic_memberships_user_clinic_unique UNIQUE (clinic_id, user_id);
 
+ALTER TABLE ONLY "public"."clinic_memberships"
+    ADD CONSTRAINT "clinic_memberships_user_clinic_unique" UNIQUE ("clinic_id", "user_id");
 
---
--- Name: clinic_patients clinic_patients_mrn_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.clinic_patients
-    ADD CONSTRAINT clinic_patients_mrn_unique UNIQUE (clinic_id, mrn);
 
+ALTER TABLE ONLY "public"."clinic_patients"
+    ADD CONSTRAINT "clinic_patients_mrn_unique" UNIQUE ("clinic_id", "mrn");
 
---
--- Name: clinic_patients clinic_patients_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.clinic_patients
-    ADD CONSTRAINT clinic_patients_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."clinic_patients"
+    ADD CONSTRAINT "clinic_patients_pkey" PRIMARY KEY ("id");
 
---
--- Name: clinic_patients clinic_patients_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.clinic_patients
-    ADD CONSTRAINT clinic_patients_unique UNIQUE (clinic_id, patient_id);
 
+ALTER TABLE ONLY "public"."clinic_patients"
+    ADD CONSTRAINT "clinic_patients_unique" UNIQUE ("clinic_id", "patient_id");
 
---
--- Name: clinics clinics_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.clinics
-    ADD CONSTRAINT clinics_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."clinics"
+    ADD CONSTRAINT "clinics_pkey" PRIMARY KEY ("id");
 
---
--- Name: cognitive_assessments cognitive_assessments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.cognitive_assessments
-    ADD CONSTRAINT cognitive_assessments_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."cognitive_assessments"
+    ADD CONSTRAINT "cognitive_assessments_pkey" PRIMARY KEY ("id");
 
---
--- Name: developmental_history developmental_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.developmental_history
-    ADD CONSTRAINT developmental_history_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."developmental_history"
+    ADD CONSTRAINT "developmental_history_pkey" PRIMARY KEY ("id");
 
---
--- Name: patient_clinic_consents patient_clinic_consents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_clinic_consents
-    ADD CONSTRAINT patient_clinic_consents_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."patient_clinic_consents"
+    ADD CONSTRAINT "patient_clinic_consents_pkey" PRIMARY KEY ("id");
 
---
--- Name: patient_family_data patient_family_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_family_data
-    ADD CONSTRAINT patient_family_data_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."patient_family_data"
+    ADD CONSTRAINT "patient_family_data_pkey" PRIMARY KEY ("id");
 
---
--- Name: patient_invitations patient_invitations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_invitations
-    ADD CONSTRAINT patient_invitations_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."patient_invitations"
+    ADD CONSTRAINT "patient_invitations_pkey" PRIMARY KEY ("id");
 
---
--- Name: patient_personal_data patient_personal_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_personal_data
-    ADD CONSTRAINT patient_personal_data_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."patient_personal_data"
+    ADD CONSTRAINT "patient_personal_data_pkey" PRIMARY KEY ("id");
 
---
--- Name: patient_visits patient_visits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_visits
-    ADD CONSTRAINT patient_visits_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."patient_visits"
+    ADD CONSTRAINT "patient_visits_pkey" PRIMARY KEY ("id");
 
---
--- Name: patients patients_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patients
-    ADD CONSTRAINT patients_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."patients"
+    ADD CONSTRAINT "patients_pkey" PRIMARY KEY ("id");
 
---
--- Name: referrals_and_feedback referrals_and_feedback_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.referrals_and_feedback
-    ADD CONSTRAINT referrals_and_feedback_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."referrals_and_feedback"
+    ADD CONSTRAINT "referrals_and_feedback_pkey" PRIMARY KEY ("id");
 
---
--- Name: therapy_sessions therapy_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.therapy_sessions
-    ADD CONSTRAINT therapy_sessions_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."therapy_sessions"
+    ADD CONSTRAINT "therapy_sessions_pkey" PRIMARY KEY ("id");
 
---
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY "public"."users"
+    ADD CONSTRAINT "users_pkey" PRIMARY KEY ("id");
 
---
--- Name: appointments_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX appointments_clinic_id_idx ON public.appointments USING btree (clinic_id);
 
+CREATE INDEX "appointments_clinic_id_idx" ON "public"."appointments" USING "btree" ("clinic_id");
 
---
--- Name: appointments_clinic_patient_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX appointments_clinic_patient_id_idx ON public.appointments USING btree (clinic_patient_id);
 
+CREATE INDEX "appointments_clinic_patient_id_idx" ON "public"."appointments" USING "btree" ("clinic_patient_id");
 
---
--- Name: appointments_patient_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX appointments_patient_id_idx ON public.appointments USING btree (patient_id);
 
+CREATE INDEX "appointments_patient_id_idx" ON "public"."appointments" USING "btree" ("patient_id");
 
---
--- Name: appointments_practitioner_membership_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX appointments_practitioner_membership_id_idx ON public.appointments USING btree (practitioner_membership_id);
 
+CREATE INDEX "appointments_practitioner_membership_id_idx" ON "public"."appointments" USING "btree" ("practitioner_membership_id");
 
---
--- Name: appointments_start_time_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX appointments_start_time_idx ON public.appointments USING btree (start_time);
 
+CREATE INDEX "appointments_start_time_idx" ON "public"."appointments" USING "btree" ("start_time");
 
---
--- Name: clinic_memberships_clinic_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX clinic_memberships_clinic_idx ON public.clinic_memberships USING btree (clinic_id);
 
+CREATE INDEX "clinic_memberships_clinic_idx" ON "public"."clinic_memberships" USING "btree" ("clinic_id");
 
---
--- Name: clinic_memberships_user_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX clinic_memberships_user_idx ON public.clinic_memberships USING btree (user_id);
 
+CREATE INDEX "clinic_memberships_user_idx" ON "public"."clinic_memberships" USING "btree" ("user_id");
 
---
--- Name: clinic_patients_clinic_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX clinic_patients_clinic_idx ON public.clinic_patients USING btree (clinic_id);
 
+CREATE INDEX "clinic_patients_clinic_idx" ON "public"."clinic_patients" USING "btree" ("clinic_id");
 
---
--- Name: clinic_patients_patient_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX clinic_patients_patient_idx ON public.clinic_patients USING btree (patient_id);
 
+CREATE INDEX "clinic_patients_patient_idx" ON "public"."clinic_patients" USING "btree" ("patient_id");
 
---
--- Name: clinics_slug_unique; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE UNIQUE INDEX clinics_slug_unique ON public.clinics USING btree (slug);
 
+CREATE UNIQUE INDEX "clinics_slug_unique" ON "public"."clinics" USING "btree" ("slug");
 
---
--- Name: cognitive_assessments_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX cognitive_assessments_clinic_id_idx ON public.cognitive_assessments USING btree (clinic_id);
 
+CREATE INDEX "cognitive_assessments_clinic_id_idx" ON "public"."cognitive_assessments" USING "btree" ("clinic_id");
 
---
--- Name: cognitive_assessments_visit_id_unique; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE UNIQUE INDEX cognitive_assessments_visit_id_unique ON public.cognitive_assessments USING btree (visit_id);
 
+CREATE UNIQUE INDEX "cognitive_assessments_visit_id_unique" ON "public"."cognitive_assessments" USING "btree" ("visit_id");
 
---
--- Name: developmental_history_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX developmental_history_clinic_id_idx ON public.developmental_history USING btree (clinic_id);
 
+CREATE INDEX "developmental_history_clinic_id_idx" ON "public"."developmental_history" USING "btree" ("clinic_id");
 
---
--- Name: developmental_history_visit_id_unique; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE UNIQUE INDEX developmental_history_visit_id_unique ON public.developmental_history USING btree (visit_id);
 
+CREATE UNIQUE INDEX "developmental_history_visit_id_unique" ON "public"."developmental_history" USING "btree" ("visit_id");
 
---
--- Name: patient_clinic_consents_active_unique; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE UNIQUE INDEX patient_clinic_consents_active_unique ON public.patient_clinic_consents USING btree (clinic_id, patient_id) WHERE (revoked_at IS NULL);
 
+CREATE UNIQUE INDEX "patient_clinic_consents_active_unique" ON "public"."patient_clinic_consents" USING "btree" ("clinic_id", "patient_id") WHERE ("revoked_at" IS NULL);
 
---
--- Name: patient_clinic_consents_clinic_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_clinic_consents_clinic_idx ON public.patient_clinic_consents USING btree (clinic_id);
 
+CREATE INDEX "patient_clinic_consents_clinic_idx" ON "public"."patient_clinic_consents" USING "btree" ("clinic_id");
 
---
--- Name: patient_clinic_consents_invitation_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_clinic_consents_invitation_idx ON public.patient_clinic_consents USING btree (invitation_id);
 
+CREATE INDEX "patient_clinic_consents_invitation_idx" ON "public"."patient_clinic_consents" USING "btree" ("invitation_id");
 
---
--- Name: patient_clinic_consents_patient_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_clinic_consents_patient_idx ON public.patient_clinic_consents USING btree (patient_id);
 
+CREATE INDEX "patient_clinic_consents_patient_idx" ON "public"."patient_clinic_consents" USING "btree" ("patient_id");
 
---
--- Name: patient_family_data_clinic_patient_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_family_data_clinic_patient_idx ON public.patient_family_data USING btree (clinic_id, patient_id);
 
+CREATE INDEX "patient_family_data_clinic_patient_idx" ON "public"."patient_family_data" USING "btree" ("clinic_id", "patient_id");
 
---
--- Name: patient_family_data_clinic_patient_unique; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE UNIQUE INDEX patient_family_data_clinic_patient_unique ON public.patient_family_data USING btree (clinic_id, patient_id);
 
+CREATE UNIQUE INDEX "patient_family_data_clinic_patient_unique" ON "public"."patient_family_data" USING "btree" ("clinic_id", "patient_id");
 
---
--- Name: patient_invitations_appointment_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_invitations_appointment_idx ON public.patient_invitations USING btree (appointment_id);
 
+CREATE INDEX "patient_invitations_appointment_idx" ON "public"."patient_invitations" USING "btree" ("appointment_id");
 
---
--- Name: patient_invitations_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_invitations_clinic_id_idx ON public.patient_invitations USING btree (clinic_id);
 
+CREATE INDEX "patient_invitations_clinic_id_idx" ON "public"."patient_invitations" USING "btree" ("clinic_id");
 
---
--- Name: patient_invitations_email_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_invitations_email_idx ON public.patient_invitations USING btree (email);
 
+CREATE INDEX "patient_invitations_email_idx" ON "public"."patient_invitations" USING "btree" ("email");
 
---
--- Name: patient_invitations_flow_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_invitations_flow_idx ON public.patient_invitations USING btree (flow);
 
+CREATE INDEX "patient_invitations_flow_idx" ON "public"."patient_invitations" USING "btree" ("flow");
 
---
--- Name: patient_invitations_session_start_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_invitations_session_start_idx ON public.patient_invitations USING btree (session_start_at);
 
+CREATE INDEX "patient_invitations_session_start_idx" ON "public"."patient_invitations" USING "btree" ("session_start_at");
 
---
--- Name: patient_invitations_target_patient_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_invitations_target_patient_idx ON public.patient_invitations USING btree (target_patient_id);
 
+CREATE INDEX "patient_invitations_target_patient_idx" ON "public"."patient_invitations" USING "btree" ("target_patient_id");
 
---
--- Name: patient_invitations_token_unique; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE UNIQUE INDEX patient_invitations_token_unique ON public.patient_invitations USING btree (token);
 
+CREATE UNIQUE INDEX "patient_invitations_token_unique" ON "public"."patient_invitations" USING "btree" ("token");
 
---
--- Name: patient_personal_data_clinic_patient_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_personal_data_clinic_patient_idx ON public.patient_personal_data USING btree (clinic_id, patient_id);
 
+CREATE INDEX "patient_personal_data_clinic_patient_idx" ON "public"."patient_personal_data" USING "btree" ("clinic_id", "patient_id");
 
---
--- Name: patient_personal_data_clinic_patient_unique; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE UNIQUE INDEX patient_personal_data_clinic_patient_unique ON public.patient_personal_data USING btree (clinic_id, patient_id);
 
+CREATE UNIQUE INDEX "patient_personal_data_clinic_patient_unique" ON "public"."patient_personal_data" USING "btree" ("clinic_id", "patient_id");
 
---
--- Name: patient_visits_appointment_id_unique; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE UNIQUE INDEX patient_visits_appointment_id_unique ON public.patient_visits USING btree (appointment_id);
 
+CREATE UNIQUE INDEX "patient_visits_appointment_id_unique" ON "public"."patient_visits" USING "btree" ("appointment_id");
 
---
--- Name: patient_visits_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_visits_clinic_id_idx ON public.patient_visits USING btree (clinic_id);
 
+CREATE INDEX "patient_visits_clinic_id_idx" ON "public"."patient_visits" USING "btree" ("clinic_id");
 
---
--- Name: patient_visits_clinic_patient_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_visits_clinic_patient_id_idx ON public.patient_visits USING btree (clinic_patient_id);
 
+CREATE INDEX "patient_visits_clinic_patient_id_idx" ON "public"."patient_visits" USING "btree" ("clinic_patient_id");
 
---
--- Name: patient_visits_patient_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patient_visits_patient_id_idx ON public.patient_visits USING btree (patient_id);
 
+CREATE INDEX "patient_visits_patient_id_idx" ON "public"."patient_visits" USING "btree" ("patient_id");
 
---
--- Name: patients_mrn_unique; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE UNIQUE INDEX patients_mrn_unique ON public.patients USING btree (mrn);
 
+CREATE UNIQUE INDEX "patients_mrn_unique" ON "public"."patients" USING "btree" ("mrn");
 
---
--- Name: patients_user_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX patients_user_id_idx ON public.patients USING btree (user_id);
 
+CREATE INDEX "patients_user_id_idx" ON "public"."patients" USING "btree" ("user_id");
 
---
--- Name: referrals_and_feedback_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX referrals_and_feedback_clinic_id_idx ON public.referrals_and_feedback USING btree (clinic_id);
 
+CREATE INDEX "referrals_and_feedback_clinic_id_idx" ON "public"."referrals_and_feedback" USING "btree" ("clinic_id");
 
---
--- Name: referrals_and_feedback_patient_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX referrals_and_feedback_patient_id_idx ON public.referrals_and_feedback USING btree (patient_id);
 
+CREATE INDEX "referrals_and_feedback_patient_id_idx" ON "public"."referrals_and_feedback" USING "btree" ("patient_id");
 
---
--- Name: referrals_and_feedback_practitioner_membership_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX referrals_and_feedback_practitioner_membership_idx ON public.referrals_and_feedback USING btree (practitioner_membership_id);
 
+CREATE INDEX "referrals_and_feedback_practitioner_membership_idx" ON "public"."referrals_and_feedback" USING "btree" ("practitioner_membership_id");
 
---
--- Name: referrals_and_feedback_secure_pin_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX referrals_and_feedback_secure_pin_idx ON public.referrals_and_feedback USING btree (secure_pin);
 
+CREATE INDEX "referrals_and_feedback_secure_pin_idx" ON "public"."referrals_and_feedback" USING "btree" ("secure_pin");
 
---
--- Name: referrals_and_feedback_visit_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX referrals_and_feedback_visit_id_idx ON public.referrals_and_feedback USING btree (visit_id);
 
+CREATE INDEX "referrals_and_feedback_visit_id_idx" ON "public"."referrals_and_feedback" USING "btree" ("visit_id");
 
---
--- Name: therapy_sessions_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX therapy_sessions_clinic_id_idx ON public.therapy_sessions USING btree (clinic_id);
 
+CREATE INDEX "therapy_sessions_clinic_id_idx" ON "public"."therapy_sessions" USING "btree" ("clinic_id");
 
---
--- Name: therapy_sessions_session_date_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX therapy_sessions_session_date_idx ON public.therapy_sessions USING btree (session_date);
 
+CREATE INDEX "therapy_sessions_session_date_idx" ON "public"."therapy_sessions" USING "btree" ("session_date");
 
---
--- Name: therapy_sessions_visit_id_idx; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX therapy_sessions_visit_id_idx ON public.therapy_sessions USING btree (visit_id);
 
+CREATE INDEX "therapy_sessions_visit_id_idx" ON "public"."therapy_sessions" USING "btree" ("visit_id");
 
---
--- Name: clinic_memberships trg_clinic_memberships_sync_profile; Type: TRIGGER; Schema: public; Owner: -
---
 
-CREATE TRIGGER trg_clinic_memberships_sync_profile BEFORE INSERT OR UPDATE ON public.clinic_memberships FOR EACH ROW EXECUTE FUNCTION public.sync_clinic_membership_profile_defaults();
 
+CREATE OR REPLACE TRIGGER "trg_clinic_memberships_sync_profile" BEFORE INSERT OR UPDATE ON "public"."clinic_memberships" FOR EACH ROW EXECUTE FUNCTION "public"."sync_clinic_membership_profile_defaults"();
 
---
--- Name: appointments appointments_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.appointments
-    ADD CONSTRAINT appointments_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."appointments"
+    ADD CONSTRAINT "appointments_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
---
--- Name: appointments appointments_clinic_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.appointments
-    ADD CONSTRAINT appointments_clinic_patient_id_fkey FOREIGN KEY (clinic_patient_id) REFERENCES public.clinic_patients(id) ON DELETE RESTRICT;
 
+ALTER TABLE ONLY "public"."appointments"
+    ADD CONSTRAINT "appointments_clinic_patient_id_fkey" FOREIGN KEY ("clinic_patient_id") REFERENCES "public"."clinic_patients"("id") ON DELETE RESTRICT;
 
---
--- Name: appointments appointments_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.appointments
-    ADD CONSTRAINT appointments_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."appointments"
+    ADD CONSTRAINT "appointments_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
---
--- Name: appointments appointments_practitioner_membership_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.appointments
-    ADD CONSTRAINT appointments_practitioner_membership_id_fkey FOREIGN KEY (practitioner_membership_id) REFERENCES public.clinic_memberships(id) ON DELETE RESTRICT;
 
+ALTER TABLE ONLY "public"."appointments"
+    ADD CONSTRAINT "appointments_practitioner_membership_id_fkey" FOREIGN KEY ("practitioner_membership_id") REFERENCES "public"."clinic_memberships"("id") ON DELETE RESTRICT;
 
---
--- Name: clinic_memberships clinic_memberships_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.clinic_memberships
-    ADD CONSTRAINT clinic_memberships_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."clinic_memberships"
+    ADD CONSTRAINT "clinic_memberships_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
---
--- Name: clinic_memberships clinic_memberships_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.clinic_memberships
-    ADD CONSTRAINT clinic_memberships_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."clinic_memberships"
+    ADD CONSTRAINT "clinic_memberships_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
 
---
--- Name: clinic_patients clinic_patients_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.clinic_patients
-    ADD CONSTRAINT clinic_patients_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."clinic_patients"
+    ADD CONSTRAINT "clinic_patients_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
---
--- Name: clinic_patients clinic_patients_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.clinic_patients
-    ADD CONSTRAINT clinic_patients_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."clinic_patients"
+    ADD CONSTRAINT "clinic_patients_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
---
--- Name: clinics clinics_owner_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.clinics
-    ADD CONSTRAINT clinics_owner_user_id_fkey FOREIGN KEY (owner_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
+ALTER TABLE ONLY "public"."clinics"
+    ADD CONSTRAINT "clinics_owner_user_id_fkey" FOREIGN KEY ("owner_user_id") REFERENCES "public"."users"("id") ON DELETE SET NULL;
 
---
--- Name: cognitive_assessments cognitive_assessments_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.cognitive_assessments
-    ADD CONSTRAINT cognitive_assessments_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."cognitive_assessments"
+    ADD CONSTRAINT "cognitive_assessments_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
---
--- Name: cognitive_assessments cognitive_assessments_visit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.cognitive_assessments
-    ADD CONSTRAINT cognitive_assessments_visit_id_fkey FOREIGN KEY (visit_id) REFERENCES public.patient_visits(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."cognitive_assessments"
+    ADD CONSTRAINT "cognitive_assessments_visit_id_fkey" FOREIGN KEY ("visit_id") REFERENCES "public"."patient_visits"("id") ON DELETE CASCADE;
 
---
--- Name: developmental_history developmental_history_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.developmental_history
-    ADD CONSTRAINT developmental_history_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."developmental_history"
+    ADD CONSTRAINT "developmental_history_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
---
--- Name: developmental_history developmental_history_visit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.developmental_history
-    ADD CONSTRAINT developmental_history_visit_id_fkey FOREIGN KEY (visit_id) REFERENCES public.patient_visits(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."developmental_history"
+    ADD CONSTRAINT "developmental_history_visit_id_fkey" FOREIGN KEY ("visit_id") REFERENCES "public"."patient_visits"("id") ON DELETE CASCADE;
 
---
--- Name: patient_clinic_consents patient_clinic_consents_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_clinic_consents
-    ADD CONSTRAINT patient_clinic_consents_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."patient_clinic_consents"
+    ADD CONSTRAINT "patient_clinic_consents_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
---
--- Name: patient_clinic_consents patient_clinic_consents_invitation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_clinic_consents
-    ADD CONSTRAINT patient_clinic_consents_invitation_id_fkey FOREIGN KEY (invitation_id) REFERENCES public.patient_invitations(id) ON DELETE SET NULL;
 
+ALTER TABLE ONLY "public"."patient_clinic_consents"
+    ADD CONSTRAINT "patient_clinic_consents_invitation_id_fkey" FOREIGN KEY ("invitation_id") REFERENCES "public"."patient_invitations"("id") ON DELETE SET NULL;
 
---
--- Name: patient_clinic_consents patient_clinic_consents_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_clinic_consents
-    ADD CONSTRAINT patient_clinic_consents_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."patient_clinic_consents"
+    ADD CONSTRAINT "patient_clinic_consents_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
---
--- Name: patient_family_data patient_family_data_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_family_data
-    ADD CONSTRAINT patient_family_data_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."patient_family_data"
+    ADD CONSTRAINT "patient_family_data_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
---
--- Name: patient_family_data patient_family_data_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_family_data
-    ADD CONSTRAINT patient_family_data_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."patient_family_data"
+    ADD CONSTRAINT "patient_family_data_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
---
--- Name: patient_invitations patient_invitations_appointment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_invitations
-    ADD CONSTRAINT patient_invitations_appointment_id_fkey FOREIGN KEY (appointment_id) REFERENCES public.appointments(id) ON DELETE SET NULL;
 
+ALTER TABLE ONLY "public"."patient_invitations"
+    ADD CONSTRAINT "patient_invitations_appointment_id_fkey" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("id") ON DELETE SET NULL;
 
---
--- Name: patient_invitations patient_invitations_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_invitations
-    ADD CONSTRAINT patient_invitations_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."patient_invitations"
+    ADD CONSTRAINT "patient_invitations_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
---
--- Name: patient_invitations patient_invitations_invited_by_membership_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_invitations
-    ADD CONSTRAINT patient_invitations_invited_by_membership_id_fkey FOREIGN KEY (invited_by_membership_id) REFERENCES public.clinic_memberships(id) ON DELETE SET NULL;
 
+ALTER TABLE ONLY "public"."patient_invitations"
+    ADD CONSTRAINT "patient_invitations_invited_by_membership_id_fkey" FOREIGN KEY ("invited_by_membership_id") REFERENCES "public"."clinic_memberships"("id") ON DELETE SET NULL;
 
---
--- Name: patient_invitations patient_invitations_practitioner_membership_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_invitations
-    ADD CONSTRAINT patient_invitations_practitioner_membership_id_fkey FOREIGN KEY (practitioner_membership_id) REFERENCES public.clinic_memberships(id) ON DELETE SET NULL;
 
+ALTER TABLE ONLY "public"."patient_invitations"
+    ADD CONSTRAINT "patient_invitations_practitioner_membership_id_fkey" FOREIGN KEY ("practitioner_membership_id") REFERENCES "public"."clinic_memberships"("id") ON DELETE SET NULL;
 
---
--- Name: patient_invitations patient_invitations_replaced_by_invitation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_invitations
-    ADD CONSTRAINT patient_invitations_replaced_by_invitation_id_fkey FOREIGN KEY (replaced_by_invitation_id) REFERENCES public.patient_invitations(id) ON DELETE SET NULL;
 
+ALTER TABLE ONLY "public"."patient_invitations"
+    ADD CONSTRAINT "patient_invitations_replaced_by_invitation_id_fkey" FOREIGN KEY ("replaced_by_invitation_id") REFERENCES "public"."patient_invitations"("id") ON DELETE SET NULL;
 
---
--- Name: patient_invitations patient_invitations_target_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_invitations
-    ADD CONSTRAINT patient_invitations_target_patient_id_fkey FOREIGN KEY (target_patient_id) REFERENCES public.patients(id) ON DELETE SET NULL;
 
+ALTER TABLE ONLY "public"."patient_invitations"
+    ADD CONSTRAINT "patient_invitations_target_patient_id_fkey" FOREIGN KEY ("target_patient_id") REFERENCES "public"."patients"("id") ON DELETE SET NULL;
 
---
--- Name: patient_personal_data patient_personal_data_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_personal_data
-    ADD CONSTRAINT patient_personal_data_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."patient_personal_data"
+    ADD CONSTRAINT "patient_personal_data_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
---
--- Name: patient_personal_data patient_personal_data_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_personal_data
-    ADD CONSTRAINT patient_personal_data_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."patient_personal_data"
+    ADD CONSTRAINT "patient_personal_data_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
---
--- Name: patient_visits patient_visits_appointment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_visits
-    ADD CONSTRAINT patient_visits_appointment_id_fkey FOREIGN KEY (appointment_id) REFERENCES public.appointments(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."patient_visits"
+    ADD CONSTRAINT "patient_visits_appointment_id_fkey" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("id") ON DELETE CASCADE;
 
---
--- Name: patient_visits patient_visits_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_visits
-    ADD CONSTRAINT patient_visits_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."patient_visits"
+    ADD CONSTRAINT "patient_visits_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
---
--- Name: patient_visits patient_visits_clinic_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_visits
-    ADD CONSTRAINT patient_visits_clinic_patient_id_fkey FOREIGN KEY (clinic_patient_id) REFERENCES public.clinic_patients(id) ON DELETE RESTRICT;
 
+ALTER TABLE ONLY "public"."patient_visits"
+    ADD CONSTRAINT "patient_visits_clinic_patient_id_fkey" FOREIGN KEY ("clinic_patient_id") REFERENCES "public"."clinic_patients"("id") ON DELETE RESTRICT;
 
---
--- Name: patient_visits patient_visits_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patient_visits
-    ADD CONSTRAINT patient_visits_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."patient_visits"
+    ADD CONSTRAINT "patient_visits_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
---
--- Name: patients patients_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.patients
-    ADD CONSTRAINT patients_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
+ALTER TABLE ONLY "public"."patients"
+    ADD CONSTRAINT "patients_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE SET NULL;
 
---
--- Name: referrals_and_feedback referrals_and_feedback_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.referrals_and_feedback
-    ADD CONSTRAINT referrals_and_feedback_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."referrals_and_feedback"
+    ADD CONSTRAINT "referrals_and_feedback_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
---
--- Name: referrals_and_feedback referrals_and_feedback_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.referrals_and_feedback
-    ADD CONSTRAINT referrals_and_feedback_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."referrals_and_feedback"
+    ADD CONSTRAINT "referrals_and_feedback_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
---
--- Name: referrals_and_feedback referrals_and_feedback_practitioner_membership_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.referrals_and_feedback
-    ADD CONSTRAINT referrals_and_feedback_practitioner_membership_id_fkey FOREIGN KEY (practitioner_membership_id) REFERENCES public.clinic_memberships(id) ON DELETE SET NULL;
 
+ALTER TABLE ONLY "public"."referrals_and_feedback"
+    ADD CONSTRAINT "referrals_and_feedback_practitioner_membership_id_fkey" FOREIGN KEY ("practitioner_membership_id") REFERENCES "public"."clinic_memberships"("id") ON DELETE SET NULL;
 
---
--- Name: referrals_and_feedback referrals_and_feedback_visit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.referrals_and_feedback
-    ADD CONSTRAINT referrals_and_feedback_visit_id_fkey FOREIGN KEY (visit_id) REFERENCES public.patient_visits(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."referrals_and_feedback"
+    ADD CONSTRAINT "referrals_and_feedback_visit_id_fkey" FOREIGN KEY ("visit_id") REFERENCES "public"."patient_visits"("id") ON DELETE CASCADE;
 
---
--- Name: therapy_sessions therapy_sessions_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.therapy_sessions
-    ADD CONSTRAINT therapy_sessions_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."therapy_sessions"
+    ADD CONSTRAINT "therapy_sessions_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
---
--- Name: therapy_sessions therapy_sessions_visit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.therapy_sessions
-    ADD CONSTRAINT therapy_sessions_visit_id_fkey FOREIGN KEY (visit_id) REFERENCES public.patient_visits(id) ON DELETE CASCADE;
 
+ALTER TABLE ONLY "public"."therapy_sessions"
+    ADD CONSTRAINT "therapy_sessions_visit_id_fkey" FOREIGN KEY ("visit_id") REFERENCES "public"."patient_visits"("id") ON DELETE CASCADE;
 
---
--- Name: users users_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
 
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
+ALTER TABLE "public"."appointments" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: appointments; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "appointments_clinic_ops_all" ON "public"."appointments" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
---
--- Name: appointments appointments_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY appointments_clinic_ops_all ON public.appointments TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
+ALTER TABLE "public"."clinic_memberships" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: clinic_memberships; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.clinic_memberships ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "clinic_memberships_member_select" ON "public"."clinic_memberships" FOR SELECT TO "authenticated" USING ("public"."has_active_membership"("clinic_id"));
 
---
--- Name: clinic_memberships clinic_memberships_member_select; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY clinic_memberships_member_select ON public.clinic_memberships FOR SELECT TO authenticated USING (public.has_active_membership(clinic_id));
 
+CREATE POLICY "clinic_memberships_owner_manage" ON "public"."clinic_memberships" TO "authenticated" USING ("public"."has_owner_access"("clinic_id")) WITH CHECK ("public"."has_owner_access"("clinic_id"));
 
---
--- Name: clinic_memberships clinic_memberships_owner_manage; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY clinic_memberships_owner_manage ON public.clinic_memberships TO authenticated USING (public.has_owner_access(clinic_id)) WITH CHECK (public.has_owner_access(clinic_id));
 
+ALTER TABLE "public"."clinic_patients" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: clinic_patients; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.clinic_patients ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "clinic_patients_ops_all" ON "public"."clinic_patients" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
---
--- Name: clinic_patients clinic_patients_ops_all; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY clinic_patients_ops_all ON public.clinic_patients TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
+ALTER TABLE "public"."clinics" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: clinics; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.clinics ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "clinics_member_select" ON "public"."clinics" FOR SELECT TO "authenticated" USING ("public"."has_active_membership"("id"));
 
---
--- Name: clinics clinics_member_select; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY clinics_member_select ON public.clinics FOR SELECT TO authenticated USING (public.has_active_membership(id));
 
+CREATE POLICY "clinics_owner_manage" ON "public"."clinics" TO "authenticated" USING ("public"."has_owner_access"("id")) WITH CHECK ("public"."has_owner_access"("id"));
 
---
--- Name: clinics clinics_owner_manage; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY clinics_owner_manage ON public.clinics TO authenticated USING (public.has_owner_access(id)) WITH CHECK (public.has_owner_access(id));
 
+ALTER TABLE "public"."cognitive_assessments" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: cognitive_assessments; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.cognitive_assessments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "cognitive_assessments_clinic_ops_all" ON "public"."cognitive_assessments" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
---
--- Name: cognitive_assessments cognitive_assessments_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY cognitive_assessments_clinic_ops_all ON public.cognitive_assessments TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
+ALTER TABLE "public"."developmental_history" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: developmental_history; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.developmental_history ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "developmental_history_clinic_ops_all" ON "public"."developmental_history" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
---
--- Name: developmental_history developmental_history_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY developmental_history_clinic_ops_all ON public.developmental_history TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
+ALTER TABLE "public"."patient_clinic_consents" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: patient_clinic_consents; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.patient_clinic_consents ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "patient_clinic_consents_clinic_ops_all" ON "public"."patient_clinic_consents" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
---
--- Name: patient_clinic_consents patient_clinic_consents_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY patient_clinic_consents_clinic_ops_all ON public.patient_clinic_consents TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
+ALTER TABLE "public"."patient_family_data" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: patient_family_data; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.patient_family_data ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "patient_family_data_clinic_ops_all" ON "public"."patient_family_data" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
---
--- Name: patient_family_data patient_family_data_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY patient_family_data_clinic_ops_all ON public.patient_family_data TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
+ALTER TABLE "public"."patient_invitations" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: patient_invitations; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.patient_invitations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "patient_invitations_clinic_ops_all" ON "public"."patient_invitations" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
---
--- Name: patient_invitations patient_invitations_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY patient_invitations_clinic_ops_all ON public.patient_invitations TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
+ALTER TABLE "public"."patient_personal_data" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: patient_personal_data; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.patient_personal_data ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "patient_personal_data_clinic_ops_all" ON "public"."patient_personal_data" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
---
--- Name: patient_personal_data patient_personal_data_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY patient_personal_data_clinic_ops_all ON public.patient_personal_data TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
+ALTER TABLE "public"."patient_visits" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: patient_visits; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.patient_visits ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "patient_visits_clinic_ops_all" ON "public"."patient_visits" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
---
--- Name: patient_visits patient_visits_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY patient_visits_clinic_ops_all ON public.patient_visits TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
+ALTER TABLE "public"."patients" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: patients; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "patients_clinic_access_all" ON "public"."patients" TO "authenticated" USING ("public"."has_patient_access"("id")) WITH CHECK ("public"."is_portal_staff"());
 
---
--- Name: patients patients_clinic_access_all; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY patients_clinic_access_all ON public.patients TO authenticated USING (public.has_patient_access(id)) WITH CHECK (public.is_portal_staff());
 
+ALTER TABLE "public"."referrals_and_feedback" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: referrals_and_feedback; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.referrals_and_feedback ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "referrals_and_feedback_clinic_practitioner_all" ON "public"."referrals_and_feedback" TO "authenticated" USING ("public"."has_practitioner_access"("clinic_id")) WITH CHECK ("public"."has_practitioner_access"("clinic_id"));
 
---
--- Name: referrals_and_feedback referrals_and_feedback_clinic_practitioner_all; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY referrals_and_feedback_clinic_practitioner_all ON public.referrals_and_feedback TO authenticated USING (public.has_practitioner_access(clinic_id)) WITH CHECK (public.has_practitioner_access(clinic_id));
 
+ALTER TABLE "public"."therapy_sessions" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: therapy_sessions; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.therapy_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "therapy_sessions_clinic_practitioner_all" ON "public"."therapy_sessions" TO "authenticated" USING ("public"."has_practitioner_access"("clinic_id")) WITH CHECK ("public"."has_practitioner_access"("clinic_id"));
 
---
--- Name: therapy_sessions therapy_sessions_clinic_practitioner_all; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY therapy_sessions_clinic_practitioner_all ON public.therapy_sessions TO authenticated USING (public.has_practitioner_access(clinic_id)) WITH CHECK (public.has_practitioner_access(clinic_id));
 
+ALTER TABLE "public"."users" ENABLE ROW LEVEL SECURITY;
 
---
--- Name: users; Type: ROW SECURITY; Schema: public; Owner: -
---
 
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "users_select_own" ON "public"."users" FOR SELECT TO "authenticated" USING (("auth"."uid"() = "id"));
 
---
--- Name: users users_select_own; Type: POLICY; Schema: public; Owner: -
---
 
-CREATE POLICY users_select_own ON public.users FOR SELECT TO authenticated USING ((auth.uid() = id));
 
+REVOKE USAGE ON SCHEMA "public" FROM PUBLIC;
+GRANT USAGE ON SCHEMA "public" TO "postgres";
+GRANT USAGE ON SCHEMA "public" TO "anon";
+GRANT USAGE ON SCHEMA "public" TO "authenticated";
+GRANT USAGE ON SCHEMA "public" TO "service_role";
 
---
--- PostgreSQL database dump complete
---
 
-\unrestrict u0kP8kZRRtqMepQIasyV0KXpyKMPdO9iJo39xXeRUcSDNRxm0n3BG8bNCke99vC
+
+GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean, "assign_practitioner" boolean, "member_profession" "public"."practitioner_profession", "actor_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean, "assign_practitioner" boolean, "member_profession" "public"."practitioner_profession", "actor_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean, "assign_practitioner" boolean, "member_profession" "public"."practitioner_profession", "actor_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."create_patient_from_auth_user"("auth_email" "text", "auth_user_id" "uuid", "invite_token" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."create_patient_from_auth_user"("auth_email" "text", "auth_user_id" "uuid", "invite_token" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_patient_from_auth_user"("auth_email" "text", "auth_user_id" "uuid", "invite_token" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text", "session_date" "date", "session_time" time without time zone, "duration_minutes" integer, "session_timezone" "text", "invitation_ttl_hours" integer) TO "anon";
+GRANT ALL ON FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text", "session_date" "date", "session_time" time without time zone, "duration_minutes" integer, "session_timezone" "text", "invitation_ttl_hours" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text", "session_date" "date", "session_time" time without time zone, "duration_minutes" integer, "session_timezone" "text", "invitation_ttl_hours" integer) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_invitation_by_token"("invite_token" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_invitation_by_token"("invite_token" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_invitation_by_token"("invite_token" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."handle_new_auth_user"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_new_auth_user"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_new_auth_user"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."has_active_membership"("target_clinic_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."has_active_membership"("target_clinic_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."has_active_membership"("target_clinic_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."has_ops_access"("target_clinic_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."has_ops_access"("target_clinic_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."has_ops_access"("target_clinic_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."has_owner_access"("target_clinic_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."has_owner_access"("target_clinic_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."has_owner_access"("target_clinic_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."has_patient_access"("target_patient_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."has_patient_access"("target_patient_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."has_patient_access"("target_patient_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."has_practitioner_access"("target_clinic_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."has_practitioner_access"("target_clinic_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."has_practitioner_access"("target_clinic_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."is_portal_staff"() TO "anon";
+GRANT ALL ON FUNCTION "public"."is_portal_staff"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."is_portal_staff"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "anon";
+GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."submit_patient_registration"("invite_token" "text", "registration_payload" "jsonb") TO "anon";
+GRANT ALL ON FUNCTION "public"."submit_patient_registration"("invite_token" "text", "registration_payload" "jsonb") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."submit_patient_registration"("invite_token" "text", "registration_payload" "jsonb") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."sync_clinic_membership_profile_defaults"() TO "anon";
+GRANT ALL ON FUNCTION "public"."sync_clinic_membership_profile_defaults"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."sync_clinic_membership_profile_defaults"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."update_patient_registration_by_user_id"("invite_token" "text", "registration_payload" "jsonb", "target_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."update_patient_registration_by_user_id"("invite_token" "text", "registration_payload" "jsonb", "target_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_patient_registration_by_user_id"("invite_token" "text", "registration_payload" "jsonb", "target_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."verify_referral_pin"("referral_id" "uuid", "input_pin" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."verify_referral_pin"("referral_id" "uuid", "input_pin" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."verify_referral_pin"("referral_id" "uuid", "input_pin" "text") TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."appointments" TO "anon";
+GRANT ALL ON TABLE "public"."appointments" TO "authenticated";
+GRANT ALL ON TABLE "public"."appointments" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."clinic_memberships" TO "anon";
+GRANT ALL ON TABLE "public"."clinic_memberships" TO "authenticated";
+GRANT ALL ON TABLE "public"."clinic_memberships" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."clinic_patients" TO "anon";
+GRANT ALL ON TABLE "public"."clinic_patients" TO "authenticated";
+GRANT ALL ON TABLE "public"."clinic_patients" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."clinics" TO "anon";
+GRANT ALL ON TABLE "public"."clinics" TO "authenticated";
+GRANT ALL ON TABLE "public"."clinics" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."cognitive_assessments" TO "anon";
+GRANT ALL ON TABLE "public"."cognitive_assessments" TO "authenticated";
+GRANT ALL ON TABLE "public"."cognitive_assessments" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."developmental_history" TO "anon";
+GRANT ALL ON TABLE "public"."developmental_history" TO "authenticated";
+GRANT ALL ON TABLE "public"."developmental_history" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "anon";
+GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "authenticated";
+GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."patient_family_data" TO "anon";
+GRANT ALL ON TABLE "public"."patient_family_data" TO "authenticated";
+GRANT ALL ON TABLE "public"."patient_family_data" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."patient_invitations" TO "anon";
+GRANT ALL ON TABLE "public"."patient_invitations" TO "authenticated";
+GRANT ALL ON TABLE "public"."patient_invitations" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."patient_personal_data" TO "anon";
+GRANT ALL ON TABLE "public"."patient_personal_data" TO "authenticated";
+GRANT ALL ON TABLE "public"."patient_personal_data" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."patient_visits" TO "anon";
+GRANT ALL ON TABLE "public"."patient_visits" TO "authenticated";
+GRANT ALL ON TABLE "public"."patient_visits" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."patients" TO "anon";
+GRANT ALL ON TABLE "public"."patients" TO "authenticated";
+GRANT ALL ON TABLE "public"."patients" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."referrals_and_feedback" TO "anon";
+GRANT ALL ON TABLE "public"."referrals_and_feedback" TO "authenticated";
+GRANT ALL ON TABLE "public"."referrals_and_feedback" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."therapy_sessions" TO "anon";
+GRANT ALL ON TABLE "public"."therapy_sessions" TO "authenticated";
+GRANT ALL ON TABLE "public"."therapy_sessions" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."users" TO "anon";
+GRANT ALL ON TABLE "public"."users" TO "authenticated";
+GRANT ALL ON TABLE "public"."users" TO "service_role";
+
+
+
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
+
+
+
+
+
+
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "postgres";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "anon";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
+
+
+
+
+
+
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
+
+
+
+
+
+
 

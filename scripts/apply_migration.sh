@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+# Ensure Homebrew libpq is in PATH for pg_dump
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
+
 if [ "$#" -lt 2 ]; then
     echo "Usage: $0 <migration_name> <sql_content>"
     exit 1
@@ -15,6 +18,7 @@ TIMESTAMP=$(date +%Y%m%d%H%M%S)
 FILENAME="supabase/migrations/${TIMESTAMP}_${MIGRATION_NAME}.sql"
 KNOWLEDGE_DIR="knowledge/supabase_migrations"
 KNOWLEDGE_FILE="${KNOWLEDGE_DIR}/${TIMESTAMP}_${MIGRATION_NAME}.md"
+SNAPSHOT_DB_DIR="snapshot/database"
 
 # --- HELPER: Global Discovery ---
 find_portal_path() {
@@ -27,6 +31,50 @@ find_portal_path() {
     fi
     return 1
 }
+
+# --- HELPER: Ensure Pre-requisites ---
+ensure_environment_ready() {
+    echo "==> [0/9] Checking environment readiness..."
+    
+    if ! docker info > /dev/null 2>&1; then
+        echo "    -> Docker is not running. Attempting to start Docker daemon..."
+        if command -v colima >/dev/null 2>&1; then
+            echo "    -> Colima detected. Starting Colima..."
+            colima start
+        elif command -v open >/dev/null 2>&1; then
+            echo "    -> Starting Docker Desktop..."
+            open -a Docker || true
+        else
+            echo "    [!] ERROR: Cannot automatically start Docker on this OS. Please start Docker manually."
+            exit 1
+        fi
+        
+        echo -n "    -> Waiting for Docker daemon "
+        local retries=0
+        while ! docker info > /dev/null 2>&1; do
+                sleep 3
+                retries=$((retries + 1))
+                if [ "$retries" -ge 20 ]; then
+                    echo ""
+                    echo "    [!] ERROR: Docker failed to start after 60s. Please start it manually."
+                    exit 1
+                fi
+                echo -n "."
+            done
+            echo " Ready!"
+    else
+        echo "    -> Docker is running."
+    fi
+
+    if ! supabase status > /dev/null 2>&1; then
+        echo "    -> Local Supabase stack is not running. Starting it now..."
+        supabase start
+    else
+        echo "    -> Supabase stack is running."
+    fi
+}
+
+ensure_environment_ready
 
 # 1. Create Migration File
 echo "==> [1/8] Creating migration file: $FILENAME"
@@ -72,8 +120,16 @@ if supabase migration up; then
         echo "==> WARNING: Squash failed. Skipping cleanup."
     fi
 
-    # 7. FRONTEND SYNC (Global Discovery Bridge)
-    echo "==> [7/8] Searching and Syncing frontend portals..."
+    # 7. Refresh local source-of-truth snapshot
+    echo "==> [7/9] Refreshing local database snapshot artifacts..."
+    mkdir -p "$SNAPSHOT_DB_DIR"
+    supabase db dump --local --schema public --file "$SNAPSHOT_DB_DIR/schema_snapshot.sql"
+    PGPASSWORD="postgres" pg_dump -Fc --no-owner --no-privileges \
+      -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+      -f "$SNAPSHOT_DB_DIR/db_full_snapshot.dump"
+
+    # 8. FRONTEND SYNC (Global Discovery Bridge)
+    echo "==> [8/9] Searching and Syncing frontend portals..."
     PORTAL_NAMES=(
         "catatan-psikolog-user-portal"
         "catatan-psikolog-admin-portal"
@@ -90,7 +146,7 @@ if supabase migration up; then
             echo "    [!] Skip: Portal '$name' not found."
         fi
     done
-    echo "==> [8/8] All systems synchronized."
+    echo "==> [9/9] All systems synchronized."
 
 else
     echo "==> ERROR: Failed to apply migration. Please check your SQL syntax."
