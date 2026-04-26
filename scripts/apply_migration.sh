@@ -125,7 +125,7 @@ if supabase migration up; then
     mkdir -p "$SNAPSHOT_DB_DIR"
     supabase db dump --local --schema public --file "$SNAPSHOT_DB_DIR/schema_snapshot.sql"
     PGPASSWORD="postgres" pg_dump -Fc --no-owner --no-privileges \
-      -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+      -h 127.0.0.1 -p 55322 -U postgres -d postgres \
       -f "$SNAPSHOT_DB_DIR/db_full_snapshot.dump"
 
     # 9. FRONTEND SYNC (Global Discovery Bridge)
