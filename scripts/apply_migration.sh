@@ -120,13 +120,8 @@ if supabase migration up; then
         echo "==> WARNING: Squash failed. Skipping cleanup."
     fi
 
-    # 7. SCHEMA HEARTBEAT (Makes sync visible in Git even if no schema changes)
-    echo "==> [7/10] Updating schema heartbeat comment..."
-    HEARTBEAT_SQL="COMMENT ON SCHEMA public IS 'Last Synchronized: $(date "+%Y-%m-%d %H:%M:%S") | Source: $MIGRATION_NAME';"
-    psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -q -c "$HEARTBEAT_SQL"
-
-    # 8. Refresh local source-of-truth snapshot
-    echo "==> [8/10] Refreshing local database snapshot artifacts..."
+    # 7. Refresh local source-of-truth snapshot
+    echo "==> [7/8] Refreshing local database snapshot artifacts..."
     mkdir -p "$SNAPSHOT_DB_DIR"
     supabase db dump --local --schema public --file "$SNAPSHOT_DB_DIR/schema_snapshot.sql"
     PGPASSWORD="postgres" pg_dump -Fc --no-owner --no-privileges \
