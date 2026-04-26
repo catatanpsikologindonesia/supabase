@@ -17,29 +17,25 @@ mkdir -p supabase/functions "$SNAPSHOT_DB_DIR" "$SNAPSHOT_FN_DIR"
 
 PULL_REMOTE_FUNCTIONS="${PULL_REMOTE_FUNCTIONS:-1}"
 
-# Pull schema through pg_dump (public+cron only, compatible with CLI linked role).
+# Pull schema through pg_dump
 pg_dump --schema-only --no-owner --no-privileges \
-  --role "postgres" \
-  -n public -n cron \
   -d "$REMOTE_URI" \
   > "$SNAPSHOT_DB_DIR/schema_snapshot.sql"
 
-# Full dump for restore flow (public+cron only; auth/storage handled by dedicated sync scripts).
+# Full dump for restore flow
 pg_dump -Fc --no-owner --no-privileges \
-  --role "postgres" \
-  -n public -n cron \
   -d "$REMOTE_URI" \
   -f "$SNAPSHOT_DB_DIR/db_full_snapshot.dump"
 
-# Inventory files (scope aligned with restore target).
-psql "$REMOTE_URI" -qAtc \
-  "set role postgres; select schemaname||'.'||tablename from pg_tables where schemaname in ('public','cron') order by 1;" > "$SNAPSHOT_DB_DIR/db_tables.txt"
-psql "$REMOTE_URI" -qAtc \
-  "set role postgres; select n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')' from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','cron') order by 1;" > "$SNAPSHOT_DB_DIR/db_functions.txt"
-psql "$REMOTE_URI" -qAtc \
-  "set role postgres; select schemaname||'.'||viewname from pg_views where schemaname in ('public','cron') order by 1;" > "$SNAPSHOT_DB_DIR/db_views.txt"
-psql "$REMOTE_URI" -qAtc \
-  "set role postgres; select extname from pg_extension where extname in ('pg_cron') order by 1;" > "$SNAPSHOT_DB_DIR/db_extensions.txt"
+# Inventory files
+psql "$REMOTE_URI" -Atc \
+  "select schemaname||'.'||tablename from pg_tables where schemaname not in ('pg_catalog','information_schema') order by 1;" > "$SNAPSHOT_DB_DIR/db_tables.txt"
+psql "$REMOTE_URI" -Atc \
+  "select n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')' from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname not in ('pg_catalog','information_schema') order by 1;" > "$SNAPSHOT_DB_DIR/db_functions.txt"
+psql "$REMOTE_URI" -Atc \
+  "select schemaname||'.'||viewname from pg_views where schemaname not in ('pg_catalog','information_schema') order by 1;" > "$SNAPSHOT_DB_DIR/db_views.txt"
+psql "$REMOTE_URI" -Atc \
+  "select extname from pg_extension order by 1;" > "$SNAPSHOT_DB_DIR/db_extensions.txt"
 
 # Edge Functions
 if [[ "$PULL_REMOTE_FUNCTIONS" == "1" ]]; then
