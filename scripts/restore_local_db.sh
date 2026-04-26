@@ -88,7 +88,7 @@ pg_restore \
   --no-owner --no-privileges \
   -n public \
   -h 127.0.0.1 -p 55322 -U postgres -d postgres \
-  "$DUMP_FILE" || true
+  "$DUMP_FILE" 2>/dev/null || true
 
 CRON_FILE="$ROOT_DIR/snapshot/database/cron_jobs_export.sql"
 if [[ -f "$CRON_FILE" && -s "$CRON_FILE" ]]; then
