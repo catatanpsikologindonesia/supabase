@@ -1,20 +1,18 @@
 # Current State
 
-Last updated: 2026-04-24
+Last updated: 2026-04-26 (Standardized Local Parity & Data Integrity)
 
 ## Repository Role
 
 This repository is the operational Supabase home for Catatan Psikolog. It owns local stack startup, mirror automation, snapshots, migrations, edge functions, and deployment workflows.
 
-## Local Stack
-
-- local startup is handled by `make start-local`
-- startup loads `.env.local`
-- stale Docker container conflicts are cleaned up automatically when possible
-- local startup now restores the local DB snapshot by default before opening the full stack
-- local restore includes the `storage` schema and restores binary storage contents from `snapshot/storage/objects/` via the local Storage API when that artifact exists
-- local startup avoids replaying the full historical migration chain during normal boot
-- local startup can remain safe even when remote features like `pg_cron` or storage buckets are not present yet
+- **Golden Entry Point**: Local development is now driven by `make run-local` (full) or `make run-local-fast` (incremental) from any portal root.
+- **Auto-Wipe Bug (Fixed)**: The startup script no longer wipes the database due to false-positive 'Stopped services' (Vector) reports.
+- **Offline Auth Restoration**: Local startup automatically restores `snapshot/auth/auth_snapshot.dump` to ensure authenticated dev sessions persist even when offline.
+- **Data Integrity Guard**: `apply_migration.sh` has been hardened to never overwrite the production data snapshot with local/empty data.
+- **Port Parity**: API is strictly mapped to `55321`, DB to `55322`.
+- Local restore includes the `storage` schema and restores binary storage contents from `snapshot/storage/objects/` via the local Storage API when that artifact exists.
+- Local startup avoids replaying the full historical migration chain during normal boot by using the squashed baseline.
 
 ## Current Runtime Feature Availability
 

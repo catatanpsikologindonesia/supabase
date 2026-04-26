@@ -40,15 +40,18 @@ Important mail-related values:
 - `MAIL_DISPATCHER_WEBHOOK_URL`
 - `MAIL_WEBHOOK_SECRET`
 
-## Common Commands
+### Golden Development Workflow
 
+The recommended entry point is from any frontend portal root:
+- `make run-local`: Full stack start, DB/Auth restore, type sync.
+- `make run-local-fast`: Incremental start (preserves existing local data).
+
+### Supabase Commands (from this repo)
 ```bash
-make start-local
-make prepare-local
-make mirror-remote-to-local
-make verify-local-remote
-make push-staging
-make push-prod
+make start-local              # Normal start (with auto-restore)
+make pull-snapshot            # Refresh local artifacts from production
+bash scripts/apply_migration.sh "<name>" "<sql>" # Automated migration & sync
+make verify-local-remote      # Parity check
 ```
 
 ## Local Ports
