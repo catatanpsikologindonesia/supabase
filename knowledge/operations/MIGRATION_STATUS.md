@@ -30,3 +30,6 @@ Local files (active):
 - 2026-04-26 20260426191130: Applied dummy_migration_test
 - 2026-04-26 20260426191222: Applied dummy_migration_test
 - 2026-04-26 20260426192022: Applied final_verification
+- 2026-04-26 20260426194012: Applied bukti_nyata_sync
+- 2026-04-26 20260426194207: Applied sync_verification_test
+- 2026-04-26 20260426194402: Applied landing_page_sync_upgrade

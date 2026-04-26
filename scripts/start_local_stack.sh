@@ -60,11 +60,11 @@ fi
 cleanup_project_containers exited
 
 echo "Starting full local Supabase stack..."
-start_output="$(supabase start 2>&1)" || {
+start_output="$(supabase start -x vector 2>&1)" || {
   if [[ "$start_output" == *"failed to create docker container"* && "$start_output" == *"already in use by container"* ]]; then
     echo "Detected stale local Supabase containers for project ${PROJECT_ID}. Retrying once after cleanup..."
     cleanup_project_containers all
-    supabase start >/dev/null
+    supabase start -x vector >/dev/null
   else
     echo "$start_output" >&2
     exit 1

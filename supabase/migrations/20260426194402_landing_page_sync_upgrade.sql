@@ -58,6 +58,24 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
 
+SET default_tablespace = '';
+
+SET default_table_access_method = "heap";
+
+
+CREATE TABLE IF NOT EXISTS "public"."sync_verification_test" (
+    "id" "uuid" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."sync_verification_test" OWNER TO "postgres";
+
+
+ALTER TABLE ONLY "public"."sync_verification_test"
+    ADD CONSTRAINT "sync_verification_test_pkey" PRIMARY KEY ("id");
+
+
 
 
 
@@ -242,6 +260,12 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
+
+
+
+GRANT ALL ON TABLE "public"."sync_verification_test" TO "anon";
+GRANT ALL ON TABLE "public"."sync_verification_test" TO "authenticated";
+GRANT ALL ON TABLE "public"."sync_verification_test" TO "service_role";
 
 
 
