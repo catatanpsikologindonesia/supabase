@@ -1,1 +1,6 @@
--- No additional extensions found
+CREATE EXTENSION IF NOT EXISTS pg_cron VERSION '1.6.4' SCHEMA pg_catalog;
+CREATE EXTENSION IF NOT EXISTS pg_graphql VERSION '1.5.11' SCHEMA graphql;
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements VERSION '1.11' SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS pgcrypto VERSION '1.3' SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS supabase_vault VERSION '0.3.1' SCHEMA vault;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" VERSION '1.1' SCHEMA extensions;

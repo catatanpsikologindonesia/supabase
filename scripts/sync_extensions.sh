@@ -18,20 +18,10 @@ if grep -q "No additional extensions found" "$EXT_FILE" 2>/dev/null; then
 fi
 
 source "$ROOT_DIR/scripts/load_local_secrets.sh" >/dev/null 2>&1
+source "$ROOT_DIR/scripts/load_remote_db_env.sh"
 
-REF="${SUPABASE_PROJECT_REF:-}"
-if [[ -z "$REF" ]]; then
-  if [[ -f "$ROOT_DIR/supabase/.temp/project-ref" ]]; then
-    REF="$(tr -d '\r\n' < "$ROOT_DIR/supabase/.temp/project-ref")"
-  fi
-fi
-if [[ -z "$REF" ]]; then
-  echo "SUPABASE_PROJECT_REF is required." >&2
-  exit 1
-fi
+echo "Syncing postgres extensions to remote project ${SUPABASE_PROJECT_REF}..."
 
-echo "Syncing postgres extensions to remote project ${REF}..."
-
-PGPASSWORD="$SUPABASE_DB_PASSWORD" psql -h db."${REF}".supabase.co -p 5432 -U postgres -d postgres -f "$EXT_FILE" 2>/dev/null || true
+psql "$REMOTE_URI" -f "$EXT_FILE"
 
 echo "Extensions synced to remote."
