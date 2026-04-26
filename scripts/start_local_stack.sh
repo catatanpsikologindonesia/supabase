@@ -52,17 +52,19 @@ else
 fi
 
 status_output="$(supabase status 2>&1 || true)"
-if [[ "$status_output" == *"Stopped services:"* ]]; then
-  echo "Restarting local Supabase stack to enable API services..."
-  supabase stop >/dev/null
+if [[ "$status_output" == *"Stopped services:"* || "$status_output" == *"container is not running"* || "$status_output" == *"exited"* ]]; then
+  echo "Detected stale or stopped Supabase services. Cleaning up state..."
+  supabase stop --no-backup >/dev/null 2>&1 || true
+  cleanup_project_containers all
 fi
 
 cleanup_project_containers exited
 
 echo "Starting full local Supabase stack..."
 start_output="$(supabase start -x vector 2>&1)" || {
-  if [[ "$start_output" == *"failed to create docker container"* && "$start_output" == *"already in use by container"* ]]; then
-    echo "Detected stale local Supabase containers for project ${PROJECT_ID}. Retrying once after cleanup..."
+  if [[ "$start_output" == *"failed to create docker container"* || "$start_output" == *"already in use"* || "$start_output" == *"already running"* ]]; then
+    echo "Detected stubborn stale containers for project ${PROJECT_ID}. Performing deep cleanup and retrying..."
+    supabase stop --no-backup >/dev/null 2>&1 || true
     cleanup_project_containers all
     supabase start -x vector >/dev/null
   else
