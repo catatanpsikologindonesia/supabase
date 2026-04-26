@@ -44,15 +44,31 @@ cleanup_project_containers() {
   fi
 }
 
-if [[ "$AUTO_PREPARE_LOCAL_ON_START" == "1" ]]; then
-  echo "Restoring local DB baseline before starting full stack..."
-  bash scripts/restore_local_db.sh
-else
-  echo "Skipping local DB restore to preserve current local data (set AUTO_PREPARE_LOCAL_ON_START=1 to enable)."
-fi
+run_supabase_start_quiet() {
+  local output status
+  set +e
+  output="$(supabase start -x vector 2>&1)"
+  status=$?
+  set -e
+
+  local filtered_output
+  filtered_output="$(printf '%s\n' "$output" | awk '
+    BEGIN { skip = 0 }
+    /^WARNING: You are running different service versions locally than your linked project:/ { skip = 1; next }
+    skip && /^Run supabase link to update them\./ { skip = 0; next }
+    skip { next }
+    { print }
+  ')"
+
+  if [[ -n "$filtered_output" ]]; then
+    printf '%s\n' "$filtered_output"
+  fi
+
+  return $status
+}
 
 status_output="$(supabase status 2>&1 || true)"
-if [[ "$status_output" == *"Stopped services:"* || "$status_output" == *"container is not running"* || "$status_output" == *"exited"* ]]; then
+if [[ "$status_output" == *"container is not running"* || "$status_output" == *"exited"* ]]; then
   echo "Detected stale or stopped Supabase services. Cleaning up state..."
   supabase stop --no-backup >/dev/null 2>&1 || true
   cleanup_project_containers all
@@ -61,17 +77,22 @@ fi
 cleanup_project_containers exited
 
 echo "Starting full local Supabase stack..."
-start_output="$(supabase start -x vector 2>&1)" || {
-  if [[ "$start_output" == *"failed to create docker container"* || "$start_output" == *"already in use"* || "$start_output" == *"already running"* ]]; then
-    echo "Detected stubborn stale containers for project ${PROJECT_ID}. Performing deep cleanup and retrying..."
-    supabase stop --no-backup >/dev/null 2>&1 || true
-    cleanup_project_containers all
-    supabase start -x vector >/dev/null
-  else
-    echo "$start_output" >&2
-    exit 1
-  fi
+run_supabase_start_quiet >/dev/null || {
+  # The run_supabase_start_quiet logic swallows output for success, 
+  # but we need to check if we should retry on failure.
+  echo "Detected failure in Supabase start. Performing deep cleanup and retrying once..."
+  supabase stop --no-backup >/dev/null 2>&1 || true
+  cleanup_project_containers all
+  run_supabase_start_quiet >/dev/null
 }
+
+if [[ "$AUTO_PREPARE_LOCAL_ON_START" == "1" ]]; then
+  echo "Restoring local DB baseline before starting full stack..."
+  bash scripts/restore_local_db.sh
+else
+  echo "Skipping local DB restore to preserve current local data (set AUTO_PREPARE_LOCAL_ON_START=1 to enable)."
+fi
+
 
 psql "$LOCAL_PSQL" -v ON_ERROR_STOP=1 -c \
   "CREATE SCHEMA IF NOT EXISTS graphql_public;" >/dev/null
