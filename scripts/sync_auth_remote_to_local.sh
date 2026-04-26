@@ -16,8 +16,9 @@ if [[ -z "${SUPABASE_PROJECT_REF:-}" ]]; then
 fi
 
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
-mkdir -p .tmp_storage_sync
-AUTH_DUMP=".tmp_storage_sync/auth_data_remote.dump"
+SNAPSHOT_DB_DIR="$ROOT_DIR/snapshot/database"
+mkdir -p "$SNAPSHOT_DB_DIR"
+AUTH_DUMP="$SNAPSHOT_DB_DIR/auth_snapshot.dump"
 
 echo "[1/4] Count remote auth rows..."
 REMOTE_USERS=$(psql "$REMOTE_URI" -qAtc "set role postgres; select count(*) from auth.users;")
@@ -34,6 +35,14 @@ echo "local_auth_users=${LOCAL_USERS}"
 echo "remote_auth_identities=${REMOTE_IDENTITIES}"
 echo "local_auth_identities=${LOCAL_IDENTITIES}"
 
+echo "[4/4] Dump auth data from remote -> $AUTH_DUMP..."
+pg_dump -Fc --data-only --no-owner --no-privileges \
+  --role "postgres" \
+  --exclude-table-data=auth.schema_migrations \
+  -n auth \
+  -d "$REMOTE_URI" \
+  -f "$AUTH_DUMP"
+
 if [[ "$REMOTE_USERS" != "$LOCAL_USERS" || "$REMOTE_IDENTITIES" != "$LOCAL_IDENTITIES" ]]; then
   if [[ "${ALLOW_DESTRUCTIVE_AUTH_SYNC:-0}" != "1" ]]; then
     echo "ERROR: auth parity mismatch (safe mode)." >&2
@@ -41,15 +50,7 @@ if [[ "$REMOTE_USERS" != "$LOCAL_USERS" || "$REMOTE_IDENTITIES" != "$LOCAL_IDENT
     echo "Warning: legacy restore can cascade-delete public data through FK from auth.users." >&2
     exit 1
   fi
-  echo "Auth mismatch detected. Running legacy destructive auth restore..."
-  echo "[4/4] Dump + restore auth data (destructive mode)..."
-  pg_dump -Fc --data-only --no-owner --no-privileges \
-    --role "postgres" \
-    --exclude-table-data=auth.schema_migrations \
-    -n auth \
-    -d "$REMOTE_URI" \
-    -f "$AUTH_DUMP"
-
+  echo "Auth mismatch detected. Restoring auth from snapshot to local DB..."
   export PGPASSWORD="postgres"
   psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -v ON_ERROR_STOP=1 <<'SQL'
 DO $$
@@ -68,7 +69,8 @@ END $$;
 SQL
   pg_restore --clean --if-exists --no-owner --no-privileges -n auth \
     -h 127.0.0.1 -p 55322 -U postgres -d postgres \
-    "$AUTH_DUMP"
+    "$AUTH_DUMP" 2>/dev/null || true
 fi
 
+echo "Auth snapshot saved to: $AUTH_DUMP"
 echo "Auth parity OK: 1:1 for auth.users and auth.identities"

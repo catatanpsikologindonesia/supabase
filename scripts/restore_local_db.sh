@@ -99,6 +99,28 @@ if [[ -f "$CRON_FILE" && -s "$CRON_FILE" ]]; then
   fi
 fi
 
+# Restore auth data from local snapshot (saved by sync_auth_remote_to_local.sh).
+# This allows make run-local to work fully offline — no internet required.
+AUTH_DUMP="$ROOT_DIR/snapshot/database/auth_snapshot.dump"
+if [[ -f "$AUTH_DUMP" ]]; then
+  psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -q -v ON_ERROR_STOP=1 <<'SQL' || true
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT tablename FROM pg_tables
+    WHERE schemaname = 'auth' AND tablename <> 'schema_migrations'
+  LOOP
+    EXECUTE format('TRUNCATE TABLE auth.%I CASCADE;', r.tablename);
+  END LOOP;
+END $$;
+SQL
+  pg_restore --clean --if-exists --no-owner --no-privileges -n auth \
+    -h 127.0.0.1 -p 55322 -U postgres -d postgres \
+    "$AUTH_DUMP" 2>/dev/null || true
+fi
+
 # Realtime service expects _realtime schema to exist.
 psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres" -q -v ON_ERROR_STOP=1 -c \
   "CREATE SCHEMA IF NOT EXISTS _realtime; GRANT ALL ON SCHEMA _realtime TO supabase_admin;"
