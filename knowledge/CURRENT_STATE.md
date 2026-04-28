@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-04-27 (Standardized Local Parity, Mail Flow Hardening, and Data Integrity)
+Last updated: 2026-04-28 (Remote Snapshot Refresh and Verified Local/Remote Parity)
 
 ## Repository Role
 
@@ -107,6 +107,10 @@ Invitation variants:
 
 ## Operational Notes
 
+- 2026-04-28 parity verification refresh:
+  - local stack was restarted successfully under Supabase CLI `2.95.4` after the heavy image refresh triggered by the CLI upgrade.
+  - `make verify-local-remote` returned `VERIFY OK` against the active remote project using the pooler connection path.
+  - repository-owned snapshot artifacts were refreshed and committed so the local parity evidence matches the current remote state.
 - use `make start-local` for normal development
 - use `make start-local-restore` when you explicitly want to restore `snapshot/database/db_full_snapshot.dump` during startup
 - use `make prepare-local` only when you explicitly need restore + migration replay
