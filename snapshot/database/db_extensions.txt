@@ -1,4 +1,4 @@
-pg_graphql
+pg_cron
 pg_stat_statements
 pgcrypto
 plpgsql

@@ -21,6 +21,8 @@ auth.sso_providers
 auth.users
 auth.webauthn_challenges
 auth.webauthn_credentials
+cron.job
+cron.job_run_details
 public.appointments
 public.clinic_memberships
 public.clinic_patients
