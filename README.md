@@ -46,6 +46,7 @@ The recommended entry point is from any frontend portal root:
 - `make run-local`: Full stack start that preserves the current local DB state and syncs frontend schema.
 - `make run-local-fast`: Incremental start (preserves existing local data).
 - `make run-local-restore`: Explicit baseline restore before app start.
+- Frontend `make` helper targets invoke repository `scripts/*.sh` through `bash`, so these entry points do not depend on script executable permissions.
 
 ### Supabase Commands (from this repo)
 ```bash
