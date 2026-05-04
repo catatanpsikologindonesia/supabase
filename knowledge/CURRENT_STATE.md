@@ -111,6 +111,19 @@ Invitation variants:
   - local stack was restarted successfully under Supabase CLI `2.95.4` after the heavy image refresh triggered by the CLI upgrade.
   - `make verify-local-remote` returned `VERIFY OK` against the active remote project using the pooler connection path.
   - repository-owned snapshot artifacts were refreshed and committed so the local parity evidence matches the current remote state.
+- 2026-05-03 remote-to-local invitation parity sync completed:
+  - pulled remote edge function source for `create-patient-invitation-v2` into the local mirror.
+  - local-only stale overloads of `create_patient_from_auth_user` and `create_patient_invitation_with_schedule` were removed so local signatures now match staging.
+  - final `make verify-local-remote` returned `VERIFY OK` after sync.
+- 2026-05-03 address reference and demo intake baseline added locally:
+  - additive migration `20260504004615_address-tables-and-demo-requests` created address hierarchy tables, `demo_requests`, and the `edge_check_rate_limit` helper infrastructure.
+  - local edge functions `address-reference` and `submit-demo-request` now exist and respond successfully through the local gateway.
+  - local seed scripts now populate address master data from `cahyadsn/wilayah` and `cahyadsn/wilayah_kodepos` with counts `38 / 514 / 7285 / 83724 / 83724`.
+- 2026-05-04 admin portal auth baseline added locally:
+  - additive migration `20260504005710_admin-profiles` created `admin_level_enum`, `admin_profiles`, audit trigger helpers, and `is_admin_at_least(text)`.
+  - `demo_requests` now exposes authenticated admin read access through RLS so dashboard counts can be fetched without service-role usage.
+  - local verification seeded three auth users: one active `SUPER_ADMIN`, one auth-only user without `admin_profiles`, and one CRUD validation user.
+  - local `make verify-local-remote` now reports mismatch because the local mirror intentionally includes unapplied local-only schema/auth changes and previously diverged edge-function work.
 - use `make start-local` for normal development
 - use `make start-local-restore` when you explicitly want to restore `snapshot/database/db_full_snapshot.dump` during startup
 - use `make prepare-local` only when you explicitly need restore + migration replay

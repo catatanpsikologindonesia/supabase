@@ -9,7 +9,7 @@
     "status": "ACTIVE",
     "updated_at": 1777228615711,
     "verify_jwt": true,
-    "version": 17
+    "version": 18
   },
   {
     "created_at": 1776347859144,
@@ -21,7 +21,7 @@
     "status": "ACTIVE",
     "updated_at": 1777228610165,
     "verify_jwt": true,
-    "version": 17
+    "version": 18
   },
   {
     "created_at": 1776796975042,
@@ -33,7 +33,7 @@
     "status": "ACTIVE",
     "updated_at": 1776970246707,
     "verify_jwt": true,
-    "version": 9
+    "version": 10
   },
   {
     "created_at": 1776796978767,
@@ -45,7 +45,7 @@
     "status": "ACTIVE",
     "updated_at": 1777228601606,
     "verify_jwt": true,
-    "version": 10
+    "version": 11
   },
   {
     "created_at": 1776796983021,
@@ -57,7 +57,7 @@
     "status": "ACTIVE",
     "updated_at": 1777228605217,
     "verify_jwt": true,
-    "version": 10
+    "version": 11
   },
   {
     "created_at": 1776796995721,
@@ -69,7 +69,7 @@
     "status": "ACTIVE",
     "updated_at": 1776970270510,
     "verify_jwt": true,
-    "version": 9
+    "version": 10
   },
   {
     "created_at": 1776796999423,
@@ -81,6 +81,19 @@
     "status": "ACTIVE",
     "updated_at": 1776970273963,
     "verify_jwt": true,
-    "version": 9
+    "version": 10
+  },
+  {
+    "created_at": 1777641771274,
+    "entrypoint_path": "file:///tmp/user_fn_ixwaaziifteubxkxtdwj_2afbbfc5-4236-4fde-b881-9e2472d94259_1/source/supabase/functions/create-patient-invitation-v2/index.ts",
+    "ezbr_sha256": "1d87273f10b2d559b620ac3fbc63c9c7d079cd049b9bff88355c0a6ad8e91c75",
+    "id": "2afbbfc5-4236-4fde-b881-9e2472d94259",
+    "import_map": false,
+    "name": "create-patient-invitation-v2",
+    "slug": "create-patient-invitation-v2",
+    "status": "ACTIVE",
+    "updated_at": 1777641771274,
+    "verify_jwt": true,
+    "version": 1
   }
 ]

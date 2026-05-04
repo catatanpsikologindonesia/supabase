@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict fd2YBzNQPDDWcQRmdshzhoZQfUKXPJhkbDL1gmAo3YJ1XTtdQCu8zkO1ACDHffv
+\restrict 5IwSdNtcEPlfThD7Q03Gn6cT0Aq5mduup8VQZKf8lSn4e71wIpu3CqqacxdW24j
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.3
@@ -1321,19 +1321,19 @@ $$;
 
 
 --
--- Name: create_patient_from_auth_user(text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+-- Name: create_patient_from_auth_user(text, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.create_patient_from_auth_user(auth_email text, auth_user_id uuid, invite_token text) RETURNS jsonb
+CREATE FUNCTION public.create_patient_from_auth_user(auth_email text, auth_user_id uuid, invite_token text, auth_phone text DEFAULT NULL::text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
 declare
   invitation_row public.patient_invitations%rowtype;
   auth_user_email text;
+  auth_user_phone text;
   patient_id_value uuid;
   mrn_value text;
-  full_name_value text;
 begin
   if invite_token is null or btrim(invite_token) = '' then
     return jsonb_build_object('status', 'error', 'code', 'INVALID_TOKEN', 'message', 'Token registrasi tidak valid.');
@@ -1343,12 +1343,7 @@ begin
     return jsonb_build_object('status', 'error', 'code', 'AUTH_USER_REQUIRED', 'message', 'Akun login pasien tidak ditemukan.');
   end if;
 
-  if auth_email is null or btrim(auth_email) = '' then
-    return jsonb_build_object('status', 'error', 'code', 'AUTH_EMAIL_REQUIRED', 'message', 'Email akun login pasien tidak ditemukan.');
-  end if;
-
-  select *
-  into invitation_row
+  select * into invitation_row
   from public.patient_invitations
   where token = invite_token
   limit 1;
@@ -1369,7 +1364,6 @@ begin
     if invitation_row.used_reason = 'superseded'::public.patient_invitation_used_reason then
       return jsonb_build_object('status', 'error', 'code', 'INVITATION_SUPERSEDED', 'message', 'Link undangan ini sudah diganti dengan undangan terbaru.');
     end if;
-
     return jsonb_build_object('status', 'error', 'code', 'INVITATION_USED', 'message', 'Link registrasi sudah digunakan.');
   end if;
 
@@ -1377,19 +1371,29 @@ begin
     return jsonb_build_object('status', 'error', 'code', 'INVITATION_EXPIRED', 'message', 'Link registrasi sudah kedaluwarsa.');
   end if;
 
-  select au.email
-  into auth_user_email
-  from auth.users au
-  where au.id = auth_user_id
-  limit 1;
+  if invitation_row.contact_type = 'phone' then
+    select au.phone into auth_user_phone
+    from auth.users au where au.id = auth_user_id limit 1;
 
-  if auth_user_email is null then
-    return jsonb_build_object('status', 'error', 'code', 'AUTH_USER_NOT_FOUND', 'message', 'User auth pasien tidak ditemukan.');
-  end if;
+    if auth_user_phone is null then
+      return jsonb_build_object('status', 'error', 'code', 'AUTH_USER_NOT_FOUND', 'message', 'User auth pasien tidak ditemukan.');
+    end if;
+  else
+    if auth_email is null or btrim(auth_email) = '' then
+      return jsonb_build_object('status', 'error', 'code', 'AUTH_EMAIL_REQUIRED', 'message', 'Email akun login pasien tidak ditemukan.');
+    end if;
 
-  if lower(btrim(auth_email)) <> lower(btrim(auth_user_email))
-     or lower(btrim(auth_email)) <> lower(btrim(invitation_row.email)) then
-    return jsonb_build_object('status', 'error', 'code', 'EMAIL_MISMATCH', 'message', 'Email akun tidak cocok dengan email undangan.');
+    select au.email into auth_user_email
+    from auth.users au where au.id = auth_user_id limit 1;
+
+    if auth_user_email is null then
+      return jsonb_build_object('status', 'error', 'code', 'AUTH_USER_NOT_FOUND', 'message', 'User auth pasien tidak ditemukan.');
+    end if;
+
+    if lower(btrim(auth_email)) <> lower(btrim(auth_user_email))
+       or lower(btrim(auth_email)) <> lower(btrim(invitation_row.email)) then
+      return jsonb_build_object('status', 'error', 'code', 'EMAIL_MISMATCH', 'message', 'Email akun tidak cocok dengan email undangan.');
+    end if;
   end if;
 
   insert into public.users (id, role)
@@ -1401,51 +1405,39 @@ begin
     end,
     updated_at = now();
 
-  select p.id
-  into patient_id_value
-  from public.patients p
-  where p.user_id = auth_user_id
-  limit 1;
+  select p.id into patient_id_value
+  from public.patients p where p.user_id = auth_user_id limit 1;
 
   if patient_id_value is null then
-    mrn_value := 'MRN-' || to_char(now(), 'YYYYMMDD') || '-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6));
-    full_name_value := coalesce(
-      nullif(initcap(regexp_replace(split_part(invitation_row.email, '@', 1), '[._-]+', ' ', 'g')), ''),
-      'Pasien Baru'
-    );
+    select 'MRN-' || to_char(now(), 'YYYYMMDD') || '-' || lpad((floor(random() * 9000) + 1000)::text, 4, '0')
+    into mrn_value;
 
-    insert into public.patients (user_id, mrn, full_name, email, phone)
-    values (auth_user_id, mrn_value, full_name_value, invitation_row.email, null)
+    insert into public.patients (user_id, mrn, created_at)
+    values (auth_user_id, mrn_value, now())
     returning id into patient_id_value;
   end if;
 
   update public.patient_invitations
-  set target_patient_id = coalesce(target_patient_id, patient_id_value)
-  where id = invitation_row.id;
+  set target_patient_id = patient_id_value
+  where token = invite_token;
 
-  return jsonb_build_object(
-    'status', 'success',
-    'message', 'Data pasien awal berhasil dibuat.',
-    'patientId', patient_id_value,
-    'clinicId', invitation_row.clinic_id
-  );
-exception
-  when others then
-    return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal menyiapkan data pasien: ' || sqlerrm);
+  return jsonb_build_object('status', 'success', 'message', 'Akun pasien berhasil disiapkan.');
 end;
 $$;
 
 
 --
--- Name: create_patient_invitation_with_schedule(uuid, uuid, text, date, time without time zone, integer, text, integer); Type: FUNCTION; Schema: public; Owner: -
+-- Name: create_patient_invitation_with_schedule(uuid, uuid, text, text, text, date, time without time zone, integer, text, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.create_patient_invitation_with_schedule(target_clinic_id uuid, invited_by_membership_id uuid, patient_email text, session_date date, session_time time without time zone, duration_minutes integer DEFAULT 45, session_timezone text DEFAULT 'Asia/Jakarta'::text, invitation_ttl_hours integer DEFAULT 72) RETURNS jsonb
+CREATE FUNCTION public.create_patient_invitation_with_schedule(target_clinic_id uuid, invited_by_membership_id uuid, patient_email text DEFAULT NULL::text, patient_phone text DEFAULT NULL::text, contact_type text DEFAULT 'email'::text, session_date date DEFAULT NULL::date, session_time time without time zone DEFAULT NULL::time without time zone, duration_minutes integer DEFAULT 45, session_timezone text DEFAULT 'Asia/Jakarta'::text, invitation_ttl_hours integer DEFAULT 72) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
 declare
   normalized_email text;
+  normalized_phone text;
+  resolved_contact_type text;
   clinic_name_value text;
   auth_user_id_value uuid;
   patient_id_value uuid;
@@ -1458,8 +1450,7 @@ declare
   session_start_at_value timestamptz;
   session_end_at_value timestamptz;
   invitation_id_value uuid;
-  clinic_patient_id_value uuid;
-  appointment_id_value uuid;
+  token_seed text;
 begin
   if auth.uid() is null then
     return jsonb_build_object('status', 'error', 'code', 'AUTH_REQUIRED', 'message', 'Sesi login tidak ditemukan.');
@@ -1478,8 +1469,7 @@ begin
   end if;
 
   if not exists (
-    select 1
-    from public.clinic_memberships cm
+    select 1 from public.clinic_memberships cm
     where cm.id = invited_by_membership_id
       and cm.clinic_id = target_clinic_id
       and cm.user_id = auth.uid()
@@ -1488,20 +1478,29 @@ begin
     return jsonb_build_object('status', 'error', 'code', 'INVALID_MEMBERSHIP', 'message', 'Membership pengundang tidak ditemukan pada klinik aktif.');
   end if;
 
-  select c.name
-  into clinic_name_value
+  select c.name into clinic_name_value
   from public.clinics c
-  where c.id = target_clinic_id
-    and c.is_active = true
+  where c.id = target_clinic_id and c.is_active = true
   limit 1;
 
   if clinic_name_value is null then
     return jsonb_build_object('status', 'error', 'code', 'INVALID_CLINIC', 'message', 'Klinik tidak aktif atau tidak ditemukan.');
   end if;
 
-  normalized_email := lower(btrim(patient_email));
-  if normalized_email is null or normalized_email = '' then
-    return jsonb_build_object('status', 'error', 'code', 'INVALID_EMAIL', 'message', 'Email pasien wajib diisi.');
+  resolved_contact_type := coalesce(nullif(btrim(contact_type), ''), 'email');
+
+  if resolved_contact_type = 'email' then
+    normalized_email := lower(btrim(patient_email));
+    if normalized_email is null or normalized_email = '' then
+      return jsonb_build_object('status', 'error', 'code', 'INVALID_EMAIL', 'message', 'Email pasien wajib diisi.');
+    end if;
+    token_seed := normalized_email;
+  else
+    normalized_phone := btrim(patient_phone);
+    if normalized_phone is null or normalized_phone = '' then
+      return jsonb_build_object('status', 'error', 'code', 'INVALID_PHONE', 'message', 'Nomor HP pasien wajib diisi.');
+    end if;
+    token_seed := normalized_phone;
   end if;
 
   if session_date is null or session_time is null then
@@ -1514,13 +1513,12 @@ begin
 
   session_timezone_value := coalesce(nullif(btrim(session_timezone), ''), 'Asia/Jakarta');
   expires_at_value := now() + make_interval(hours => greatest(invitation_ttl_hours, 1));
-  token_value := md5(random()::text || clock_timestamp()::text || normalized_email || coalesce(auth.uid()::text, ''))
+  token_value := md5(random()::text || clock_timestamp()::text || token_seed || coalesce(auth.uid()::text, ''))
     || md5(random()::text || clock_timestamp()::text || txid_current()::text);
   session_start_at_value := ((session_date::timestamp + session_time) at time zone session_timezone_value);
   session_end_at_value := session_start_at_value + make_interval(mins => duration_minutes);
 
-  select cm.id
-  into practitioner_membership_id_value
+  select cm.id into practitioner_membership_id_value
   from public.clinic_memberships cm
   where cm.clinic_id = target_clinic_id
     and cm.is_active = true
@@ -1532,166 +1530,84 @@ begin
     return jsonb_build_object('status', 'error', 'code', 'NO_PRACTITIONER', 'message', 'Tidak ada practitioner aktif pada klinik ini.');
   end if;
 
-  select au.id, p.id
-  into auth_user_id_value, patient_id_value
-  from auth.users au
-  left join public.patients p
-    on p.user_id = au.id
-  where lower(au.email) = normalized_email
-  order by p.created_at asc nulls last
-  limit 1;
-
-  if auth_user_id_value is null or patient_id_value is null then
+  if resolved_contact_type = 'phone' then
     resolved_flow := 'registration_required'::public.patient_invitation_flow;
     patient_id_value := null;
   else
-    select exists (
-      select 1
-      from public.patient_clinic_consents pcc
-      where pcc.clinic_id = target_clinic_id
-        and pcc.patient_id = patient_id_value
-        and pcc.revoked_at is null
-    )
-    into has_active_consent;
+    select au.id, p.id
+    into auth_user_id_value, patient_id_value
+    from auth.users au
+    left join public.patients p on p.user_id = au.id
+    where lower(au.email) = normalized_email
+    order by p.created_at asc nulls last
+    limit 1;
 
-    if has_active_consent then
-      resolved_flow := 'info_only'::public.patient_invitation_flow;
+    if auth_user_id_value is null or patient_id_value is null then
+      resolved_flow := 'registration_required'::public.patient_invitation_flow;
+      patient_id_value := null;
     else
-      resolved_flow := 'consent_required'::public.patient_invitation_flow;
+      select exists (
+        select 1 from public.patient_clinic_consents pcc
+        where pcc.clinic_id = target_clinic_id
+          and pcc.patient_id = patient_id_value
+          and pcc.revoked_at is null
+      ) into has_active_consent;
+
+      if has_active_consent then
+        resolved_flow := 'info_only'::public.patient_invitation_flow;
+      else
+        resolved_flow := 'consent_required'::public.patient_invitation_flow;
+      end if;
     end if;
   end if;
 
-  insert into public.patient_invitations (
-    clinic_id,
-    invited_by_membership_id,
-    email,
-    token,
-    expires_at,
-    is_used,
-    flow,
-    session_start_at,
-    session_end_at,
-    session_timezone,
-    target_patient_id,
-    practitioner_membership_id,
-    used_reason,
-    appointment_id
-  )
-  values (
-    target_clinic_id,
-    invited_by_membership_id,
-    normalized_email,
-    token_value,
-    expires_at_value,
-    false,
-    resolved_flow,
-    session_start_at_value,
-    session_end_at_value,
-    session_timezone_value,
-    patient_id_value,
-    practitioner_membership_id_value,
-    null,
-    null
-  )
-  returning id into invitation_id_value;
+  if resolved_contact_type = 'email' then
+    update public.patient_invitations pi
+    set is_used = true, used_at = now(),
+        used_reason = 'superseded'::public.patient_invitation_used_reason,
+        replaced_by_invitation_id = null
+    where pi.clinic_id = target_clinic_id
+      and pi.contact_type = 'email'
+      and lower(pi.email) = normalized_email
+      and pi.is_used = false;
+  else
+    update public.patient_invitations pi
+    set is_used = true, used_at = now(),
+        used_reason = 'superseded'::public.patient_invitation_used_reason,
+        replaced_by_invitation_id = null
+    where pi.clinic_id = target_clinic_id
+      and pi.contact_type = 'phone'
+      and pi.phone = normalized_phone
+      and pi.is_used = false;
+  end if;
 
-  update public.patient_invitations pi
-  set is_used = true,
-      used_at = now(),
-      used_reason = 'superseded'::public.patient_invitation_used_reason,
-      replaced_by_invitation_id = invitation_id_value
-  where pi.id <> invitation_id_value
-    and pi.clinic_id = target_clinic_id
-    and lower(pi.email) = normalized_email
-    and pi.is_used = false
-    and pi.expires_at > now();
+  insert into public.patient_invitations (
+    clinic_id, invited_by_membership_id,
+    email, phone, contact_type,
+    token, expires_at, flow,
+    target_patient_id, practitioner_membership_id,
+    session_start_at, session_end_at, session_timezone
+  ) values (
+    target_clinic_id, invited_by_membership_id,
+    normalized_email, normalized_phone, resolved_contact_type,
+    token_value, expires_at_value, resolved_flow,
+    patient_id_value, practitioner_membership_id_value,
+    session_start_at_value, session_end_at_value, session_timezone_value
+  ) returning id into invitation_id_value;
 
   if resolved_flow = 'info_only'::public.patient_invitation_flow then
-    if patient_id_value is null then
-      return jsonb_build_object('status', 'error', 'code', 'PATIENT_NOT_FOUND', 'message', 'Pasien global tidak ditemukan untuk flow info-only.');
-    end if;
-
-    insert into public.clinic_patients (clinic_id, patient_id, mrn, is_active)
-    values (
-      target_clinic_id,
-      patient_id_value,
-      coalesce(
-        (select p.mrn from public.patients p where p.id = patient_id_value),
-        'MRN-' || to_char(now(), 'YYYYMMDD') || '-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6))
-      ),
-      true
-    )
-    on conflict (clinic_id, patient_id) do update
-    set is_active = true,
-        updated_at = now()
-    returning id into clinic_patient_id_value;
-
-    insert into public.appointments (
-      clinic_id,
-      clinic_patient_id,
-      patient_id,
-      practitioner_membership_id,
-      start_time,
-      end_time,
-      status,
-      notes
-    )
-    values (
-      target_clinic_id,
-      clinic_patient_id_value,
-      patient_id_value,
-      practitioner_membership_id_value,
-      session_start_at_value,
-      session_end_at_value,
-      'scheduled',
-      'Auto-created from info-only invitation'
-    )
-    returning id into appointment_id_value;
-
-    insert into public.patient_visits (
-      clinic_id,
-      clinic_patient_id,
-      patient_id,
-      appointment_id,
-      status
-    )
-    values (
-      target_clinic_id,
-      clinic_patient_id_value,
-      patient_id_value,
-      appointment_id_value,
-      'scheduled'
-    )
-    on conflict (appointment_id) do nothing;
-
     update public.patient_invitations
-    set is_used = true,
-        used_at = now(),
-        used_reason = 'info_only_notified'::public.patient_invitation_used_reason,
-        appointment_id = appointment_id_value
+    set is_used = true, used_at = now(),
+        used_reason = 'info_only_notified'::public.patient_invitation_used_reason
     where id = invitation_id_value;
   end if;
 
   return jsonb_build_object(
     'status', 'success',
-    'message', 'Undangan pasien berhasil dibuat.',
     'flow', resolved_flow::text,
     'token', token_value,
-    'email', normalized_email,
-    'clinicName', clinic_name_value,
-    'expiresAt', expires_at_value,
-    'sessionStartAt', session_start_at_value,
-    'sessionEndAt', session_end_at_value,
-    'sessionTimezone', session_timezone_value,
-    'targetPatientId', patient_id_value,
-    'invitationId', invitation_id_value,
-    'appointmentId', appointment_id_value
+    'invitationId', invitation_id_value::text
   );
-exception
-  when unique_violation then
-    return jsonb_build_object('status', 'error', 'code', 'TOKEN_COLLISION', 'message', 'Gagal membuat token undangan unik. Silakan coba lagi.');
-  when others then
-    return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal membuat undangan: ' || sqlerrm);
 end;
 $$;
 
@@ -1700,21 +1616,16 @@ $$;
 -- Name: get_invitation_by_token(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_invitation_by_token(invite_token text) RETURNS TABLE(email text, expires_at timestamp with time zone, is_used boolean, clinic_id uuid, clinic_name text, flow public.patient_invitation_flow, used_reason public.patient_invitation_used_reason, session_start_at timestamp with time zone, session_end_at timestamp with time zone, session_timezone text, target_patient_id uuid)
+CREATE FUNCTION public.get_invitation_by_token(invite_token text) RETURNS TABLE(email text, phone text, contact_type text, expires_at timestamp with time zone, is_used boolean, clinic_id uuid, clinic_name text, flow public.patient_invitation_flow, used_reason public.patient_invitation_used_reason, session_start_at timestamp with time zone, session_end_at timestamp with time zone, session_timezone text, target_patient_id uuid)
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
   select
-    pi.email,
-    pi.expires_at,
-    pi.is_used,
-    pi.clinic_id,
-    c.name as clinic_name,
-    pi.flow,
-    pi.used_reason,
-    pi.session_start_at,
-    pi.session_end_at,
-    coalesce(pi.session_timezone, 'Asia/Jakarta') as session_timezone,
+    pi.email, pi.phone, pi.contact_type,
+    pi.expires_at, pi.is_used,
+    pi.clinic_id, c.name as clinic_name,
+    pi.flow, pi.used_reason,
+    pi.session_start_at, pi.session_end_at, pi.session_timezone,
     pi.target_patient_id
   from public.patient_invitations pi
   left join public.clinics c on c.id = pi.clinic_id
@@ -5361,7 +5272,7 @@ CREATE TABLE public.patient_family_data (
 
 CREATE TABLE public.patient_invitations (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    email text NOT NULL,
+    email text,
     token character varying(128) NOT NULL,
     expires_at timestamp with time zone NOT NULL,
     is_used boolean DEFAULT false NOT NULL,
@@ -5378,6 +5289,10 @@ CREATE TABLE public.patient_invitations (
     used_reason public.patient_invitation_used_reason,
     replaced_by_invitation_id uuid,
     appointment_id uuid,
+    phone text,
+    contact_type text DEFAULT 'email'::text NOT NULL,
+    CONSTRAINT patient_invitations_contact_presence_chk CHECK ((((contact_type = 'email'::text) AND (email IS NOT NULL)) OR ((contact_type = 'phone'::text) AND (phone IS NOT NULL)))),
+    CONSTRAINT patient_invitations_contact_type_chk CHECK ((contact_type = ANY (ARRAY['email'::text, 'phone'::text]))),
     CONSTRAINT patient_invitations_session_range_chk CHECK (((session_start_at IS NULL) OR (session_end_at IS NULL) OR (session_end_at > session_start_at)))
 );
 
@@ -7952,5 +7867,5 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
 -- PostgreSQL database dump complete
 --
 
-\unrestrict fd2YBzNQPDDWcQRmdshzhoZQfUKXPJhkbDL1gmAo3YJ1XTtdQCu8zkO1ACDHffv
+\unrestrict 5IwSdNtcEPlfThD7Q03Gn6cT0Aq5mduup8VQZKf8lSn4e71wIpu3CqqacxdW24j
 

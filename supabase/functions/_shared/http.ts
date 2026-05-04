@@ -10,7 +10,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
 
 const CORS_ALLOW_HEADERS =
   'authorization, x-client-info, apikey, content-type, x-request-id';
-const CORS_ALLOW_METHODS = 'POST, OPTIONS';
+const CORS_ALLOW_METHODS = 'GET, POST, OPTIONS';
 
 function resolveAllowedOrigins(): Set<string> {
   const configured = (Deno.env.get('EDGE_ALLOWED_ORIGINS') ?? '')
@@ -55,6 +55,8 @@ export type ApiCode =
   | 'BAD_REQUEST'
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'RATE_LIMITED'
   | 'INTERNAL_ERROR'
   | 'INVALID_INPUT'
   | 'REFERRAL_NOT_FOUND'
@@ -63,6 +65,25 @@ export type ApiCode =
 
 export function requestIdFrom(req: Request): string {
   return req.headers.get('x-request-id')?.trim() || crypto.randomUUID();
+}
+
+export function clientIpFrom(req: Request): string {
+  const forwardedFor = req.headers.get('x-forwarded-for')?.trim();
+  if (forwardedFor) {
+    const ip = forwardedFor.split(',')[0]?.trim();
+    if (ip) return ip;
+  }
+
+  const cfConnectingIp = req.headers.get('cf-connecting-ip')?.trim();
+  if (cfConnectingIp) return cfConnectingIp;
+
+  const realIp = req.headers.get('x-real-ip')?.trim();
+  if (realIp) return realIp;
+
+  const flyClientIp = req.headers.get('fly-client-ip')?.trim();
+  if (flyClientIp) return flyClientIp;
+
+  return 'unknown';
 }
 
 export function preflight(req: Request): Response | null {

@@ -1,6 +1,6 @@
 # Migration Status (Catatan Psikolog Supabase)
 
-Last audited: 2026-04-24 (Asia/Jakarta)
+Last audited: 2026-05-04 (Asia/Jakarta)
 
 ## Local Migration Folder
 
@@ -10,7 +10,8 @@ Path: `supabase/migrations`
 On 2026-04-23, the migration history was consolidated into a single baseline to ensure environmental parity and a lean repository state.
 
 Local files (active):
-1. `20260424004623_document_therapy_table.sql` (Current Consolidated Baseline)
+1. `20260504004615_address-tables-and-demo-requests.sql`
+2. `20260504005710_admin-profiles.sql`
 
 ## Automated Workflow Status
 
@@ -38,3 +39,7 @@ Local files (active):
 - 2026-04-26 20260426200654: Applied heartbeat_verification
 - 2026-04-26 20260426200950: Applied heartbeat_verification_fixed
 - 2026-04-26 20260426214020: Applied test_sync_flow
+- 2026-05-03 remote pull: invitation phone + contact_type support synchronized from staging (local-only parity refresh; no new authored migration).
+- 2026-05-04 20260504004615: Applied address-tables-and-demo-requests (address hierarchy, demo_requests, edge rate limit infra).
+- 2026-05-04 20260504004615: Applied address-tables-and-demo-requests
+- 2026-05-04 20260504005710: Applied admin-profiles (admin auth table, helper RLS function, demo request read policy for admins).

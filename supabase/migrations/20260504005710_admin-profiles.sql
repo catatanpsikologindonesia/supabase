@@ -1,0 +1,135 @@
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public' AND t.typname = 'admin_level_enum'
+  ) THEN
+    CREATE TYPE public.admin_level_enum AS ENUM ('STAFF', 'ADMIN', 'SUPER_ADMIN');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.admin_profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name text NOT NULL,
+  email text,
+  phone text,
+  admin_level public.admin_level_enum NOT NULL DEFAULT 'ADMIN',
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid REFERENCES public.admin_profiles(id) ON DELETE SET NULL,
+  updated_by uuid REFERENCES public.admin_profiles(id) ON DELETE SET NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_profiles_email_lower
+  ON public.admin_profiles (lower(email))
+  WHERE email IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION public.is_admin_at_least(p_min_role text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO pg_catalog, public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.admin_profiles ap
+    WHERE ap.id = auth.uid()
+      AND ap.is_active = true
+      AND (
+        upper(coalesce(p_min_role, '')) = 'STAFF'
+        OR (upper(coalesce(p_min_role, '')) = 'ADMIN' AND ap.admin_level IN ('ADMIN', 'SUPER_ADMIN'))
+        OR (upper(coalesce(p_min_role, '')) = 'SUPER_ADMIN' AND ap.admin_level = 'SUPER_ADMIN')
+      )
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.set_admin_profiles_audit_fields()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO public
+AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    NEW.created_at := COALESCE(NEW.created_at, now());
+    NEW.updated_at := COALESCE(NEW.updated_at, NEW.created_at, now());
+
+    IF NEW.created_by IS NULL AND auth.uid() IS NOT NULL THEN
+      NEW.created_by := auth.uid();
+    END IF;
+
+    IF NEW.updated_by IS NULL AND auth.uid() IS NOT NULL THEN
+      NEW.updated_by := auth.uid();
+    END IF;
+  ELSE
+    NEW.updated_at := now();
+
+    IF auth.uid() IS NOT NULL THEN
+      NEW.updated_by := auth.uid();
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_admin_profiles_audit_fields ON public.admin_profiles;
+CREATE TRIGGER trg_admin_profiles_audit_fields
+  BEFORE INSERT OR UPDATE ON public.admin_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_admin_profiles_audit_fields();
+
+ALTER TABLE public.admin_profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS admin_profiles_read_own_profile ON public.admin_profiles;
+CREATE POLICY admin_profiles_read_own_profile
+  ON public.admin_profiles
+  FOR SELECT
+  TO authenticated
+  USING (id = auth.uid());
+
+DROP POLICY IF EXISTS admin_profiles_admin_select ON public.admin_profiles;
+CREATE POLICY admin_profiles_admin_select
+  ON public.admin_profiles
+  FOR SELECT
+  TO authenticated
+  USING (public.is_admin_at_least('ADMIN'));
+
+DROP POLICY IF EXISTS admin_profiles_admin_insert ON public.admin_profiles;
+CREATE POLICY admin_profiles_admin_insert
+  ON public.admin_profiles
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (public.is_admin_at_least('ADMIN'));
+
+DROP POLICY IF EXISTS admin_profiles_admin_update ON public.admin_profiles;
+CREATE POLICY admin_profiles_admin_update
+  ON public.admin_profiles
+  FOR UPDATE
+  TO authenticated
+  USING (public.is_admin_at_least('ADMIN'))
+  WITH CHECK (public.is_admin_at_least('ADMIN'));
+
+DROP POLICY IF EXISTS admin_profiles_super_admin_delete ON public.admin_profiles;
+CREATE POLICY admin_profiles_super_admin_delete
+  ON public.admin_profiles
+  FOR DELETE
+  TO authenticated
+  USING (public.is_admin_at_least('SUPER_ADMIN'));
+
+GRANT SELECT ON public.admin_profiles TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.admin_profiles TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_admin_at_least(text) TO anon, authenticated, service_role;
+
+DROP POLICY IF EXISTS admin_read_demo_request ON public.demo_requests;
+CREATE POLICY admin_read_demo_request
+  ON public.demo_requests
+  FOR SELECT
+  TO authenticated
+  USING (public.is_admin_at_least('STAFF'));
+
+GRANT SELECT ON public.demo_requests TO authenticated;
