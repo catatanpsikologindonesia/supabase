@@ -36,6 +36,7 @@ Outbound email is now driven by edge functions plus a Google Apps Script dispatc
 Active functions:
 
 - `create-patient-invitation`
+- `create-patient-invitation-v2`
 - `create-referral`
 - `submit-patient-registration`
 - `send-patient-invitation`
@@ -85,6 +86,7 @@ Invitation variants:
 ## Authenticated Invitation Surface
 
 - patient invitation creation is now exposed through authenticated edge function `create-patient-invitation`
+- `create-patient-invitation-v2` is the active clinic invite-modal variant for email, phone, and admin link-copy flows
 - intended caller is the invite modal in `catatan-psikolog-user-portal`
 - the function creates the invitation via RPC and then uses the shared invitation-mail helper directly, avoiding local edge-runtime self-calls before fallback handling
 - the edge function now forwards the caller JWT into the invitation RPC so `auth.uid()`-dependent checks survive the edge boundary
@@ -106,6 +108,7 @@ Invitation variants:
 - patient registration submit is now exposed through public edge function `submit-patient-registration`
 - intended caller is the registration wizard in `catatan-psikolog-user-portal`
 - the function preserves the current sign-up/sign-in fallback orchestration while removing the Next route from the active runtime path
+- phone-based invitations now create or resolve patient auth users through the admin API and pass the invited phone through the registration RPC chain instead of requiring an invitation email
 
 ## Operational Notes
 
@@ -134,6 +137,7 @@ Invitation variants:
   - the replay gap was resolved by squashing the active folder into a single baseline file `20260505061355_admin_get_clinic_detail_rpc.sql`; local `supabase migration squash` now completes successfully without warnings.
 - 2026-05-05 patient registration Step 1 baseline added locally:
   - new public reference tables `religion`, `education`, and `occupation` were added with public read access and admin-only write access.
+  - tracked seed automation now exists in `scripts/seed_reference_data.sh` + `scripts/seed_reference_upsert.sql` for religion, education, occupation, and marital status rows.
   - `patient_personal_data` now stores structured lookup IDs plus geographic domain IDs, address line, and RT/RW fields.
   - `patient_family_data` now stores structured guardian address domain IDs plus guardian address line and RT/RW fields.
   - `update_patient_registration_by_user_id` now persists both the new structured fields and backward-compatible text fallbacks for reference labels and address strings.
@@ -147,8 +151,14 @@ Invitation variants:
   - `patient_family_data` now stores father/mother education and occupation lookup IDs, marital-status lookup ID, and the related `other_*` fallback text fields.
   - `update_patient_registration_by_user_id` now resolves and persists father/mother education, father/mother occupation, and marital-status labels from reference-table UUIDs while still preserving backward-compatible text fallbacks.
   - public registration local verification succeeded with a full Step 1 + Step 2 payload, including structured guardian address data and family lookup IDs.
-  - active local migration baseline is now `20260505202643_update_registration_step2_reference_fields.sql` after replay-clean squash.
+  - tracked reference seeding is now reproducible through `scripts/seed_reference_data.sh` + `scripts/seed_reference_upsert.sql`.
+  - `marital_status` was deduplicated and now has a `lower(name)` unique index so the seed helper is idempotent across reruns.
+  - active local migration baseline is now `20260505232611_fix_marital_status_seed_idempotency.sql` after replay-clean squash.
   - `make verify-local-remote` still reports `VERIFY MISMATCH` because the local-only tables, functions, auth counts, and edge sources have not yet been promoted to the remote project.
+- 2026-05-05 phone-invitation registration repair added locally:
+  - `submit-patient-registration` now accepts invitation lookups with `contact_type = phone`, no longer requires an invitation email on the public submit path, and creates or resolves patient auth users through the admin API for phone-based invitations.
+  - `update_patient_registration_by_user_id` now validates `auth.users.phone` against phone invitations, preserves existing patient email on phone-only registrations, and keeps the invited phone as the fallback patient phone when the intake form leaves the patient phone blank.
+  - active local migration baseline is now `20260505230112_fix_phone_registration_submit_flow.sql` after replay-clean squash.
 - use `make start-local` for normal development
 - use `make start-local-restore` when you explicitly want to restore `snapshot/database/db_full_snapshot.dump` during startup
 - use `make prepare-local` only when you explicitly need restore + migration replay

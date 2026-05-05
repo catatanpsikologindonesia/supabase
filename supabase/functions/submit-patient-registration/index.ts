@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
+import { createServiceRoleClient } from '../_shared/auth.ts';
 import { jsonResponse, preflight, requestIdFrom } from '../_shared/http.ts';
 
 type RegistrationRpcResponse = {
@@ -9,7 +10,9 @@ type RegistrationRpcResponse = {
 };
 
 type InvitationLookup = {
-  email: string;
+  email: string | null;
+  phone: string | null;
+  contact_type: string;
   expires_at: string;
   is_used: boolean;
   flow: 'registration_required' | 'consent_required' | 'info_only';
@@ -46,7 +49,8 @@ const optionalDigits = z
 const optionalUuid = z.string().trim().transform((value) => (value === '' ? undefined : value)).optional();
 
 const patientIntakeSchema = z.object({
-  email: z.string().trim().email('Email tidak valid.'),
+  email: z.string().trim().email('Email tidak valid.').optional().or(z.literal('')).transform((value) => (value === '' ? undefined : value)),
+  phone_contact: optionalDigits,
   fullName: z.string().trim().min(2, 'Nama lengkap wajib diisi.'),
   birthDate: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal lahir wajib diisi dengan format valid.'),
   sex: z.enum(['L', 'P']),
@@ -169,6 +173,7 @@ function getStatusCodeFromRegistrationCode(code?: string) {
     case 'AUTH_EMAIL_REQUIRED':
     case 'AUTH_USER_NOT_FOUND':
     case 'EMAIL_MISMATCH':
+    case 'PHONE_MISMATCH':
     case 'INVITATION_CLINIC_REQUIRED':
     case 'INVALID_FLOW':
     case 'CONSENT_REQUIRED':
@@ -197,6 +202,29 @@ function isAlreadyRegisteredError(message: string) {
 function isInvalidCredentialError(message: string) {
   const normalized = message.toLowerCase();
   return normalized.includes('invalid login credentials') || normalized.includes('invalid credentials');
+}
+
+async function findAuthUserByPhone(phone: string) {
+  const adminClient = createServiceRoleClient();
+  const perPage = 200;
+
+  for (let page = 1; page <= 20; page += 1) {
+    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      throw error;
+    }
+
+    const matchedUser = data.users.find((user) => (user.phone ?? '').trim() === phone);
+    if (matchedUser) {
+      return matchedUser;
+    }
+
+    if (data.users.length < perPage) {
+      break;
+    }
+  }
+
+  return null;
 }
 
 function buildDefaultPasswordFromBirthDate(birthDate: string) {
@@ -271,51 +299,78 @@ Deno.serve(async (req) => {
       return jsonResponse({ req, requestId, status: 400, success: false, code: 'INVALID_FLOW', message: 'Undangan ini tidak membutuhkan registrasi penuh.' });
     }
 
-    const invitationEmail = invitation.email.trim().toLowerCase();
-    const payloadEmail = payloadParsed.data.email.trim().toLowerCase();
-    if (payloadEmail !== invitationEmail) {
-      return jsonResponse({ req, requestId, status: 400, success: false, code: 'EMAIL_MISMATCH', message: 'Email registrasi tidak sesuai dengan email undangan.' });
-    }
-
     const password = buildDefaultPasswordFromBirthDate(payloadParsed.data.birthDate);
     if (!password) {
       return jsonResponse({ req, requestId, status: 400, success: false, code: 'INVALID_PAYLOAD', message: 'Tanggal lahir tidak valid untuk membuat password default.' });
     }
 
+    const isPhoneInvitation = invitation.contact_type === 'phone';
     let authUserId: string | null = null;
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: invitationEmail,
-      password,
-      options: {
-        data: { role: 'patient', full_name: payloadParsed.data.fullName },
-      },
-    });
 
-    if (signUpError && !isAlreadyRegisteredError(signUpError.message)) {
-      return jsonResponse({ req, requestId, status: 400, success: false, code: 'BAD_REQUEST', message: `Gagal membuat akun login: ${signUpError.message}` });
-    }
-
-    authUserId = signUpData.user?.id ?? null;
-    if (!authUserId) {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: invitationEmail,
-        password,
-      });
-
-      if (signInError) {
-        return jsonResponse({
-          req,
-          requestId,
-          status: isInvalidCredentialError(signInError.message) ? 409 : 400,
-          success: false,
-          code: 'BAD_REQUEST',
-          message: isInvalidCredentialError(signInError.message)
-            ? 'Email ini sudah terdaftar dengan password yang berbeda dari format tanggal lahir. Silakan reset password.'
-            : `Gagal memverifikasi akun login: ${signInError.message}`,
-        });
+    if (isPhoneInvitation) {
+      const invitationPhone = invitation.phone?.trim() ?? '';
+      if (!invitationPhone) {
+        return jsonResponse({ req, requestId, status: 400, success: false, code: 'INVALID_PAYLOAD', message: 'Nomor HP undangan tidak ditemukan.' });
       }
 
-      authUserId = signInData.user?.id ?? null;
+      const adminClient = createServiceRoleClient();
+      const { data: adminUserData, error: adminUserError } = await adminClient.auth.admin.createUser({
+        phone: invitationPhone,
+        phone_confirm: true,
+        password,
+        user_metadata: { role: 'patient', full_name: payloadParsed.data.fullName },
+      });
+
+      if (adminUserError && !isAlreadyRegisteredError(adminUserError.message)) {
+        return jsonResponse({ req, requestId, status: 400, success: false, code: 'BAD_REQUEST', message: `Gagal membuat akun login: ${adminUserError.message}` });
+      }
+
+      authUserId = adminUserData.user?.id ?? null;
+      if (!authUserId) {
+        const existingUser = await findAuthUserByPhone(invitationPhone);
+        authUserId = existingUser?.id ?? null;
+      }
+    } else {
+      const invitationEmail = invitation.email?.trim().toLowerCase() ?? '';
+      const payloadEmail = payloadParsed.data.email?.trim().toLowerCase() ?? '';
+      if (!invitationEmail || payloadEmail !== invitationEmail) {
+        return jsonResponse({ req, requestId, status: 400, success: false, code: 'EMAIL_MISMATCH', message: 'Email registrasi tidak sesuai dengan email undangan.' });
+      }
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: invitationEmail,
+        password,
+        options: {
+          data: { role: 'patient', full_name: payloadParsed.data.fullName },
+        },
+      });
+
+      if (signUpError && !isAlreadyRegisteredError(signUpError.message)) {
+        return jsonResponse({ req, requestId, status: 400, success: false, code: 'BAD_REQUEST', message: `Gagal membuat akun login: ${signUpError.message}` });
+      }
+
+      authUserId = signUpData.user?.id ?? null;
+      if (!authUserId) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: invitationEmail,
+          password,
+        });
+
+        if (signInError) {
+          return jsonResponse({
+            req,
+            requestId,
+            status: isInvalidCredentialError(signInError.message) ? 409 : 400,
+            success: false,
+            code: 'BAD_REQUEST',
+            message: isInvalidCredentialError(signInError.message)
+              ? 'Email ini sudah terdaftar dengan password yang berbeda dari format tanggal lahir. Silakan reset password.'
+              : `Gagal memverifikasi akun login: ${signInError.message}`,
+          });
+        }
+
+        authUserId = signInData.user?.id ?? null;
+      }
     }
 
     if (!authUserId) {
@@ -325,7 +380,8 @@ Deno.serve(async (req) => {
     const { data: createData, error: createError } = await supabase.rpc('create_patient_from_auth_user', {
       invite_token: token,
       auth_user_id: authUserId,
-      auth_email: invitationEmail,
+      auth_email: isPhoneInvitation ? null : invitation.email?.trim().toLowerCase() ?? null,
+      auth_phone: isPhoneInvitation ? invitation.phone?.trim() ?? null : null,
     });
 
     if (createError) {
@@ -349,6 +405,7 @@ Deno.serve(async (req) => {
 
     const registrationPayload = { ...payloadParsed.data } as Record<string, unknown>;
     delete registrationPayload.email;
+    delete registrationPayload.phone_contact;
     registrationPayload._consentIp = getRequestIp(req);
     registrationPayload._consentUserAgent = req.headers.get('user-agent') ?? null;
 

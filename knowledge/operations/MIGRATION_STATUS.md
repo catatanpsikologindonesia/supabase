@@ -10,7 +10,7 @@ Path: `supabase/migrations`
 On 2026-04-23, the migration history was consolidated into a single baseline to ensure environmental parity and a lean repository state.
 
 Local files (active):
-1. `20260505202643_update_registration_step2_reference_fields.sql`
+1. `20260505232611_fix_marital_status_seed_idempotency.sql`
 
 ## Automated Workflow Status
 
@@ -18,7 +18,8 @@ Local files (active):
 - **Knowledge Mirroring**: Active. Detailed Markdown history is generated in `knowledge/supabase_migrations/`.
 - **Auto-Cleanup**: Active. `supabase migration squash` is triggered on every successful apply.
 - **Frontend Sync**: Active. Automated `make sync-schema` for User and Admin portals on every DB change via Smart Discovery.
-- **Current Status**: Replay-clean locally. The active folder now squashes cleanly into `20260505202643_update_registration_step2_reference_fields.sql`, but local-vs-remote parity still mismatches until the local-only patient-registration and admin flows are deployed remotely.
+- **Current Status**: Replay-clean locally. The active folder now squashes cleanly into `20260505232611_fix_marital_status_seed_idempotency.sql`, and the tracked reference seed helper is idempotent across reruns. Local-vs-remote parity still mismatches until the local-only patient-registration and admin flows are deployed remotely.
+- **Reference Seed Support**: Tracked local seed helper now exists at `scripts/seed_reference_data.sh` with SQL source `scripts/seed_reference_upsert.sql`.
 
 ## Recent Logs
 - 2026-04-24 20240101000000: Initial Baseline Reconstruction.
@@ -57,4 +58,9 @@ Local files (active):
 - 2026-05-05 20260505201829: Applied create_marital_status_reference_table
 - 2026-05-05 20260505201938: Applied patient_family_reference_fields
 - 2026-05-05 20260505202643: Applied update_registration_step2_reference_fields and squashed active local baseline again.
+- 2026-05-05 20260505231959: Added tracked reference seed source (`scripts/seed_reference_data.sh` + `scripts/seed_reference_upsert.sql`).
+- 2026-05-05 20260505232611: Deduplicated `marital_status`, added unique name index, and re-squashed the active baseline.
 - 2026-05-05 parity note: `make verify-local-remote` now mismatches on `public_tables`, `public_functions`, `auth_counts`, and `edge_functions` until the local-only patient-registration and admin-reference updates are deployed or repaired remotely.
+- 2026-05-05 20260505230112: Applied fix_phone_registration_submit_flow
+- 2026-05-05 20260505231959: Applied seed_patient_reference_data
+- 2026-05-05 20260505232611: Applied fix_marital_status_seed_idempotency

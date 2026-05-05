@@ -1682,6 +1682,7 @@ CREATE OR REPLACE FUNCTION "public"."update_patient_registration_by_user_id"("in
 declare
   invitation_row public.patient_invitations%rowtype;
   auth_user_email text;
+  auth_user_phone text;
   patient_id_value uuid;
   clinic_patient_id_value uuid;
   practitioner_membership_id_value uuid;
@@ -1747,14 +1748,30 @@ begin
     return jsonb_build_object('status', 'error', 'code', 'CONSENT_REQUIRED', 'message', 'Persetujuan berbagi data wajib disetujui.');
   end if;
 
-  select au.email
-  into auth_user_email
-  from auth.users au
-  where au.id = target_user_id
-  limit 1;
+  if invitation_row.contact_type = 'phone' then
+    select au.phone
+    into auth_user_phone
+    from auth.users au
+    where au.id = target_user_id
+    limit 1;
 
-  if auth_user_email is null or lower(btrim(auth_user_email)) <> lower(btrim(invitation_row.email)) then
-    return jsonb_build_object('status', 'error', 'code', 'EMAIL_MISMATCH', 'message', 'Email akun tidak cocok dengan email undangan.');
+    if auth_user_phone is null or btrim(auth_user_phone) = '' then
+      return jsonb_build_object('status', 'error', 'code', 'AUTH_USER_NOT_FOUND', 'message', 'Nomor HP akun pasien tidak ditemukan.');
+    end if;
+
+    if regexp_replace(auth_user_phone, '\\D', '', 'g') <> regexp_replace(coalesce(invitation_row.phone, ''), '\\D', '', 'g') then
+      return jsonb_build_object('status', 'error', 'code', 'PHONE_MISMATCH', 'message', 'Nomor HP akun tidak cocok dengan nomor HP undangan.');
+    end if;
+  else
+    select au.email
+    into auth_user_email
+    from auth.users au
+    where au.id = target_user_id
+    limit 1;
+
+    if auth_user_email is null or lower(btrim(auth_user_email)) <> lower(btrim(coalesce(invitation_row.email, ''))) then
+      return jsonb_build_object('status', 'error', 'code', 'EMAIL_MISMATCH', 'message', 'Email akun tidak cocok dengan email undangan.');
+    end if;
   end if;
 
   select p.id
@@ -1847,12 +1864,15 @@ begin
   autism_indication_value := nullif(registration_payload ->> 'autismIndication', '')::public.autism_indication;
   adhd_indication_value := nullif(registration_payload ->> 'adhdIndication', '')::public.adhd_indication;
 
-  update public.patients
+  update public.patients p
   set full_name = registration_payload ->> 'fullName',
-      email = invitation_row.email,
-      phone = nullif(registration_payload ->> 'phone', ''),
+      email = case
+        when invitation_row.contact_type = 'email' then invitation_row.email
+        else p.email
+      end,
+      phone = coalesce(nullif(registration_payload ->> 'phone', ''), nullif(invitation_row.phone, ''), p.phone),
       updated_at = now()
-  where id = patient_id_value;
+  where p.id = patient_id_value;
 
   insert into public.patient_personal_data (
     clinic_id,
@@ -3004,6 +3024,10 @@ CREATE UNIQUE INDEX "education_name_unique_idx" ON "public"."education" USING "b
 
 
 CREATE UNIQUE INDEX "idx_admin_profiles_email_lower" ON "public"."admin_profiles" USING "btree" ("lower"("email")) WHERE ("email" IS NOT NULL);
+
+
+
+CREATE UNIQUE INDEX "marital_status_name_unique_idx" ON "public"."marital_status" USING "btree" ("lower"("name"));
 
 
 
