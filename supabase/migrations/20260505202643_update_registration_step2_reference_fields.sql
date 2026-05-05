@@ -13,13 +13,49 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 
-CREATE SCHEMA IF NOT EXISTS "public";
+CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "extensions";
 
 
-ALTER SCHEMA "public" OWNER TO "pg_database_owner";
+
+
 
 
 COMMENT ON SCHEMA "public" IS 'standard public schema';
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_graphql" WITH SCHEMA "graphql";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
+
+
+
 
 
 
@@ -1850,25 +1886,10 @@ begin
     registration_payload ->> 'fullName',
     nullif(registration_payload ->> 'sex', ''),
     nullif(registration_payload ->> 'birthDate', '')::date,
-    coalesce(
-      nullif(registration_payload ->> 'address', ''),
-      nullif(registration_payload ->> 'addressLine', '')
-    ),
-    coalesce(
-      (select r.name from public.religion r where r.id = nullif(registration_payload ->> 'religionId', '')::uuid),
-      nullif(registration_payload ->> 'otherReligion', ''),
-      nullif(registration_payload ->> 'religion', '')
-    ),
-    coalesce(
-      (select e.name from public.education e where e.id = nullif(registration_payload ->> 'educationId', '')::uuid),
-      nullif(registration_payload ->> 'otherEducation', ''),
-      nullif(registration_payload ->> 'education', '')
-    ),
-    coalesce(
-      (select o.name from public.occupation o where o.id = nullif(registration_payload ->> 'occupationId', '')::uuid),
-      nullif(registration_payload ->> 'otherOccupation', ''),
-      nullif(registration_payload ->> 'occupation', '')
-    ),
+    coalesce(nullif(registration_payload ->> 'address', ''), nullif(registration_payload ->> 'addressLine', '')),
+    coalesce((select r.name from public.religion r where r.id = nullif(registration_payload ->> 'religionId', '')::uuid), nullif(registration_payload ->> 'otherReligion', ''), nullif(registration_payload ->> 'religion', '')),
+    coalesce((select e.name from public.education e where e.id = nullif(registration_payload ->> 'educationId', '')::uuid), nullif(registration_payload ->> 'otherEducation', ''), nullif(registration_payload ->> 'education', '')),
+    coalesce((select o.name from public.occupation o where o.id = nullif(registration_payload ->> 'occupationId', '')::uuid), nullif(registration_payload ->> 'otherOccupation', ''), nullif(registration_payload ->> 'occupation', '')),
     nullif(registration_payload ->> 'hobby', ''),
     'Self registration invitation',
     nullif(registration_payload ->> 'religionId', '')::uuid,
@@ -1935,7 +1956,17 @@ begin
     guardian_subdistrict_domain_id,
     guardian_postal_code_domain_id,
     guardian_address_line,
-    guardian_rt_rw
+    guardian_rt_rw,
+    father_education_id,
+    other_father_education,
+    father_occupation_id,
+    other_father_occupation,
+    mother_education_id,
+    other_mother_education,
+    mother_occupation_id,
+    other_mother_occupation,
+    marital_status_id,
+    other_marital_status
   )
   values (
     invitation_row.clinic_id,
@@ -1943,19 +1974,16 @@ begin
     nullif(registration_payload ->> 'guardianName', ''),
     nullif(registration_payload ->> 'guardianRelation', ''),
     nullif(registration_payload ->> 'guardianPhone', ''),
-    coalesce(
-      nullif(registration_payload ->> 'guardianAddress', ''),
-      nullif(registration_payload ->> 'guardianAddressLine', '')
-    ),
+    coalesce(nullif(registration_payload ->> 'guardianAddress', ''), nullif(registration_payload ->> 'guardianAddressLine', '')),
     nullif(registration_payload ->> 'fatherName', ''),
     nullif(registration_payload ->> 'fatherAge', '')::bigint,
-    nullif(registration_payload ->> 'fatherEducation', ''),
-    nullif(registration_payload ->> 'fatherOccupation', ''),
+    coalesce((select e.name from public.education e where e.id = nullif(registration_payload ->> 'fatherEducationId', '')::uuid), nullif(registration_payload ->> 'otherFatherEducation', ''), nullif(registration_payload ->> 'fatherEducation', '')),
+    coalesce((select o.name from public.occupation o where o.id = nullif(registration_payload ->> 'fatherOccupationId', '')::uuid), nullif(registration_payload ->> 'otherFatherOccupation', ''), nullif(registration_payload ->> 'fatherOccupation', '')),
     nullif(registration_payload ->> 'motherName', ''),
     nullif(registration_payload ->> 'motherAge', '')::bigint,
-    nullif(registration_payload ->> 'motherEducation', ''),
-    nullif(registration_payload ->> 'motherOccupation', ''),
-    nullif(registration_payload ->> 'maritalStatus', ''),
+    coalesce((select e.name from public.education e where e.id = nullif(registration_payload ->> 'motherEducationId', '')::uuid), nullif(registration_payload ->> 'otherMotherEducation', ''), nullif(registration_payload ->> 'motherEducation', '')),
+    coalesce((select o.name from public.occupation o where o.id = nullif(registration_payload ->> 'motherOccupationId', '')::uuid), nullif(registration_payload ->> 'otherMotherOccupation', ''), nullif(registration_payload ->> 'motherOccupation', '')),
+    coalesce((select ms.name from public.marital_status ms where ms.id = nullif(registration_payload ->> 'maritalStatusId', '')::uuid), nullif(registration_payload ->> 'otherMaritalStatus', ''), nullif(registration_payload ->> 'maritalStatus', '')),
     nullif(registration_payload ->> 'numberOfChildren', '')::bigint,
     nullif(registration_payload ->> 'monthlyIncome', '')::numeric(12,2),
     nullif(registration_payload ->> 'familyNotes', ''),
@@ -1965,7 +1993,17 @@ begin
     nullif(registration_payload ->> 'guardianSubdistrictDomainId', '')::bigint,
     nullif(registration_payload ->> 'guardianPostalCodeDomainId', '')::bigint,
     nullif(registration_payload ->> 'guardianAddressLine', ''),
-    nullif(registration_payload ->> 'guardianRtRw', '')
+    nullif(registration_payload ->> 'guardianRtRw', ''),
+    nullif(registration_payload ->> 'fatherEducationId', '')::uuid,
+    nullif(registration_payload ->> 'otherFatherEducation', ''),
+    nullif(registration_payload ->> 'fatherOccupationId', '')::uuid,
+    nullif(registration_payload ->> 'otherFatherOccupation', ''),
+    nullif(registration_payload ->> 'motherEducationId', '')::uuid,
+    nullif(registration_payload ->> 'otherMotherEducation', ''),
+    nullif(registration_payload ->> 'motherOccupationId', '')::uuid,
+    nullif(registration_payload ->> 'otherMotherOccupation', ''),
+    nullif(registration_payload ->> 'maritalStatusId', '')::uuid,
+    nullif(registration_payload ->> 'otherMaritalStatus', '')
   )
   on conflict (clinic_id, patient_id) do update
   set guardian_name = excluded.guardian_name,
@@ -1991,98 +2029,47 @@ begin
       guardian_postal_code_domain_id = excluded.guardian_postal_code_domain_id,
       guardian_address_line = excluded.guardian_address_line,
       guardian_rt_rw = excluded.guardian_rt_rw,
+      father_education_id = excluded.father_education_id,
+      other_father_education = excluded.other_father_education,
+      father_occupation_id = excluded.father_occupation_id,
+      other_father_occupation = excluded.other_father_occupation,
+      mother_education_id = excluded.mother_education_id,
+      other_mother_education = excluded.other_mother_education,
+      mother_occupation_id = excluded.mother_occupation_id,
+      other_mother_occupation = excluded.other_mother_occupation,
+      marital_status_id = excluded.marital_status_id,
+      other_marital_status = excluded.other_marital_status,
       updated_at = now();
 
   appointment_id_value := invitation_row.appointment_id;
 
   if appointment_id_value is null then
-    appointment_start := coalesce(
-      invitation_row.session_start_at,
-      date_trunc('day', now()) + interval '1 day' + interval '9 hours'
-    );
-    appointment_end := coalesce(
-      invitation_row.session_end_at,
-      appointment_start + interval '45 minutes'
-    );
+    appointment_start := coalesce(invitation_row.session_start_at, date_trunc('day', now()) + interval '1 day' + interval '9 hours');
+    appointment_end := coalesce(invitation_row.session_end_at, appointment_start + interval '45 minutes');
 
-    insert into public.appointments (
-      clinic_id,
-      clinic_patient_id,
-      patient_id,
-      practitioner_membership_id,
-      start_time,
-      end_time,
-      status,
-      notes
-    )
-    values (
-      invitation_row.clinic_id,
-      clinic_patient_id_value,
-      patient_id_value,
-      practitioner_membership_id_value,
-      appointment_start,
-      appointment_end,
-      'scheduled',
-      'Auto-created from patient registration + consent'
-    )
+    insert into public.appointments (clinic_id, clinic_patient_id, patient_id, practitioner_membership_id, start_time, end_time, status, notes)
+    values (invitation_row.clinic_id, clinic_patient_id_value, patient_id_value, practitioner_membership_id_value, appointment_start, appointment_end, 'scheduled', 'Auto-created from patient registration + consent')
     returning id into appointment_id_value;
   end if;
 
-  select pv.id
-  into visit_id_value
-  from public.patient_visits pv
-  where pv.appointment_id = appointment_id_value
-  limit 1;
+  select pv.id into visit_id_value from public.patient_visits pv where pv.appointment_id = appointment_id_value limit 1;
 
   if visit_id_value is null then
-    insert into public.patient_visits (
-      clinic_id,
-      clinic_patient_id,
-      patient_id,
-      appointment_id,
-      status
-    )
-    values (
-      invitation_row.clinic_id,
-      clinic_patient_id_value,
-      patient_id_value,
-      appointment_id_value,
-      'scheduled'
-    )
+    insert into public.patient_visits (clinic_id, clinic_patient_id, patient_id, appointment_id, status)
+    values (invitation_row.clinic_id, clinic_patient_id_value, patient_id_value, appointment_id_value, 'scheduled')
     returning id into visit_id_value;
   end if;
 
   insert into public.developmental_history (
-    clinic_id,
-    visit_id,
-    mother_pregnancy_notes,
-    birth_process,
-    gestational_age_weeks,
-    birth_weight_kg,
-    birth_length_cm,
-    walking_age_months,
-    speaking_age_months,
-    hearing_function,
-    speech_articulation,
-    vision_function,
-    child_medical_history,
-    special_notes
-  )
-  values (
-    invitation_row.clinic_id,
-    visit_id_value,
-    nullif(registration_payload ->> 'motherPregnancyNotes', ''),
-    birth_process_value,
-    nullif(registration_payload ->> 'gestationalAgeWeeks', '')::bigint,
-    nullif(registration_payload ->> 'birthWeightKg', '')::numeric(5,2),
-    nullif(registration_payload ->> 'birthLengthCm', '')::numeric(5,2),
-    nullif(registration_payload ->> 'walkingAgeMonths', '')::bigint,
-    nullif(registration_payload ->> 'speakingAgeMonths', '')::bigint,
-    nullif(registration_payload ->> 'hearingFunction', ''),
-    nullif(registration_payload ->> 'speechArticulation', ''),
-    nullif(registration_payload ->> 'visionFunction', ''),
-    nullif(registration_payload ->> 'childMedicalHistory', ''),
-    nullif(registration_payload ->> 'specialNotes', '')
+    clinic_id, visit_id, mother_pregnancy_notes, birth_process, gestational_age_weeks, birth_weight_kg, birth_length_cm,
+    walking_age_months, speaking_age_months, hearing_function, speech_articulation, vision_function, child_medical_history, special_notes
+  ) values (
+    invitation_row.clinic_id, visit_id_value, nullif(registration_payload ->> 'motherPregnancyNotes', ''), birth_process_value,
+    nullif(registration_payload ->> 'gestationalAgeWeeks', '')::bigint, nullif(registration_payload ->> 'birthWeightKg', '')::numeric(5,2),
+    nullif(registration_payload ->> 'birthLengthCm', '')::numeric(5,2), nullif(registration_payload ->> 'walkingAgeMonths', '')::bigint,
+    nullif(registration_payload ->> 'speakingAgeMonths', '')::bigint, nullif(registration_payload ->> 'hearingFunction', ''),
+    nullif(registration_payload ->> 'speechArticulation', ''), nullif(registration_payload ->> 'visionFunction', ''),
+    nullif(registration_payload ->> 'childMedicalHistory', ''), nullif(registration_payload ->> 'specialNotes', '')
   )
   on conflict (visit_id) do update
   set mother_pregnancy_notes = excluded.mother_pregnancy_notes,
@@ -2101,44 +2088,18 @@ begin
       updated_at = now();
 
   insert into public.cognitive_assessments (
-    clinic_id,
-    visit_id,
-    knows_letters,
-    knows_colors,
-    writes,
-    counts,
-    reads,
-    reading_spelling,
-    fluent_reading,
-    reversed_letters,
-    autism_indication,
-    adhd_indication,
-    initial_conclusion,
-    intervention_counseling_given,
-    intervention_areas,
-    other_medical_action,
-    referral_action,
-    assessment_result
-  )
-  values (
-    invitation_row.clinic_id,
-    visit_id_value,
-    coalesce((registration_payload ->> 'knowsLetters')::boolean, false),
-    coalesce((registration_payload ->> 'knowsColors')::boolean, false),
-    coalesce((registration_payload ->> 'writes')::boolean, false),
-    coalesce((registration_payload ->> 'counts')::boolean, false),
-    coalesce((registration_payload ->> 'reads')::boolean, false),
-    coalesce((registration_payload ->> 'readingSpelling')::boolean, false),
-    coalesce((registration_payload ->> 'fluentReading')::boolean, false),
-    coalesce((registration_payload ->> 'reversedLetters')::boolean, false),
-    autism_indication_value,
-    adhd_indication_value,
-    nullif(registration_payload ->> 'initialConclusion', ''),
-    coalesce((registration_payload ->> 'interventionCounselingGiven')::boolean, false),
-    nullif(registration_payload ->> 'interventionAreas', ''),
-    nullif(registration_payload ->> 'otherMedicalAction', ''),
-    nullif(registration_payload ->> 'referralAction', ''),
-    nullif(registration_payload ->> 'assessmentResult', '')
+    clinic_id, visit_id, knows_letters, knows_colors, writes, counts, reads, reading_spelling, fluent_reading,
+    reversed_letters, autism_indication, adhd_indication, initial_conclusion, intervention_counseling_given,
+    intervention_areas, other_medical_action, referral_action, assessment_result
+  ) values (
+    invitation_row.clinic_id, visit_id_value, coalesce((registration_payload ->> 'knowsLetters')::boolean, false),
+    coalesce((registration_payload ->> 'knowsColors')::boolean, false), coalesce((registration_payload ->> 'writes')::boolean, false),
+    coalesce((registration_payload ->> 'counts')::boolean, false), coalesce((registration_payload ->> 'reads')::boolean, false),
+    coalesce((registration_payload ->> 'readingSpelling')::boolean, false), coalesce((registration_payload ->> 'fluentReading')::boolean, false),
+    coalesce((registration_payload ->> 'reversedLetters')::boolean, false), autism_indication_value, adhd_indication_value,
+    nullif(registration_payload ->> 'initialConclusion', ''), coalesce((registration_payload ->> 'interventionCounselingGiven')::boolean, false),
+    nullif(registration_payload ->> 'interventionAreas', ''), nullif(registration_payload ->> 'otherMedicalAction', ''),
+    nullif(registration_payload ->> 'referralAction', ''), nullif(registration_payload ->> 'assessmentResult', '')
   )
   on conflict (visit_id) do update
   set knows_letters = excluded.knows_letters,
@@ -2169,15 +2130,7 @@ begin
       target_patient_id = coalesce(target_patient_id, patient_id_value)
   where id = invitation_row.id;
 
-  return jsonb_build_object(
-    'status', 'success',
-    'message', 'Registrasi berhasil. Jadwal sesi sudah dibuat sesuai undangan.',
-    'patientId', patient_id_value,
-    'clinicId', invitation_row.clinic_id,
-    'clinicPatientId', clinic_patient_id_value,
-    'appointmentId', appointment_id_value,
-    'visitId', visit_id_value
-  );
+  return jsonb_build_object('status', 'success', 'message', 'Registrasi berhasil. Jadwal sesi sudah dibuat sesuai undangan.', 'patientId', patient_id_value, 'clinicId', invitation_row.clinic_id, 'clinicPatientId', clinic_patient_id_value, 'appointmentId', appointment_id_value, 'visitId', visit_id_value);
 exception
   when others then
     return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal memproses registrasi: ' || sqlerrm);
@@ -2560,6 +2513,20 @@ CREATE TABLE IF NOT EXISTS "public"."education" (
 ALTER TABLE "public"."education" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."marital_status" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "order_index" integer DEFAULT 0 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_by" "uuid",
+    "updated_by" "uuid"
+);
+
+
+ALTER TABLE "public"."marital_status" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."occupation" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "name" "text" NOT NULL,
@@ -2623,7 +2590,17 @@ CREATE TABLE IF NOT EXISTS "public"."patient_family_data" (
     "guardian_subdistrict_domain_id" bigint,
     "guardian_postal_code_domain_id" bigint,
     "guardian_address_line" "text",
-    "guardian_rt_rw" character varying(10)
+    "guardian_rt_rw" character varying(10),
+    "father_education_id" "uuid",
+    "other_father_education" "text",
+    "father_occupation_id" "uuid",
+    "other_father_occupation" "text",
+    "mother_education_id" "uuid",
+    "other_mother_education" "text",
+    "mother_occupation_id" "uuid",
+    "other_mother_occupation" "text",
+    "marital_status_id" "uuid",
+    "other_marital_status" "text"
 );
 
 
@@ -2899,6 +2876,11 @@ ALTER TABLE ONLY "public"."edge_rate_limit_events"
 
 ALTER TABLE ONLY "public"."education"
     ADD CONSTRAINT "education_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."marital_status"
+    ADD CONSTRAINT "marital_status_pkey" PRIMARY KEY ("id");
 
 
 
@@ -3307,6 +3289,16 @@ ALTER TABLE ONLY "public"."education"
 
 
 
+ALTER TABLE ONLY "public"."marital_status"
+    ADD CONSTRAINT "marital_status_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."marital_status"
+    ADD CONSTRAINT "marital_status_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id");
+
+
+
 ALTER TABLE ONLY "public"."occupation"
     ADD CONSTRAINT "occupation_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
 
@@ -3334,6 +3326,31 @@ ALTER TABLE ONLY "public"."patient_clinic_consents"
 
 ALTER TABLE ONLY "public"."patient_family_data"
     ADD CONSTRAINT "patient_family_data_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."patient_family_data"
+    ADD CONSTRAINT "patient_family_data_father_education_id_fkey" FOREIGN KEY ("father_education_id") REFERENCES "public"."education"("id");
+
+
+
+ALTER TABLE ONLY "public"."patient_family_data"
+    ADD CONSTRAINT "patient_family_data_father_occupation_id_fkey" FOREIGN KEY ("father_occupation_id") REFERENCES "public"."occupation"("id");
+
+
+
+ALTER TABLE ONLY "public"."patient_family_data"
+    ADD CONSTRAINT "patient_family_data_marital_status_id_fkey" FOREIGN KEY ("marital_status_id") REFERENCES "public"."marital_status"("id");
+
+
+
+ALTER TABLE ONLY "public"."patient_family_data"
+    ADD CONSTRAINT "patient_family_data_mother_education_id_fkey" FOREIGN KEY ("mother_education_id") REFERENCES "public"."education"("id");
+
+
+
+ALTER TABLE ONLY "public"."patient_family_data"
+    ADD CONSTRAINT "patient_family_data_mother_occupation_id_fkey" FOREIGN KEY ("mother_occupation_id") REFERENCES "public"."occupation"("id");
 
 
 
@@ -3588,6 +3605,25 @@ CREATE POLICY "insert_demo_request" ON "public"."demo_requests" FOR INSERT TO "a
 
 
 
+ALTER TABLE "public"."marital_status" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "marital_status_admin_delete" ON "public"."marital_status" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "marital_status_admin_insert" ON "public"."marital_status" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "marital_status_admin_update" ON "public"."marital_status" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "marital_status_select_all" ON "public"."marital_status" FOR SELECT TO "authenticated", "anon" USING (true);
+
+
+
 ALTER TABLE "public"."occupation" ENABLE ROW LEVEL SECURITY;
 
 
@@ -3721,10 +3757,174 @@ CREATE POLICY "users_select_own" ON "public"."users" FOR SELECT TO "authenticate
 
 
 
+
+
+ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+
+
+
+
+
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3878,6 +4078,21 @@ GRANT ALL ON FUNCTION "public"."verify_referral_pin"("referral_id" "uuid", "inpu
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 GRANT ALL ON TABLE "public"."address_city" TO "anon";
 GRANT ALL ON TABLE "public"."address_city" TO "authenticated";
 GRANT ALL ON TABLE "public"."address_city" TO "service_role";
@@ -3968,6 +4183,12 @@ GRANT ALL ON TABLE "public"."education" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."marital_status" TO "anon";
+GRANT ALL ON TABLE "public"."marital_status" TO "authenticated";
+GRANT ALL ON TABLE "public"."marital_status" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."occupation" TO "anon";
 GRANT ALL ON TABLE "public"."occupation" TO "authenticated";
 GRANT ALL ON TABLE "public"."occupation" TO "service_role";
@@ -4034,6 +4255,12 @@ GRANT ALL ON TABLE "public"."users" TO "service_role";
 
 
 
+
+
+
+
+
+
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
@@ -4064,4 +4291,33 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--
+-- Dumped schema changes for auth and storage
+--
 

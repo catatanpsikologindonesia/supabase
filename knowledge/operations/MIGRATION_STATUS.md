@@ -10,7 +10,7 @@ Path: `supabase/migrations`
 On 2026-04-23, the migration history was consolidated into a single baseline to ensure environmental parity and a lean repository state.
 
 Local files (active):
-1. `20260505130000_local_full_baseline.sql`
+1. `20260505202643_update_registration_step2_reference_fields.sql`
 
 ## Automated Workflow Status
 
@@ -18,7 +18,7 @@ Local files (active):
 - **Knowledge Mirroring**: Active. Detailed Markdown history is generated in `knowledge/supabase_migrations/`.
 - **Auto-Cleanup**: Active. `supabase migration squash` is triggered on every successful apply.
 - **Frontend Sync**: Active. Automated `make sync-schema` for User and Admin portals on every DB change via Smart Discovery.
-- **Current Status**: Replay-clean. The migration folder was rebuilt into the single local baseline `20260505130000_local_full_baseline.sql`, and `supabase migration squash` now completes without warnings again.
+- **Current Status**: Replay-clean locally. The active folder now squashes cleanly into `20260505202643_update_registration_step2_reference_fields.sql`, but local-vs-remote parity still mismatches until the local-only patient-registration and admin flows are deployed remotely.
 
 ## Recent Logs
 - 2026-04-24 20240101000000: Initial Baseline Reconstruction.
@@ -54,6 +54,7 @@ Local files (active):
 - 2026-05-05 20260505122328: Applied patient_registration_domain_ids_bigint
 - 2026-05-05 20260505122629: Applied registration_rpc_domain_ids_bigint
 - 2026-05-05 patient-registration follow-up: after the new schema/RPC fixes were applied, the active migration folder was rebuilt into `20260505130000_local_full_baseline.sql` so replay is clean again.
-- 2026-05-05 20260505121628: Applied fix_create_patient_from_auth_user_full_name
-- 2026-05-05 20260505122328: Applied patient_registration_domain_ids_bigint
-- 2026-05-05 20260505122629: Applied registration_rpc_domain_ids_bigint
+- 2026-05-05 20260505201829: Applied create_marital_status_reference_table
+- 2026-05-05 20260505201938: Applied patient_family_reference_fields
+- 2026-05-05 20260505202643: Applied update_registration_step2_reference_fields and squashed active local baseline again.
+- 2026-05-05 parity note: `make verify-local-remote` now mismatches on `public_tables`, `public_functions`, `auth_counts`, and `edge_functions` until the local-only patient-registration and admin-reference updates are deployed or repaired remotely.

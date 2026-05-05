@@ -142,6 +142,13 @@ Invitation variants:
   - `create_patient_from_auth_user` now creates the initial `patients` row with `full_name`, `email`, and `phone`, fixing the earlier not-null failure on `patients.full_name` during public registration.
   - end-to-end local verification succeeded through `submit-patient-registration`: auth user creation, patient bootstrap, structured `patient_personal_data`, structured `patient_family_data`, and invitation completion all completed successfully.
   - after the patient-registration work, the migration folder was rebuilt into a single replay-clean local baseline `20260505130000_local_full_baseline.sql`; `supabase migration squash` now completes cleanly again.
+- 2026-05-05 patient registration Step 1 + Step 2 follow-up added locally:
+  - `public.marital_status` now exists as a public reference table with 5 seeded rows and admin-only write access.
+  - `patient_family_data` now stores father/mother education and occupation lookup IDs, marital-status lookup ID, and the related `other_*` fallback text fields.
+  - `update_patient_registration_by_user_id` now resolves and persists father/mother education, father/mother occupation, and marital-status labels from reference-table UUIDs while still preserving backward-compatible text fallbacks.
+  - public registration local verification succeeded with a full Step 1 + Step 2 payload, including structured guardian address data and family lookup IDs.
+  - active local migration baseline is now `20260505202643_update_registration_step2_reference_fields.sql` after replay-clean squash.
+  - `make verify-local-remote` still reports `VERIFY MISMATCH` because the local-only tables, functions, auth counts, and edge sources have not yet been promoted to the remote project.
 - use `make start-local` for normal development
 - use `make start-local-restore` when you explicitly want to restore `snapshot/database/db_full_snapshot.dump` during startup
 - use `make prepare-local` only when you explicitly need restore + migration replay
