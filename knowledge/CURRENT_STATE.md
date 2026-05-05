@@ -141,6 +141,7 @@ Invitation variants:
   - the first implementation used `integer` for all geographic domain IDs, but live registration verification exposed that `subdistrict_domain_id` values exceed `int4`; the active columns and RPC casts were corrected to `bigint`.
   - `create_patient_from_auth_user` now creates the initial `patients` row with `full_name`, `email`, and `phone`, fixing the earlier not-null failure on `patients.full_name` during public registration.
   - end-to-end local verification succeeded through `submit-patient-registration`: auth user creation, patient bootstrap, structured `patient_personal_data`, structured `patient_family_data`, and invitation completion all completed successfully.
+  - after the patient-registration work, the migration folder was rebuilt into a single replay-clean local baseline `20260505130000_local_full_baseline.sql`; `supabase migration squash` now completes cleanly again.
 - use `make start-local` for normal development
 - use `make start-local-restore` when you explicitly want to restore `snapshot/database/db_full_snapshot.dump` during startup
 - use `make prepare-local` only when you explicitly need restore + migration replay

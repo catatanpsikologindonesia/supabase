@@ -10,12 +10,7 @@ Path: `supabase/migrations`
 On 2026-04-23, the migration history was consolidated into a single baseline to ensure environmental parity and a lean repository state.
 
 Local files (active):
-1. `20260505115917_create_patient_reference_tables.sql`
-2. `20260505120117_patient_registration_structured_fields.sql`
-3. `20260505120453_update_registration_rpc_structured_fields.sql`
-4. `20260505121628_fix_create_patient_from_auth_user_full_name.sql`
-5. `20260505122328_patient_registration_domain_ids_bigint.sql`
-6. `20260505122629_registration_rpc_domain_ids_bigint.sql`
+1. `20260505130000_local_full_baseline.sql`
 
 ## Automated Workflow Status
 
@@ -23,7 +18,7 @@ Local files (active):
 - **Knowledge Mirroring**: Active. Detailed Markdown history is generated in `knowledge/supabase_migrations/`.
 - **Auto-Cleanup**: Active. `supabase migration squash` is triggered on every successful apply.
 - **Frontend Sync**: Active. Automated `make sync-schema` for User and Admin portals on every DB change via Smart Discovery.
-- **Current Status**: Local apply succeeded for the 2026-05-05 patient-registration migrations, but post-apply squash currently warns because the active migration folder still does not reconstruct the full historical shared schema on an empty scratch database.
+- **Current Status**: Replay-clean. The migration folder was rebuilt into the single local baseline `20260505130000_local_full_baseline.sql`, and `supabase migration squash` now completes without warnings again.
 
 ## Recent Logs
 - 2026-04-24 20240101000000: Initial Baseline Reconstruction.
@@ -58,7 +53,7 @@ Local files (active):
 - 2026-05-05 20260505121628: Applied fix_create_patient_from_auth_user_full_name
 - 2026-05-05 20260505122328: Applied patient_registration_domain_ids_bigint
 - 2026-05-05 20260505122629: Applied registration_rpc_domain_ids_bigint
-- 2026-05-05 patient-registration follow-up: local DB and schema artifacts were updated successfully, but the auto-squash replay returned to warning state once the new patient-table migration attempted to replay against a migration folder that still lacks the full pre-squash shared baseline.
+- 2026-05-05 patient-registration follow-up: after the new schema/RPC fixes were applied, the active migration folder was rebuilt into `20260505130000_local_full_baseline.sql` so replay is clean again.
 - 2026-05-05 20260505121628: Applied fix_create_patient_from_auth_user_full_name
 - 2026-05-05 20260505122328: Applied patient_registration_domain_ids_bigint
 - 2026-05-05 20260505122629: Applied registration_rpc_domain_ids_bigint
