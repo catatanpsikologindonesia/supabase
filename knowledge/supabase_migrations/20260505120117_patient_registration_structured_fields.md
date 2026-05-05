@@ -1,0 +1,12 @@
+# Migration: patient_registration_structured_fields
+
+- **Timestamp**: 20260505120117
+- **Applied At**: 2026-05-05 12:01:17
+
+## Description
+Auto-generated migration for database structural changes.
+
+## SQL Content
+```sql
+ALTER TABLE public.patient_personal_data ADD COLUMN IF NOT EXISTS religion_id uuid REFERENCES public.religion(id), ADD COLUMN IF NOT EXISTS other_religion text, ADD COLUMN IF NOT EXISTS education_id uuid REFERENCES public.education(id), ADD COLUMN IF NOT EXISTS other_education text, ADD COLUMN IF NOT EXISTS occupation_id uuid REFERENCES public.occupation(id), ADD COLUMN IF NOT EXISTS other_occupation text, ADD COLUMN IF NOT EXISTS province_domain_id integer, ADD COLUMN IF NOT EXISTS city_domain_id integer, ADD COLUMN IF NOT EXISTS district_domain_id integer, ADD COLUMN IF NOT EXISTS subdistrict_domain_id integer, ADD COLUMN IF NOT EXISTS postal_code_domain_id integer, ADD COLUMN IF NOT EXISTS address_line text, ADD COLUMN IF NOT EXISTS rt_rw varchar(10); ALTER TABLE public.patient_family_data ADD COLUMN IF NOT EXISTS guardian_province_domain_id integer, ADD COLUMN IF NOT EXISTS guardian_city_domain_id integer, ADD COLUMN IF NOT EXISTS guardian_district_domain_id integer, ADD COLUMN IF NOT EXISTS guardian_subdistrict_domain_id integer, ADD COLUMN IF NOT EXISTS guardian_postal_code_domain_id integer, ADD COLUMN IF NOT EXISTS guardian_address_line text, ADD COLUMN IF NOT EXISTS guardian_rt_rw varchar(10);
+```

@@ -460,6 +460,48 @@ CREATE TABLE IF NOT EXISTS "public"."edge_rate_limit_events" (
 ALTER TABLE "public"."edge_rate_limit_events" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."education" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "order_index" integer DEFAULT 0 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_by" "uuid",
+    "updated_by" "uuid"
+);
+
+
+ALTER TABLE "public"."education" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."occupation" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "order_index" integer DEFAULT 0 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_by" "uuid",
+    "updated_by" "uuid"
+);
+
+
+ALTER TABLE "public"."occupation" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."religion" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "order_index" integer DEFAULT 0 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_by" "uuid",
+    "updated_by" "uuid"
+);
+
+
+ALTER TABLE "public"."religion" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."users" (
     "id" "uuid" NOT NULL,
     "role" "public"."user_role" DEFAULT 'clinic_staff'::"public"."user_role" NOT NULL,
@@ -547,6 +589,21 @@ ALTER TABLE ONLY "public"."edge_rate_limit_events"
 
 
 
+ALTER TABLE ONLY "public"."education"
+    ADD CONSTRAINT "education_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."occupation"
+    ADD CONSTRAINT "occupation_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."religion"
+    ADD CONSTRAINT "religion_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."users"
     ADD CONSTRAINT "users_pkey" PRIMARY KEY ("id");
 
@@ -572,7 +629,19 @@ CREATE INDEX "edge_rate_limit_events_lookup_idx" ON "public"."edge_rate_limit_ev
 
 
 
+CREATE UNIQUE INDEX "education_name_unique_idx" ON "public"."education" USING "btree" ("lower"("name"));
+
+
+
 CREATE UNIQUE INDEX "idx_admin_profiles_email_lower" ON "public"."admin_profiles" USING "btree" ("lower"("email")) WHERE ("email" IS NOT NULL);
+
+
+
+CREATE UNIQUE INDEX "occupation_name_unique_idx" ON "public"."occupation" USING "btree" ("lower"("name"));
+
+
+
+CREATE UNIQUE INDEX "religion_name_unique_idx" ON "public"."religion" USING "btree" ("lower"("name"));
 
 
 
@@ -670,6 +739,36 @@ ALTER TABLE ONLY "public"."demo_requests"
 
 
 
+ALTER TABLE ONLY "public"."education"
+    ADD CONSTRAINT "education_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."education"
+    ADD CONSTRAINT "education_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."occupation"
+    ADD CONSTRAINT "occupation_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."occupation"
+    ADD CONSTRAINT "occupation_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."religion"
+    ADD CONSTRAINT "religion_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."religion"
+    ADD CONSTRAINT "religion_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id");
+
+
+
 ALTER TABLE ONLY "public"."users"
     ADD CONSTRAINT "users_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
@@ -723,7 +822,45 @@ ALTER TABLE "public"."demo_requests" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."edge_rate_limit_events" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."education" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "education_admin_delete" ON "public"."education" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "education_admin_insert" ON "public"."education" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "education_admin_update" ON "public"."education" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "education_select_all" ON "public"."education" FOR SELECT TO "authenticated", "anon" USING (true);
+
+
+
 CREATE POLICY "insert_demo_request" ON "public"."demo_requests" FOR INSERT TO "authenticated", "anon" WITH CHECK (true);
+
+
+
+ALTER TABLE "public"."occupation" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "occupation_admin_delete" ON "public"."occupation" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "occupation_admin_insert" ON "public"."occupation" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "occupation_admin_update" ON "public"."occupation" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "occupation_select_all" ON "public"."occupation" FOR SELECT TO "authenticated", "anon" USING (true);
 
 
 
@@ -744,6 +881,25 @@ CREATE POLICY "public_read_address_province" ON "public"."address_province" FOR 
 
 
 CREATE POLICY "public_read_address_subdistrict" ON "public"."address_subdistrict" FOR SELECT USING (true);
+
+
+
+ALTER TABLE "public"."religion" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "religion_admin_delete" ON "public"."religion" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "religion_admin_insert" ON "public"."religion" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "religion_admin_update" ON "public"."religion" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "religion_select_all" ON "public"."religion" FOR SELECT TO "authenticated", "anon" USING (true);
 
 
 
@@ -1038,6 +1194,24 @@ GRANT ALL ON TABLE "public"."demo_requests" TO "service_role";
 GRANT ALL ON TABLE "public"."edge_rate_limit_events" TO "anon";
 GRANT ALL ON TABLE "public"."edge_rate_limit_events" TO "authenticated";
 GRANT ALL ON TABLE "public"."edge_rate_limit_events" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."education" TO "anon";
+GRANT ALL ON TABLE "public"."education" TO "authenticated";
+GRANT ALL ON TABLE "public"."education" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."occupation" TO "anon";
+GRANT ALL ON TABLE "public"."occupation" TO "authenticated";
+GRANT ALL ON TABLE "public"."occupation" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."religion" TO "anon";
+GRANT ALL ON TABLE "public"."religion" TO "authenticated";
+GRANT ALL ON TABLE "public"."religion" TO "service_role";
 
 
 

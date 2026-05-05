@@ -36,21 +36,50 @@ const optionalNumber = z
   .refine((value) => value === undefined || Number.isFinite(value), 'Input angka tidak valid.')
   .optional();
 
+const optionalDigits = z
+  .string()
+  .trim()
+  .transform((value) => (value === '' ? undefined : value.replace(/\D+/g, '')))
+  .refine((value) => value === undefined || /^\d+$/.test(value), 'Nomor telepon hanya boleh berisi angka.')
+  .optional();
+
+const optionalUuid = z.string().trim().transform((value) => (value === '' ? undefined : value)).optional();
+
 const patientIntakeSchema = z.object({
   email: z.string().trim().email('Email tidak valid.'),
   fullName: z.string().trim().min(2, 'Nama lengkap wajib diisi.'),
   birthDate: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal lahir wajib diisi dengan format valid.'),
   sex: z.enum(['L', 'P']),
-  phone: optionalText,
+  phone: optionalDigits,
   religion: optionalText,
+  religionId: optionalUuid,
+  otherReligion: optionalText,
   education: optionalText,
+  educationId: optionalUuid,
+  otherEducation: optionalText,
   occupation: optionalText,
+  occupationId: optionalUuid,
+  otherOccupation: optionalText,
   hobby: optionalText,
   address: optionalText,
+  provinceDomainId: optionalNumber,
+  cityDomainId: optionalNumber,
+  districtDomainId: optionalNumber,
+  subdistrictDomainId: optionalNumber,
+  postalCodeDomainId: optionalNumber,
+  addressLine: optionalText,
+  rtRw: optionalText,
   guardianName: optionalText,
   guardianRelation: optionalText,
-  guardianPhone: optionalText,
+  guardianPhone: optionalDigits,
   guardianAddress: optionalText,
+  guardianProvinceDomainId: optionalNumber,
+  guardianCityDomainId: optionalNumber,
+  guardianDistrictDomainId: optionalNumber,
+  guardianSubdistrictDomainId: optionalNumber,
+  guardianPostalCodeDomainId: optionalNumber,
+  guardianAddressLine: optionalText,
+  guardianRtRw: optionalText,
   fatherName: optionalText,
   fatherAge: optionalNumber,
   fatherEducation: optionalText,
@@ -248,7 +277,7 @@ Deno.serve(async (req) => {
       email: invitationEmail,
       password,
       options: {
-        data: { role: 'patient' },
+        data: { role: 'patient', full_name: payloadParsed.data.fullName },
       },
     });
 

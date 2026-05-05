@@ -132,6 +132,15 @@ Invitation variants:
   - shared edge helpers now include password-policy and validation utilities used by the new admin registration functions.
   - local API validation confirmed: unauthorized and non-admin callers are rejected, owner creation writes `auth.users` + `public.users` + `public.clinics` + `public.clinic_memberships`, practitioner default profession resolves to `psychologist`, non-practitioner profession stays `NULL`, and rollback deletes auth users after downstream clinic lookup failure.
   - the replay gap was resolved by squashing the active folder into a single baseline file `20260505061355_admin_get_clinic_detail_rpc.sql`; local `supabase migration squash` now completes successfully without warnings.
+- 2026-05-05 patient registration Step 1 baseline added locally:
+  - new public reference tables `religion`, `education`, and `occupation` were added with public read access and admin-only write access.
+  - `patient_personal_data` now stores structured lookup IDs plus geographic domain IDs, address line, and RT/RW fields.
+  - `patient_family_data` now stores structured guardian address domain IDs plus guardian address line and RT/RW fields.
+  - `update_patient_registration_by_user_id` now persists both the new structured fields and backward-compatible text fallbacks for reference labels and address strings.
+  - `submit-patient-registration` now validates the structured registration payload used by the updated public intake wizard.
+  - the first implementation used `integer` for all geographic domain IDs, but live registration verification exposed that `subdistrict_domain_id` values exceed `int4`; the active columns and RPC casts were corrected to `bigint`.
+  - `create_patient_from_auth_user` now creates the initial `patients` row with `full_name`, `email`, and `phone`, fixing the earlier not-null failure on `patients.full_name` during public registration.
+  - end-to-end local verification succeeded through `submit-patient-registration`: auth user creation, patient bootstrap, structured `patient_personal_data`, structured `patient_family_data`, and invitation completion all completed successfully.
 - use `make start-local` for normal development
 - use `make start-local-restore` when you explicitly want to restore `snapshot/database/db_full_snapshot.dump` during startup
 - use `make prepare-local` only when you explicitly need restore + migration replay

@@ -628,6 +628,7 @@ declare
   invitation_row public.patient_invitations%rowtype;
   auth_user_email text;
   auth_user_phone text;
+  auth_user_full_name text;
   patient_id_value uuid;
   mrn_value text;
 begin
@@ -668,7 +669,9 @@ begin
   end if;
 
   if invitation_row.contact_type = 'phone' then
-    select au.phone into auth_user_phone
+    select au.phone,
+           coalesce(au.raw_user_meta_data ->> 'full_name', split_part(coalesce(au.phone, auth_phone, invitation_row.phone, 'Pasien'), '@', 1))
+    into auth_user_phone, auth_user_full_name
     from auth.users au where au.id = auth_user_id limit 1;
 
     if auth_user_phone is null then
@@ -679,7 +682,9 @@ begin
       return jsonb_build_object('status', 'error', 'code', 'AUTH_EMAIL_REQUIRED', 'message', 'Email akun login pasien tidak ditemukan.');
     end if;
 
-    select au.email into auth_user_email
+    select au.email,
+           coalesce(au.raw_user_meta_data ->> 'full_name', split_part(coalesce(au.email, auth_email, invitation_row.email, 'Pasien'), '@', 1))
+    into auth_user_email, auth_user_full_name
     from auth.users au where au.id = auth_user_id limit 1;
 
     if auth_user_email is null then
@@ -708,8 +713,16 @@ begin
     select 'MRN-' || to_char(now(), 'YYYYMMDD') || '-' || lpad((floor(random() * 9000) + 1000)::text, 4, '0')
     into mrn_value;
 
-    insert into public.patients (user_id, mrn, created_at)
-    values (auth_user_id, mrn_value, now())
+    insert into public.patients (user_id, mrn, full_name, email, phone, created_at, updated_at)
+    values (
+      auth_user_id,
+      mrn_value,
+      coalesce(nullif(auth_user_full_name, ''), 'Pasien Tanpa Nama'),
+      coalesce(invitation_row.email, auth_user_email),
+      coalesce(invitation_row.phone, auth_user_phone, auth_phone),
+      now(),
+      now()
+    )
     returning id into patient_id_value;
   end if;
 
@@ -1816,7 +1829,20 @@ begin
     education,
     occupation,
     hobby,
-    referral_source
+    referral_source,
+    religion_id,
+    other_religion,
+    education_id,
+    other_education,
+    occupation_id,
+    other_occupation,
+    province_domain_id,
+    city_domain_id,
+    district_domain_id,
+    subdistrict_domain_id,
+    postal_code_domain_id,
+    address_line,
+    rt_rw
   )
   values (
     invitation_row.clinic_id,
@@ -1824,12 +1850,40 @@ begin
     registration_payload ->> 'fullName',
     nullif(registration_payload ->> 'sex', ''),
     nullif(registration_payload ->> 'birthDate', '')::date,
-    nullif(registration_payload ->> 'address', ''),
-    nullif(registration_payload ->> 'religion', ''),
-    nullif(registration_payload ->> 'education', ''),
-    nullif(registration_payload ->> 'occupation', ''),
+    coalesce(
+      nullif(registration_payload ->> 'address', ''),
+      nullif(registration_payload ->> 'addressLine', '')
+    ),
+    coalesce(
+      (select r.name from public.religion r where r.id = nullif(registration_payload ->> 'religionId', '')::uuid),
+      nullif(registration_payload ->> 'otherReligion', ''),
+      nullif(registration_payload ->> 'religion', '')
+    ),
+    coalesce(
+      (select e.name from public.education e where e.id = nullif(registration_payload ->> 'educationId', '')::uuid),
+      nullif(registration_payload ->> 'otherEducation', ''),
+      nullif(registration_payload ->> 'education', '')
+    ),
+    coalesce(
+      (select o.name from public.occupation o where o.id = nullif(registration_payload ->> 'occupationId', '')::uuid),
+      nullif(registration_payload ->> 'otherOccupation', ''),
+      nullif(registration_payload ->> 'occupation', '')
+    ),
     nullif(registration_payload ->> 'hobby', ''),
-    'Self registration invitation'
+    'Self registration invitation',
+    nullif(registration_payload ->> 'religionId', '')::uuid,
+    nullif(registration_payload ->> 'otherReligion', ''),
+    nullif(registration_payload ->> 'educationId', '')::uuid,
+    nullif(registration_payload ->> 'otherEducation', ''),
+    nullif(registration_payload ->> 'occupationId', '')::uuid,
+    nullif(registration_payload ->> 'otherOccupation', ''),
+    nullif(registration_payload ->> 'provinceDomainId', '')::bigint,
+    nullif(registration_payload ->> 'cityDomainId', '')::bigint,
+    nullif(registration_payload ->> 'districtDomainId', '')::bigint,
+    nullif(registration_payload ->> 'subdistrictDomainId', '')::bigint,
+    nullif(registration_payload ->> 'postalCodeDomainId', '')::bigint,
+    nullif(registration_payload ->> 'addressLine', ''),
+    nullif(registration_payload ->> 'rtRw', '')
   )
   on conflict (clinic_id, patient_id) do update
   set full_name = excluded.full_name,
@@ -1841,6 +1895,19 @@ begin
       occupation = excluded.occupation,
       hobby = excluded.hobby,
       referral_source = excluded.referral_source,
+      religion_id = excluded.religion_id,
+      other_religion = excluded.other_religion,
+      education_id = excluded.education_id,
+      other_education = excluded.other_education,
+      occupation_id = excluded.occupation_id,
+      other_occupation = excluded.other_occupation,
+      province_domain_id = excluded.province_domain_id,
+      city_domain_id = excluded.city_domain_id,
+      district_domain_id = excluded.district_domain_id,
+      subdistrict_domain_id = excluded.subdistrict_domain_id,
+      postal_code_domain_id = excluded.postal_code_domain_id,
+      address_line = excluded.address_line,
+      rt_rw = excluded.rt_rw,
       updated_at = now();
 
   insert into public.patient_family_data (
@@ -1861,7 +1928,14 @@ begin
     marital_status,
     number_of_children,
     monthly_income,
-    family_notes
+    family_notes,
+    guardian_province_domain_id,
+    guardian_city_domain_id,
+    guardian_district_domain_id,
+    guardian_subdistrict_domain_id,
+    guardian_postal_code_domain_id,
+    guardian_address_line,
+    guardian_rt_rw
   )
   values (
     invitation_row.clinic_id,
@@ -1869,19 +1943,29 @@ begin
     nullif(registration_payload ->> 'guardianName', ''),
     nullif(registration_payload ->> 'guardianRelation', ''),
     nullif(registration_payload ->> 'guardianPhone', ''),
-    nullif(registration_payload ->> 'guardianAddress', ''),
+    coalesce(
+      nullif(registration_payload ->> 'guardianAddress', ''),
+      nullif(registration_payload ->> 'guardianAddressLine', '')
+    ),
     nullif(registration_payload ->> 'fatherName', ''),
-    nullif(registration_payload ->> 'fatherAge', '')::integer,
+    nullif(registration_payload ->> 'fatherAge', '')::bigint,
     nullif(registration_payload ->> 'fatherEducation', ''),
     nullif(registration_payload ->> 'fatherOccupation', ''),
     nullif(registration_payload ->> 'motherName', ''),
-    nullif(registration_payload ->> 'motherAge', '')::integer,
+    nullif(registration_payload ->> 'motherAge', '')::bigint,
     nullif(registration_payload ->> 'motherEducation', ''),
     nullif(registration_payload ->> 'motherOccupation', ''),
     nullif(registration_payload ->> 'maritalStatus', ''),
-    nullif(registration_payload ->> 'numberOfChildren', '')::integer,
+    nullif(registration_payload ->> 'numberOfChildren', '')::bigint,
     nullif(registration_payload ->> 'monthlyIncome', '')::numeric(12,2),
-    nullif(registration_payload ->> 'familyNotes', '')
+    nullif(registration_payload ->> 'familyNotes', ''),
+    nullif(registration_payload ->> 'guardianProvinceDomainId', '')::bigint,
+    nullif(registration_payload ->> 'guardianCityDomainId', '')::bigint,
+    nullif(registration_payload ->> 'guardianDistrictDomainId', '')::bigint,
+    nullif(registration_payload ->> 'guardianSubdistrictDomainId', '')::bigint,
+    nullif(registration_payload ->> 'guardianPostalCodeDomainId', '')::bigint,
+    nullif(registration_payload ->> 'guardianAddressLine', ''),
+    nullif(registration_payload ->> 'guardianRtRw', '')
   )
   on conflict (clinic_id, patient_id) do update
   set guardian_name = excluded.guardian_name,
@@ -1900,6 +1984,13 @@ begin
       number_of_children = excluded.number_of_children,
       monthly_income = excluded.monthly_income,
       family_notes = excluded.family_notes,
+      guardian_province_domain_id = excluded.guardian_province_domain_id,
+      guardian_city_domain_id = excluded.guardian_city_domain_id,
+      guardian_district_domain_id = excluded.guardian_district_domain_id,
+      guardian_subdistrict_domain_id = excluded.guardian_subdistrict_domain_id,
+      guardian_postal_code_domain_id = excluded.guardian_postal_code_domain_id,
+      guardian_address_line = excluded.guardian_address_line,
+      guardian_rt_rw = excluded.guardian_rt_rw,
       updated_at = now();
 
   appointment_id_value := invitation_row.appointment_id;
@@ -1982,11 +2073,11 @@ begin
     visit_id_value,
     nullif(registration_payload ->> 'motherPregnancyNotes', ''),
     birth_process_value,
-    nullif(registration_payload ->> 'gestationalAgeWeeks', '')::integer,
+    nullif(registration_payload ->> 'gestationalAgeWeeks', '')::bigint,
     nullif(registration_payload ->> 'birthWeightKg', '')::numeric(5,2),
     nullif(registration_payload ->> 'birthLengthCm', '')::numeric(5,2),
-    nullif(registration_payload ->> 'walkingAgeMonths', '')::integer,
-    nullif(registration_payload ->> 'speakingAgeMonths', '')::integer,
+    nullif(registration_payload ->> 'walkingAgeMonths', '')::bigint,
+    nullif(registration_payload ->> 'speakingAgeMonths', '')::bigint,
     nullif(registration_payload ->> 'hearingFunction', ''),
     nullif(registration_payload ->> 'speechArticulation', ''),
     nullif(registration_payload ->> 'visionFunction', ''),
@@ -2455,6 +2546,34 @@ CREATE TABLE IF NOT EXISTS "public"."edge_rate_limit_events" (
 ALTER TABLE "public"."edge_rate_limit_events" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."education" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "order_index" integer DEFAULT 0 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_by" "uuid",
+    "updated_by" "uuid"
+);
+
+
+ALTER TABLE "public"."education" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."occupation" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "order_index" integer DEFAULT 0 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_by" "uuid",
+    "updated_by" "uuid"
+);
+
+
+ALTER TABLE "public"."occupation" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."patient_clinic_consents" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "clinic_id" "uuid" NOT NULL,
@@ -2497,7 +2616,14 @@ CREATE TABLE IF NOT EXISTS "public"."patient_family_data" (
     "family_notes" "text",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL
+    "clinic_id" "uuid" NOT NULL,
+    "guardian_province_domain_id" bigint,
+    "guardian_city_domain_id" bigint,
+    "guardian_district_domain_id" bigint,
+    "guardian_subdistrict_domain_id" bigint,
+    "guardian_postal_code_domain_id" bigint,
+    "guardian_address_line" "text",
+    "guardian_rt_rw" character varying(10)
 );
 
 
@@ -2549,7 +2675,20 @@ CREATE TABLE IF NOT EXISTS "public"."patient_personal_data" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "full_name" "text",
-    "clinic_id" "uuid" NOT NULL
+    "clinic_id" "uuid" NOT NULL,
+    "religion_id" "uuid",
+    "other_religion" "text",
+    "education_id" "uuid",
+    "other_education" "text",
+    "occupation_id" "uuid",
+    "other_occupation" "text",
+    "province_domain_id" bigint,
+    "city_domain_id" bigint,
+    "district_domain_id" bigint,
+    "subdistrict_domain_id" bigint,
+    "postal_code_domain_id" bigint,
+    "address_line" "text",
+    "rt_rw" character varying(10)
 );
 
 
@@ -2603,6 +2742,20 @@ CREATE TABLE IF NOT EXISTS "public"."referrals_and_feedback" (
 
 
 ALTER TABLE "public"."referrals_and_feedback" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."religion" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "order_index" integer DEFAULT 0 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_by" "uuid",
+    "updated_by" "uuid"
+);
+
+
+ALTER TABLE "public"."religion" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."therapy_sessions" (
@@ -2744,6 +2897,16 @@ ALTER TABLE ONLY "public"."edge_rate_limit_events"
 
 
 
+ALTER TABLE ONLY "public"."education"
+    ADD CONSTRAINT "education_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."occupation"
+    ADD CONSTRAINT "occupation_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."patient_clinic_consents"
     ADD CONSTRAINT "patient_clinic_consents_pkey" PRIMARY KEY ("id");
 
@@ -2776,6 +2939,11 @@ ALTER TABLE ONLY "public"."patients"
 
 ALTER TABLE ONLY "public"."referrals_and_feedback"
     ADD CONSTRAINT "referrals_and_feedback_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."religion"
+    ADD CONSTRAINT "religion_pkey" PRIMARY KEY ("id");
 
 
 
@@ -2849,7 +3017,15 @@ CREATE INDEX "edge_rate_limit_events_lookup_idx" ON "public"."edge_rate_limit_ev
 
 
 
+CREATE UNIQUE INDEX "education_name_unique_idx" ON "public"."education" USING "btree" ("lower"("name"));
+
+
+
 CREATE UNIQUE INDEX "idx_admin_profiles_email_lower" ON "public"."admin_profiles" USING "btree" ("lower"("email")) WHERE ("email" IS NOT NULL);
+
+
+
+CREATE UNIQUE INDEX "occupation_name_unique_idx" ON "public"."occupation" USING "btree" ("lower"("name"));
 
 
 
@@ -2954,6 +3130,10 @@ CREATE INDEX "referrals_and_feedback_secure_pin_idx" ON "public"."referrals_and_
 
 
 CREATE INDEX "referrals_and_feedback_visit_id_idx" ON "public"."referrals_and_feedback" USING "btree" ("visit_id");
+
+
+
+CREATE UNIQUE INDEX "religion_name_unique_idx" ON "public"."religion" USING "btree" ("lower"("name"));
 
 
 
@@ -3117,6 +3297,26 @@ ALTER TABLE ONLY "public"."developmental_history"
 
 
 
+ALTER TABLE ONLY "public"."education"
+    ADD CONSTRAINT "education_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."education"
+    ADD CONSTRAINT "education_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."occupation"
+    ADD CONSTRAINT "occupation_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."occupation"
+    ADD CONSTRAINT "occupation_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id");
+
+
+
 ALTER TABLE ONLY "public"."patient_clinic_consents"
     ADD CONSTRAINT "patient_clinic_consents_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
@@ -3178,7 +3378,22 @@ ALTER TABLE ONLY "public"."patient_personal_data"
 
 
 ALTER TABLE ONLY "public"."patient_personal_data"
+    ADD CONSTRAINT "patient_personal_data_education_id_fkey" FOREIGN KEY ("education_id") REFERENCES "public"."education"("id");
+
+
+
+ALTER TABLE ONLY "public"."patient_personal_data"
+    ADD CONSTRAINT "patient_personal_data_occupation_id_fkey" FOREIGN KEY ("occupation_id") REFERENCES "public"."occupation"("id");
+
+
+
+ALTER TABLE ONLY "public"."patient_personal_data"
     ADD CONSTRAINT "patient_personal_data_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."patient_personal_data"
+    ADD CONSTRAINT "patient_personal_data_religion_id_fkey" FOREIGN KEY ("religion_id") REFERENCES "public"."religion"("id");
 
 
 
@@ -3224,6 +3439,16 @@ ALTER TABLE ONLY "public"."referrals_and_feedback"
 
 ALTER TABLE ONLY "public"."referrals_and_feedback"
     ADD CONSTRAINT "referrals_and_feedback_visit_id_fkey" FOREIGN KEY ("visit_id") REFERENCES "public"."patient_visits"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."religion"
+    ADD CONSTRAINT "religion_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."religion"
+    ADD CONSTRAINT "religion_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id");
 
 
 
@@ -3340,7 +3565,45 @@ CREATE POLICY "developmental_history_clinic_ops_all" ON "public"."developmental_
 ALTER TABLE "public"."edge_rate_limit_events" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."education" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "education_admin_delete" ON "public"."education" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "education_admin_insert" ON "public"."education" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "education_admin_update" ON "public"."education" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "education_select_all" ON "public"."education" FOR SELECT TO "authenticated", "anon" USING (true);
+
+
+
 CREATE POLICY "insert_demo_request" ON "public"."demo_requests" FOR INSERT TO "authenticated", "anon" WITH CHECK (true);
+
+
+
+ALTER TABLE "public"."occupation" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "occupation_admin_delete" ON "public"."occupation" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "occupation_admin_insert" ON "public"."occupation" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "occupation_admin_update" ON "public"."occupation" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "occupation_select_all" ON "public"."occupation" FOR SELECT TO "authenticated", "anon" USING (true);
 
 
 
@@ -3410,6 +3673,25 @@ ALTER TABLE "public"."referrals_and_feedback" ENABLE ROW LEVEL SECURITY;
 
 
 CREATE POLICY "referrals_and_feedback_clinic_practitioner_all" ON "public"."referrals_and_feedback" TO "authenticated" USING ("public"."has_practitioner_access"("clinic_id")) WITH CHECK ("public"."has_practitioner_access"("clinic_id"));
+
+
+
+ALTER TABLE "public"."religion" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "religion_admin_delete" ON "public"."religion" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "religion_admin_insert" ON "public"."religion" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "religion_admin_update" ON "public"."religion" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
+
+
+CREATE POLICY "religion_select_all" ON "public"."religion" FOR SELECT TO "authenticated", "anon" USING (true);
 
 
 
@@ -3680,6 +3962,18 @@ GRANT ALL ON TABLE "public"."edge_rate_limit_events" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."education" TO "anon";
+GRANT ALL ON TABLE "public"."education" TO "authenticated";
+GRANT ALL ON TABLE "public"."education" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."occupation" TO "anon";
+GRANT ALL ON TABLE "public"."occupation" TO "authenticated";
+GRANT ALL ON TABLE "public"."occupation" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "anon";
 GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "authenticated";
 GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "service_role";
@@ -3719,6 +4013,12 @@ GRANT ALL ON TABLE "public"."patients" TO "service_role";
 GRANT ALL ON TABLE "public"."referrals_and_feedback" TO "anon";
 GRANT ALL ON TABLE "public"."referrals_and_feedback" TO "authenticated";
 GRANT ALL ON TABLE "public"."referrals_and_feedback" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."religion" TO "anon";
+GRANT ALL ON TABLE "public"."religion" TO "authenticated";
+GRANT ALL ON TABLE "public"."religion" TO "service_role";
 
 
 
