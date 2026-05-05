@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-04-28 (Remote Snapshot Refresh and Verified Local/Remote Parity)
+Last updated: 2026-05-05 (Admin Clinic Registration Local Baseline)
 
 ## Repository Role
 
@@ -42,6 +42,8 @@ Active functions:
 - `send-referral-pin`
 - `accept-patient-consent`
 - `verify-referral-pin`
+- `admin-create-clinic`
+- `admin-add-clinic-member`
 
 Invitation variants:
 
@@ -124,6 +126,12 @@ Invitation variants:
   - `demo_requests` now exposes authenticated admin read access through RLS so dashboard counts can be fetched without service-role usage.
   - local verification seeded three auth users: one active `SUPER_ADMIN`, one auth-only user without `admin_profiles`, and one CRUD validation user.
   - local `make verify-local-remote` now reports mismatch because the local mirror intentionally includes unapplied local-only schema/auth changes and previously diverged edge-function work.
+- 2026-05-05 admin clinic registration baseline added locally:
+  - additive migrations `20260505045301_admin_add_clinic_member_rpc`, `20260505051338_admin_list_clinics_rpc`, and `20260505061355_admin_get_clinic_detail_rpc` were applied locally.
+  - new edge functions `admin-create-clinic` and `admin-add-clinic-member` now provide the admin-only onboarding path for clinic creation and clinic member bootstrap.
+  - shared edge helpers now include password-policy and validation utilities used by the new admin registration functions.
+  - local API validation confirmed: unauthorized and non-admin callers are rejected, owner creation writes `auth.users` + `public.users` + `public.clinics` + `public.clinic_memberships`, practitioner default profession resolves to `psychologist`, non-practitioner profession stays `NULL`, and rollback deletes auth users after downstream clinic lookup failure.
+  - the replay gap was resolved by squashing the active folder into a single baseline file `20260505061355_admin_get_clinic_detail_rpc.sql`; local `supabase migration squash` now completes successfully without warnings.
 - use `make start-local` for normal development
 - use `make start-local-restore` when you explicitly want to restore `snapshot/database/db_full_snapshot.dump` during startup
 - use `make prepare-local` only when you explicitly need restore + migration replay

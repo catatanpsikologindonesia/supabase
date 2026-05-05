@@ -1,6 +1,6 @@
 # Migration Status (Catatan Psikolog Supabase)
 
-Last audited: 2026-05-04 (Asia/Jakarta)
+Last audited: 2026-05-05 (Asia/Jakarta)
 
 ## Local Migration Folder
 
@@ -10,8 +10,7 @@ Path: `supabase/migrations`
 On 2026-04-23, the migration history was consolidated into a single baseline to ensure environmental parity and a lean repository state.
 
 Local files (active):
-1. `20260504004615_address-tables-and-demo-requests.sql`
-2. `20260504005710_admin-profiles.sql`
+1. `20260505061355_admin_get_clinic_detail_rpc.sql`
 
 ## Automated Workflow Status
 
@@ -19,6 +18,7 @@ Local files (active):
 - **Knowledge Mirroring**: Active. Detailed Markdown history is generated in `knowledge/supabase_migrations/`.
 - **Auto-Cleanup**: Active. `supabase migration squash` is triggered on every successful apply.
 - **Frontend Sync**: Active. Automated `make sync-schema` for User and Admin portals on every DB change via Smart Discovery.
+- **Current Status**: Replay-clean. `supabase migration squash` now replays the active folder successfully and rewrites the local baseline without warnings.
 
 ## Recent Logs
 - 2026-04-24 20240101000000: Initial Baseline Reconstruction.
@@ -43,3 +43,7 @@ Local files (active):
 - 2026-05-04 20260504004615: Applied address-tables-and-demo-requests (address hierarchy, demo_requests, edge rate limit infra).
 - 2026-05-04 20260504004615: Applied address-tables-and-demo-requests
 - 2026-05-04 20260504005710: Applied admin-profiles (admin auth table, helper RLS function, demo request read policy for admins).
+- 2026-05-05 20260505045301: Applied admin_add_clinic_member_rpc
+- 2026-05-05 20260505051338: Applied admin_list_clinics_rpc
+- 2026-05-05 20260505061355: Applied admin_get_clinic_detail_rpc
+- 2026-05-05 20260505061355: Manual squash verification completed successfully; active migration folder consolidated to a single replay-clean baseline.

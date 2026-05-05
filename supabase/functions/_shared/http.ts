@@ -1,11 +1,18 @@
-const DEFAULT_ALLOWED_ORIGINS = [
+export const DEFAULT_ALLOWED_ORIGINS = [
   'https://www.catatanpsikolog.id',
   'https://catatanpsikolog.id',
   'https://app.catatanpsikolog.id',
+  'https://admin.catatanpsikolog.id',
   'https://staging.catatanpsikolog.id',
   'https://staging-app.catatanpsikolog.id',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
 ] as const;
 
 const CORS_ALLOW_HEADERS =
@@ -21,7 +28,7 @@ function resolveAllowedOrigins(): Set<string> {
   return new Set(configured.length > 0 ? configured : DEFAULT_ALLOWED_ORIGINS);
 }
 
-function resolveAllowedOrigin(req: Request): string | null {
+export function resolveAllowedOrigin(req: Request): string | null {
   const origin = req.headers.get('origin')?.trim();
   if (!origin) return null;
   return resolveAllowedOrigins().has(origin) ? origin : null;
@@ -33,6 +40,18 @@ const responseSecurityHeaders = {
   'Referrer-Policy': 'no-referrer',
   'X-Content-Type-Options': 'nosniff',
 };
+
+export function generateRequestId(): string {
+  return crypto.randomUUID();
+}
+
+export function secureHeaders(allowedOrigin?: string | null): Record<string, string> {
+  return {
+    ...responseSecurityHeaders,
+    Vary: 'Origin',
+    'Access-Control-Allow-Origin': allowedOrigin ?? '',
+  };
+}
 
 function buildCorsHeaders(req: Request): Record<string, string> {
   const headers: Record<string, string> = {
@@ -59,12 +78,22 @@ export type ApiCode =
   | 'RATE_LIMITED'
   | 'INTERNAL_ERROR'
   | 'INVALID_INPUT'
+  | 'INVALID_EMAIL'
+  | 'INVALID_CLINIC_ID'
+  | 'INVALID_PROFESSION'
+  | 'WEAK_PASSWORD'
+  | 'EMAIL_TAKEN'
+  | 'AUTH_CREATE_FAILED'
+  | 'CLINIC_CREATE_FAILED'
+  | 'MEMBER_ADD_FAILED'
+  | 'METHOD_NOT_ALLOWED'
   | 'REFERRAL_NOT_FOUND'
   | 'REFERRAL_EXPIRED'
-  | 'INVALID_PIN';
+  | 'INVALID_PIN'
+  | (string & {});
 
 export function requestIdFrom(req: Request): string {
-  return req.headers.get('x-request-id')?.trim() || crypto.randomUUID();
+  return req.headers.get('x-request-id')?.trim() || generateRequestId();
 }
 
 export function clientIpFrom(req: Request): string {
@@ -88,10 +117,12 @@ export function clientIpFrom(req: Request): string {
 
 export function preflight(req: Request): Response | null {
   if (req.method === 'OPTIONS') {
+    const allowedOrigin = resolveAllowedOrigin(req);
     return new Response('ok', {
+      status: 204,
       headers: {
         ...buildCorsHeaders(req),
-        ...responseSecurityHeaders,
+        ...secureHeaders(allowedOrigin),
       },
     });
   }

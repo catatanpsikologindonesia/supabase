@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { clientIpFrom } from './http.ts';
 
 function resolveServiceRoleKey(): string {
   const candidates = [
@@ -22,6 +23,11 @@ export type RateLimitDecision = {
   retryAfterSeconds: number;
 };
 
+export type LegacyRateLimitDecision = {
+  limited: boolean;
+  retryAfterSeconds: number;
+};
+
 export function createServiceRoleClient() {
   return createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -29,7 +35,11 @@ export function createServiceRoleClient() {
   );
 }
 
-export async function checkRateLimit(params: {
+export function getClientIp(req: Request): string {
+  return clientIpFrom(req);
+}
+
+async function checkRateLimitObject(params: {
   supabase: ReturnType<typeof createServiceRoleClient>;
   functionName: string;
   identifier: string;
@@ -54,5 +64,58 @@ export async function checkRateLimit(params: {
     allowed: !!row.allowed,
     currentCount: Number(row.current_count ?? 0),
     retryAfterSeconds: Number(row.retry_after_seconds ?? 0),
+  };
+}
+
+export function checkRateLimit(
+  params: {
+    supabase: ReturnType<typeof createServiceRoleClient>;
+    functionName: string;
+    identifier: string;
+    windowSeconds: number;
+    limit: number;
+  },
+): Promise<RateLimitDecision>;
+export function checkRateLimit(
+  service: ReturnType<typeof createServiceRoleClient>,
+  identifier: string,
+  fnName: string,
+  windowMinutes: number,
+  maxRequests: number,
+): Promise<LegacyRateLimitDecision>;
+export async function checkRateLimit(
+  serviceOrParams:
+    | {
+        supabase: ReturnType<typeof createServiceRoleClient>;
+        functionName: string;
+        identifier: string;
+        windowSeconds: number;
+        limit: number;
+      }
+    | ReturnType<typeof createServiceRoleClient>,
+  identifier?: string,
+  fnName?: string,
+  windowMinutes?: number,
+  maxRequests?: number,
+): Promise<RateLimitDecision | LegacyRateLimitDecision> {
+  if (
+    typeof serviceOrParams === 'object' &&
+    serviceOrParams !== null &&
+    'supabase' in serviceOrParams
+  ) {
+    return checkRateLimitObject(serviceOrParams);
+  }
+
+  const result = await checkRateLimitObject({
+    supabase: serviceOrParams,
+    identifier: identifier ?? 'unknown',
+    functionName: fnName ?? 'unknown',
+    windowSeconds: Math.max(1, Math.trunc((windowMinutes ?? 1) * 60)),
+    limit: Math.max(1, Math.trunc(maxRequests ?? 1)),
+  });
+
+  return {
+    limited: !result.allowed,
+    retryAfterSeconds: result.retryAfterSeconds,
   };
 }
