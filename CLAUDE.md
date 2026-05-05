@@ -16,11 +16,10 @@ Read the knowledge base in this order every session:
 
 1. `../../../PROJECT_CONTEXT.md` — root workspace context
 2. `../../PROJECT_CONTEXT.md` — Catatan Psikolog product context
-3. `../../CATATAN_PSIKOLOG_USER_PORTAL_KNOWLEDGE.md` — comprehensive user portal knowledge
-4. `knowledge/README.md` — knowledge index
-5. `knowledge/AGENTS.md` — agent rules
-6. `knowledge/CURRENT_STATE.md` — live backend status
-7. `knowledge/KNOWLEDGE_BASELINE.md` — commands, directory map, migration state
+3. `knowledge/README.md` — knowledge index
+4. `knowledge/AGENTS.md` — agent rules
+5. `knowledge/CURRENT_STATE.md` — live backend status
+6. `knowledge/KNOWLEDGE_BASELINE.md` — commands, directory map, migration state
 
 > Use `@filename` syntax to load files into context.
 
@@ -208,7 +207,7 @@ agent to implement without asking a single question.
 ## Dependencies & Prerequisites
 - [ ] Local Supabase stack running: run `make run-local` from `Supabase/CatatanPsikolog/`
       Expected output: Supabase API available at `http://localhost:55321`
-- [ ] Parity verified: run `make verify-local-remote` — expected output: `VERIFY OK`
+- [ ] Parity checked: run `make verify-local-remote` — if local-only backend work exists, document the expected mismatch explicitly instead of assuming `VERIFY OK`
 
 ---
 
@@ -249,7 +248,7 @@ agent to implement without asking a single question.
       `curl -X POST http://localhost:55321/functions/v1/[name] -H "Authorization: Bearer [test-token]" -d '{"[field]":"[value]"}'`
       Expected: `{"success":true,"data":{...}}`
 - [ ] Schema synced: `make sync-schema` completes for all 3 portals
-- [ ] Parity: `make verify-local-remote` — `VERIFY OK`
+- [ ] Parity: `make verify-local-remote` — `VERIFY OK` only when local and remote are intentionally aligned; otherwise document the exact mismatch categories
 - [ ] Push to staging: `make push-staging` — no errors
 - [ ] Knowledge updated: `knowledge/CURRENT_STATE.md` and `knowledge/operations/MIGRATION_STATUS.md`
 
@@ -271,7 +270,7 @@ agent to implement without asking a single question.
 Save all plans to: `../../backlog/YYYY-MM-DD_[slug].md`
 (Project-level backlog — inside `Catatan Psikolog/backlog/`)
 
-Append `_done` when fully verified.
+Append `-done` when fully verified.
 
 Examples:
 - `../../backlog/2026-04-30_patient-invitation-schedule.md`
@@ -307,7 +306,6 @@ Please answer these and I'll produce the plan.
 
 - [ ] Read `../../../PROJECT_CONTEXT.md`
 - [ ] Read `../../PROJECT_CONTEXT.md`
-- [ ] Read `../../CATATAN_PSIKOLOG_USER_PORTAL_KNOWLEDGE.md`
 - [ ] Read `knowledge/README.md`
 - [ ] Read `knowledge/AGENTS.md`
 - [ ] Read `knowledge/CURRENT_STATE.md`
