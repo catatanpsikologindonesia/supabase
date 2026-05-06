@@ -14,3 +14,4 @@ The Supabase project is the central data layer for the Catatan Psikolog ecosyste
 - **Frontend Consumers:** See `architecture/SUPABASE_PRODUCT_CONTRACT.md`.
 - **Integrations:** Email Dispatcher via Google Apps Script (see `architecture/EMAIL_DELIVERY.md`).
 - **Operational Policy:** See `operations/DEPLOYMENT_AND_PARITY.md`.
+- **Local Access Note**: The Supabase API server is bound to `0.0.0.0` (configured in `supabase/config.toml`) to allow cross-device access within the local network.
