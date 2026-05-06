@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { createServiceRoleClient } from '../_shared/auth.ts';
 import { jsonResponse, preflight, requestIdFrom } from '../_shared/http.ts';
+import { createOrReusePatientSignature } from '../_shared/signature_storage.ts';
 
 type RegistrationRpcResponse = {
   status: 'success' | 'error';
@@ -137,6 +138,8 @@ const patientIntakeSchema = z.object({
   agreeToDataSharing: z.boolean().refine((value) => value, {
     message: 'Persetujuan berbagi data wajib disetujui.',
   }),
+  signatureDataUrl: z.string().trim().optional(),
+  signedByName: optionalText,
 });
 
 function resolvePublicAnonKey(req: Request): string {
@@ -408,6 +411,48 @@ Deno.serve(async (req) => {
     delete registrationPayload.phone_contact;
     registrationPayload._consentIp = getRequestIp(req);
     registrationPayload._consentUserAgent = req.headers.get('user-agent') ?? null;
+
+    const { data: patientRow, error: patientError } = await createServiceRoleClient()
+      .from('patients')
+      .select('id')
+      .eq('user_id', authUserId)
+      .maybeSingle();
+
+    if (patientError || !patientRow?.id) {
+      return jsonResponse({ req, requestId, status: 500, success: false, code: 'INTERNAL_ERROR', message: 'Gagal menemukan data pasien untuk tanda tangan digital.' });
+    }
+
+    const signatureDataUrl = typeof registrationPayload.signatureDataUrl === 'string' ? registrationPayload.signatureDataUrl.trim() : '';
+    const signedByName = typeof registrationPayload.signedByName === 'string' ? registrationPayload.signedByName.trim() : '';
+
+    if (!signatureDataUrl || !signedByName) {
+      return jsonResponse({ req, requestId, status: 400, success: false, code: 'SIGNATURE_REQUIRED', message: 'Tanda tangan digital wajib diisi.' });
+    }
+
+    let signatureId: string;
+    try {
+      signatureId = await createOrReusePatientSignature({
+        serviceRole: createServiceRoleClient(),
+        patientId: patientRow.id,
+        signatureDataUrl,
+        signedByName,
+        signedIp: registrationPayload._consentIp as string | null,
+        signedUserAgent: registrationPayload._consentUserAgent as string | null,
+      });
+    } catch (error) {
+      return jsonResponse({
+        req,
+        requestId,
+        status: 400,
+        success: false,
+        code: 'BAD_REQUEST',
+        message: error instanceof Error ? error.message : 'Format tanda tangan tidak valid.',
+      });
+    }
+
+    registrationPayload.signatureId = signatureId;
+    delete registrationPayload.signatureDataUrl;
+    delete registrationPayload.signedByName;
 
     const { data, error } = await supabase.rpc('update_patient_registration_by_user_id', {
       invite_token: token,

@@ -1,9 +1,16 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { jsonResponse, preflight, requestIdFrom } from '../_shared/http.ts';
+import { createOrReusePatientSignature, createServiceRoleClient } from '../_shared/signature_storage.ts';
 
 type AcceptConsentPayload = {
   token?: unknown;
   agreeToDataSharing?: unknown;
+  signature_data_url?: unknown;
+  signed_by_name?: unknown;
+};
+
+type InvitationLookup = {
+  target_patient_id: string | null;
 };
 
 type ConsentRpcResponse = {
@@ -61,6 +68,8 @@ function getStatusCodeFromConsentCode(code?: string) {
     case 'INVITATION_EXPIRED':
       return 410;
     case 'NO_PRACTITIONER':
+    case 'SIGNATURE_REQUIRED':
+    case 'SIGNATURE_INVALID':
       return 400;
     default:
       return 500;
@@ -88,8 +97,10 @@ Deno.serve(async (req) => {
     const payload = (await req.json()) as AcceptConsentPayload;
     const token = asTrimmedString(payload.token);
     const agreeToDataSharing = payload.agreeToDataSharing === true;
+    const signatureDataUrl = asTrimmedString(payload.signature_data_url);
+    const signedByName = asTrimmedString(payload.signed_by_name);
 
-    if (!token || !agreeToDataSharing) {
+    if (!token || !agreeToDataSharing || !signatureDataUrl || !signedByName) {
       return jsonResponse({
         req,
         requestId,
@@ -104,8 +115,42 @@ Deno.serve(async (req) => {
     const consentIp = getRequestIp(req);
     const consentUserAgent = req.headers.get('user-agent') ?? null;
 
+    const { data: invitation, error: invitationError } = await supabase
+      .rpc('get_invitation_by_token', { invite_token: token })
+      .maybeSingle<InvitationLookup>();
+
+    if (invitationError) {
+      return jsonResponse({ req, requestId, status: 500, success: false, code: 'INTERNAL_ERROR', message: 'Gagal memverifikasi undangan persetujuan.' });
+    }
+
+    if (!invitation?.target_patient_id) {
+      return jsonResponse({ req, requestId, status: 404, success: false, code: 'PATIENT_NOT_FOUND', message: 'Data pasien untuk undangan ini belum tersedia.' });
+    }
+
+    let signatureId: string;
+    try {
+      signatureId = await createOrReusePatientSignature({
+        serviceRole: createServiceRoleClient(),
+        patientId: invitation.target_patient_id,
+        signatureDataUrl,
+        signedByName,
+        signedIp: consentIp,
+        signedUserAgent: consentUserAgent,
+      });
+    } catch (error) {
+      return jsonResponse({
+        req,
+        requestId,
+        status: 400,
+        success: false,
+        code: 'BAD_REQUEST',
+        message: error instanceof Error ? error.message : 'Format tanda tangan tidak valid.',
+      });
+    }
+
     const { data, error } = await supabase.rpc('accept_patient_consent_by_token', {
       invite_token: token,
+      signature_id: signatureId,
       consent_ip: consentIp,
       consent_user_agent: consentUserAgent,
     });

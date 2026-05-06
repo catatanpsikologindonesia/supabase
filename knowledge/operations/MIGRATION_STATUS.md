@@ -10,7 +10,7 @@ Path: `supabase/migrations`
 On 2026-04-23, the migration history was consolidated into a single baseline to ensure environmental parity and a lean repository state.
 
 Local files (active):
-1. `20260505232611_fix_marital_status_seed_idempotency.sql`
+1. `20260506212421_signature_consent_registration_rpcs.sql`
 
 ## Automated Workflow Status
 
@@ -18,7 +18,7 @@ Local files (active):
 - **Knowledge Mirroring**: Active. Detailed Markdown history is generated in `knowledge/supabase_migrations/`.
 - **Auto-Cleanup**: Active. `supabase migration squash` is triggered on every successful apply.
 - **Frontend Sync**: Active. Automated `make sync-schema` for User and Admin portals on every DB change via Smart Discovery.
-- **Current Status**: Replay-clean locally. The active folder now squashes cleanly into `20260505232611_fix_marital_status_seed_idempotency.sql`, and the tracked reference seed helper is idempotent across reruns. Local-vs-remote parity still mismatches until the local-only patient-registration and admin flows are deployed remotely.
+- **Current Status**: Replay-clean locally. The active folder now squashes cleanly into `20260506212421_signature_consent_registration_rpcs.sql`. Local-vs-remote parity still mismatches until the local-only patient-registration, signature, and admin flows are deployed remotely.
 - **Reference Seed Support**: Tracked local seed helper now exists at `scripts/seed_reference_data.sh` with SQL source `scripts/seed_reference_upsert.sql`.
 
 ## Recent Logs
@@ -60,7 +60,15 @@ Local files (active):
 - 2026-05-05 20260505202643: Applied update_registration_step2_reference_fields and squashed active local baseline again.
 - 2026-05-05 20260505231959: Added tracked reference seed source (`scripts/seed_reference_data.sh` + `scripts/seed_reference_upsert.sql`).
 - 2026-05-05 20260505232611: Deduplicated `marital_status`, added unique name index, and re-squashed the active baseline.
+- 2026-05-06 20260506211648: Added `patient_signatures` table locally, then squashed forward.
+- 2026-05-06 20260506211828: Added `patient_clinic_consents.signature_id` locally, then squashed forward.
+- 2026-05-06 20260506211957: Added private storage bucket `patient_signatures` and authenticated read policy, then squashed forward.
+- 2026-05-06 20260506212421: Replaced consent/registration RPCs to require and link digital signatures; current local baseline now squashes to this file.
 - 2026-05-05 parity note: `make verify-local-remote` now mismatches on `public_tables`, `public_functions`, `auth_counts`, and `edge_functions` until the local-only patient-registration and admin-reference updates are deployed or repaired remotely.
 - 2026-05-05 20260505230112: Applied fix_phone_registration_submit_flow
 - 2026-05-05 20260505231959: Applied seed_patient_reference_data
 - 2026-05-05 20260505232611: Applied fix_marital_status_seed_idempotency
+- 2026-05-06 20260506211648: Applied create_patient_signatures_table
+- 2026-05-06 20260506211828: Applied patient_clinic_consents_signature_link
+- 2026-05-06 20260506211957: Applied create_patient_signatures_bucket
+- 2026-05-06 20260506212421: Applied signature_consent_registration_rpcs

@@ -155,6 +155,13 @@ Invitation variants:
   - `marital_status` was deduplicated and now has a `lower(name)` unique index so the seed helper is idempotent across reruns.
   - active local migration baseline is now `20260505232611_fix_marital_status_seed_idempotency.sql` after replay-clean squash.
   - `make verify-local-remote` still reports `VERIFY MISMATCH` because the local-only tables, functions, auth counts, and edge sources have not yet been promoted to the remote project.
+- 2026-05-06 consent page with digital signature added locally:
+  - `public.patient_signatures` now stores one immutable reusable signature row per patient, backed by private storage bucket `patient_signatures`.
+  - `patient_clinic_consents` now includes nullable `signature_id` and active consent rows can point to reusable patient signatures.
+  - `accept_patient_consent_by_token` now requires a `signature_id` and validates ownership against the invitation patient before writing consent.
+  - `update_patient_registration_by_user_id` now requires a signature for registration-complete invites and links that signature into `patient_clinic_consents`.
+  - public edge functions `accept-patient-consent` and `submit-patient-registration` now decode/upload/reuse PNG signature data and inject the resulting `signatureId` into the backend RPC chain.
+  - the active local migration baseline is now `20260506212421_signature_consent_registration_rpcs.sql`.
 - 2026-05-05 phone-invitation registration repair added locally:
   - `submit-patient-registration` now accepts invitation lookups with `contact_type = phone`, no longer requires an invitation email on the public submit path, and creates or resolves patient auth users through the admin API for phone-based invitations.
   - `update_patient_registration_by_user_id` now validates `auth.users.phone` against phone invitations, preserves existing patient email on phone-only registrations, and keeps the invited phone as the fallback patient phone when the intake form leaves the patient phone blank.

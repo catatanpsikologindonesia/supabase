@@ -396,6 +396,225 @@ $$;
 ALTER FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "signature_id" "uuid", "consent_ip" "text" DEFAULT NULL::"text", "consent_user_agent" "text" DEFAULT NULL::"text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  invitation_row public.patient_invitations%rowtype;
+  clinic_patient_id_value uuid;
+  practitioner_membership_id_value uuid;
+  appointment_id_value uuid;
+  visit_id_value uuid;
+  session_start_at_value timestamptz;
+  session_end_at_value timestamptz;
+  consent_text_value text := 'Saya menyetujui berbagi data medis saya dengan klinik tujuan untuk keperluan layanan psikologi.';
+begin
+  if invite_token is null or btrim(invite_token) = '' then
+    return jsonb_build_object('status', 'error', 'code', 'INVALID_TOKEN', 'message', 'Token undangan tidak valid.');
+  end if;
+
+  if signature_id is null then
+    return jsonb_build_object('status', 'error', 'code', 'SIGNATURE_REQUIRED', 'message', 'Tanda tangan digital wajib diisi.');
+  end if;
+
+  select *
+  into invitation_row
+  from public.patient_invitations pi
+  where pi.token = invite_token
+  limit 1
+  for update;
+
+  if not found then
+    return jsonb_build_object('status', 'error', 'code', 'INVITATION_NOT_FOUND', 'message', 'Undangan tidak ditemukan.');
+  end if;
+
+  if invitation_row.flow <> 'consent_required'::public.patient_invitation_flow then
+    return jsonb_build_object('status', 'error', 'code', 'INVALID_FLOW', 'message', 'Undangan ini tidak menggunakan flow persetujuan data.');
+  end if;
+
+  if coalesce(invitation_row.is_used, false) then
+    if invitation_row.used_reason = 'superseded'::public.patient_invitation_used_reason then
+      return jsonb_build_object('status', 'error', 'code', 'INVITATION_SUPERSEDED', 'message', 'Link undangan ini sudah diganti dengan undangan terbaru.');
+    end if;
+
+    return jsonb_build_object('status', 'error', 'code', 'INVITATION_USED', 'message', 'Link undangan sudah digunakan.');
+  end if;
+
+  if invitation_row.expires_at < now() then
+    return jsonb_build_object('status', 'error', 'code', 'INVITATION_EXPIRED', 'message', 'Link undangan sudah kedaluwarsa.');
+  end if;
+
+  if invitation_row.target_patient_id is null then
+    return jsonb_build_object('status', 'error', 'code', 'PATIENT_NOT_FOUND', 'message', 'Data pasien untuk undangan ini belum tersedia.');
+  end if;
+
+  if invitation_row.clinic_id is null then
+    return jsonb_build_object('status', 'error', 'code', 'INVITATION_CLINIC_REQUIRED', 'message', 'Undangan belum terhubung ke klinik.');
+  end if;
+
+  if not exists (
+    select 1 from public.patient_signatures ps
+    where ps.id = signature_id
+      and ps.patient_id = invitation_row.target_patient_id
+  ) then
+    return jsonb_build_object('status', 'error', 'code', 'SIGNATURE_INVALID', 'message', 'Tanda tangan digital tidak valid untuk pasien ini.');
+  end if;
+
+  practitioner_membership_id_value := invitation_row.practitioner_membership_id;
+  if practitioner_membership_id_value is null
+     or not exists (
+      select 1
+      from public.clinic_memberships cm
+      where cm.id = practitioner_membership_id_value
+        and cm.is_active = true
+        and cm.is_practitioner = true
+     ) then
+    select cm.id
+    into practitioner_membership_id_value
+    from public.clinic_memberships cm
+    where cm.clinic_id = invitation_row.clinic_id
+      and cm.is_active = true
+      and cm.is_practitioner = true
+    order by cm.is_owner desc, cm.created_at asc
+    limit 1;
+  end if;
+
+  if practitioner_membership_id_value is null then
+    return jsonb_build_object('status', 'error', 'code', 'NO_PRACTITIONER', 'message', 'Tidak ada practitioner aktif pada klinik ini.');
+  end if;
+
+  if not exists (
+    select 1
+    from public.patient_clinic_consents pcc
+    where pcc.clinic_id = invitation_row.clinic_id
+      and pcc.patient_id = invitation_row.target_patient_id
+      and pcc.revoked_at is null
+  ) then
+    insert into public.patient_clinic_consents (
+      clinic_id,
+      patient_id,
+      invitation_id,
+      consent_version,
+      consent_text,
+      source,
+      accepted_at,
+      accepted_ip,
+      accepted_user_agent,
+      signature_id,
+      created_at,
+      updated_at
+    )
+    values (
+      invitation_row.clinic_id,
+      invitation_row.target_patient_id,
+      invitation_row.id,
+      'v1',
+      consent_text_value,
+      'invite_consent_page'::public.consent_source,
+      now(),
+      nullif(consent_ip, ''),
+      nullif(consent_user_agent, ''),
+      signature_id,
+      now(),
+      now()
+    );
+  end if;
+
+  insert into public.clinic_patients (clinic_id, patient_id, mrn, is_active)
+  values (
+    invitation_row.clinic_id,
+    invitation_row.target_patient_id,
+    coalesce(
+      (select p.mrn from public.patients p where p.id = invitation_row.target_patient_id),
+      'MRN-' || to_char(now(), 'YYYYMMDD') || '-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6))
+    ),
+    true
+  )
+  on conflict (clinic_id, patient_id) do update
+  set is_active = true,
+      updated_at = now()
+  returning id into clinic_patient_id_value;
+
+  appointment_id_value := invitation_row.appointment_id;
+
+  if appointment_id_value is null then
+    session_start_at_value := coalesce(invitation_row.session_start_at, date_trunc('day', now()) + interval '1 day' + interval '9 hours');
+    session_end_at_value := coalesce(invitation_row.session_end_at, session_start_at_value + interval '45 minutes');
+
+    insert into public.appointments (
+      clinic_id,
+      clinic_patient_id,
+      patient_id,
+      practitioner_membership_id,
+      start_time,
+      end_time,
+      status,
+      notes
+    )
+    values (
+      invitation_row.clinic_id,
+      clinic_patient_id_value,
+      invitation_row.target_patient_id,
+      practitioner_membership_id_value,
+      session_start_at_value,
+      session_end_at_value,
+      'scheduled',
+      'Auto-created after consent acceptance'
+    )
+    returning id into appointment_id_value;
+  end if;
+
+  select pv.id
+  into visit_id_value
+  from public.patient_visits pv
+  where pv.appointment_id = appointment_id_value
+  limit 1;
+
+  if visit_id_value is null then
+    insert into public.patient_visits (
+      clinic_id,
+      clinic_patient_id,
+      patient_id,
+      appointment_id,
+      status
+    )
+    values (
+      invitation_row.clinic_id,
+      clinic_patient_id_value,
+      invitation_row.target_patient_id,
+      appointment_id_value,
+      'scheduled'
+    )
+    returning id into visit_id_value;
+  end if;
+
+  update public.patient_invitations
+  set is_used = true,
+      used_at = now(),
+      used_reason = 'consent_accepted'::public.patient_invitation_used_reason,
+      appointment_id = appointment_id_value,
+      practitioner_membership_id = practitioner_membership_id_value
+  where id = invitation_row.id;
+
+  return jsonb_build_object(
+    'status', 'success',
+    'message', 'Persetujuan data berhasil. Jadwal sesi sudah dikonfirmasi.',
+    'patientId', invitation_row.target_patient_id,
+    'clinicId', invitation_row.clinic_id,
+    'appointmentId', appointment_id_value,
+    'visitId', visit_id_value
+  );
+exception
+  when others then
+    return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal memproses persetujuan: ' || sqlerrm);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "signature_id" "uuid", "consent_ip" "text", "consent_user_agent" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean DEFAULT true, "assign_practitioner" boolean DEFAULT false, "member_profession" "public"."practitioner_profession" DEFAULT NULL::"public"."practitioner_profession", "actor_user_id" "uuid" DEFAULT "auth"."uid"()) RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -1696,6 +1915,7 @@ declare
   consent_text_value text := 'Saya menyetujui berbagi data medis saya dengan klinik tujuan untuk keperluan layanan psikologi.';
   consent_ip_value text;
   consent_user_agent_value text;
+  signature_id_value uuid;
 begin
   if invite_token is null or btrim(invite_token) = '' then
     return jsonb_build_object('status', 'error', 'code', 'INVALID_TOKEN', 'message', 'Token registrasi tidak valid.');
@@ -1748,6 +1968,11 @@ begin
     return jsonb_build_object('status', 'error', 'code', 'CONSENT_REQUIRED', 'message', 'Persetujuan berbagi data wajib disetujui.');
   end if;
 
+  signature_id_value := nullif(registration_payload ->> 'signatureId', '')::uuid;
+  if signature_id_value is null then
+    return jsonb_build_object('status', 'error', 'code', 'SIGNATURE_REQUIRED', 'message', 'Tanda tangan digital wajib diisi.');
+  end if;
+
   if invitation_row.contact_type = 'phone' then
     select au.phone
     into auth_user_phone
@@ -1759,7 +1984,7 @@ begin
       return jsonb_build_object('status', 'error', 'code', 'AUTH_USER_NOT_FOUND', 'message', 'Nomor HP akun pasien tidak ditemukan.');
     end if;
 
-    if regexp_replace(auth_user_phone, '\\D', '', 'g') <> regexp_replace(coalesce(invitation_row.phone, ''), '\\D', '', 'g') then
+    if regexp_replace(auth_user_phone, '\D', '', 'g') <> regexp_replace(coalesce(invitation_row.phone, ''), '\D', '', 'g') then
       return jsonb_build_object('status', 'error', 'code', 'PHONE_MISMATCH', 'message', 'Nomor HP akun tidak cocok dengan nomor HP undangan.');
     end if;
   else
@@ -1782,6 +2007,14 @@ begin
 
   if patient_id_value is null then
     return jsonb_build_object('status', 'error', 'code', 'PATIENT_NOT_FOUND', 'message', 'Data pasien belum dibuat untuk akun ini.');
+  end if;
+
+  if not exists (
+    select 1 from public.patient_signatures ps
+    where ps.id = signature_id_value
+      and ps.patient_id = patient_id_value
+  ) then
+    return jsonb_build_object('status', 'error', 'code', 'SIGNATURE_INVALID', 'message', 'Tanda tangan digital tidak valid untuk pasien ini.');
   end if;
 
   practitioner_membership_id_value := invitation_row.practitioner_membership_id;
@@ -1827,6 +2060,7 @@ begin
       accepted_at,
       accepted_ip,
       accepted_user_agent,
+      signature_id,
       created_at,
       updated_at
     )
@@ -1840,6 +2074,7 @@ begin
       now(),
       consent_ip_value,
       consent_user_agent_value,
+      signature_id_value,
       now(),
       now()
     );
@@ -1866,203 +2101,83 @@ begin
 
   update public.patients p
   set full_name = registration_payload ->> 'fullName',
-      email = case
-        when invitation_row.contact_type = 'email' then invitation_row.email
-        else p.email
-      end,
+      email = case when invitation_row.contact_type = 'email' then invitation_row.email else p.email end,
       phone = coalesce(nullif(registration_payload ->> 'phone', ''), nullif(invitation_row.phone, ''), p.phone),
       updated_at = now()
   where p.id = patient_id_value;
 
   insert into public.patient_personal_data (
-    clinic_id,
-    patient_id,
-    full_name,
-    sex,
-    birth_date,
-    address,
-    religion,
-    education,
-    occupation,
-    hobby,
-    referral_source,
-    religion_id,
-    other_religion,
-    education_id,
-    other_education,
-    occupation_id,
-    other_occupation,
-    province_domain_id,
-    city_domain_id,
-    district_domain_id,
-    subdistrict_domain_id,
-    postal_code_domain_id,
-    address_line,
-    rt_rw
-  )
-  values (
-    invitation_row.clinic_id,
-    patient_id_value,
-    registration_payload ->> 'fullName',
-    nullif(registration_payload ->> 'sex', ''),
-    nullif(registration_payload ->> 'birthDate', '')::date,
+    clinic_id, patient_id, full_name, sex, birth_date, address, religion, education, occupation, hobby, referral_source,
+    religion_id, other_religion, education_id, other_education, occupation_id, other_occupation,
+    province_domain_id, city_domain_id, district_domain_id, subdistrict_domain_id, postal_code_domain_id, address_line, rt_rw
+  ) values (
+    invitation_row.clinic_id, patient_id_value, registration_payload ->> 'fullName', nullif(registration_payload ->> 'sex', ''), nullif(registration_payload ->> 'birthDate', '')::date,
     coalesce(nullif(registration_payload ->> 'address', ''), nullif(registration_payload ->> 'addressLine', '')),
     coalesce((select r.name from public.religion r where r.id = nullif(registration_payload ->> 'religionId', '')::uuid), nullif(registration_payload ->> 'otherReligion', ''), nullif(registration_payload ->> 'religion', '')),
     coalesce((select e.name from public.education e where e.id = nullif(registration_payload ->> 'educationId', '')::uuid), nullif(registration_payload ->> 'otherEducation', ''), nullif(registration_payload ->> 'education', '')),
     coalesce((select o.name from public.occupation o where o.id = nullif(registration_payload ->> 'occupationId', '')::uuid), nullif(registration_payload ->> 'otherOccupation', ''), nullif(registration_payload ->> 'occupation', '')),
-    nullif(registration_payload ->> 'hobby', ''),
-    'Self registration invitation',
-    nullif(registration_payload ->> 'religionId', '')::uuid,
-    nullif(registration_payload ->> 'otherReligion', ''),
-    nullif(registration_payload ->> 'educationId', '')::uuid,
-    nullif(registration_payload ->> 'otherEducation', ''),
-    nullif(registration_payload ->> 'occupationId', '')::uuid,
-    nullif(registration_payload ->> 'otherOccupation', ''),
-    nullif(registration_payload ->> 'provinceDomainId', '')::bigint,
-    nullif(registration_payload ->> 'cityDomainId', '')::bigint,
-    nullif(registration_payload ->> 'districtDomainId', '')::bigint,
-    nullif(registration_payload ->> 'subdistrictDomainId', '')::bigint,
-    nullif(registration_payload ->> 'postalCodeDomainId', '')::bigint,
-    nullif(registration_payload ->> 'addressLine', ''),
-    nullif(registration_payload ->> 'rtRw', '')
+    nullif(registration_payload ->> 'hobby', ''), 'Self registration invitation',
+    nullif(registration_payload ->> 'religionId', '')::uuid, nullif(registration_payload ->> 'otherReligion', ''),
+    nullif(registration_payload ->> 'educationId', '')::uuid, nullif(registration_payload ->> 'otherEducation', ''),
+    nullif(registration_payload ->> 'occupationId', '')::uuid, nullif(registration_payload ->> 'otherOccupation', ''),
+    nullif(registration_payload ->> 'provinceDomainId', '')::bigint, nullif(registration_payload ->> 'cityDomainId', '')::bigint,
+    nullif(registration_payload ->> 'districtDomainId', '')::bigint, nullif(registration_payload ->> 'subdistrictDomainId', '')::bigint,
+    nullif(registration_payload ->> 'postalCodeDomainId', '')::bigint, nullif(registration_payload ->> 'addressLine', ''), nullif(registration_payload ->> 'rtRw', '')
   )
   on conflict (clinic_id, patient_id) do update
-  set full_name = excluded.full_name,
-      sex = excluded.sex,
-      birth_date = excluded.birth_date,
-      address = excluded.address,
-      religion = excluded.religion,
-      education = excluded.education,
-      occupation = excluded.occupation,
-      hobby = excluded.hobby,
-      referral_source = excluded.referral_source,
-      religion_id = excluded.religion_id,
-      other_religion = excluded.other_religion,
-      education_id = excluded.education_id,
-      other_education = excluded.other_education,
-      occupation_id = excluded.occupation_id,
-      other_occupation = excluded.other_occupation,
-      province_domain_id = excluded.province_domain_id,
-      city_domain_id = excluded.city_domain_id,
-      district_domain_id = excluded.district_domain_id,
-      subdistrict_domain_id = excluded.subdistrict_domain_id,
-      postal_code_domain_id = excluded.postal_code_domain_id,
-      address_line = excluded.address_line,
-      rt_rw = excluded.rt_rw,
+  set full_name = excluded.full_name, sex = excluded.sex, birth_date = excluded.birth_date, address = excluded.address,
+      religion = excluded.religion, education = excluded.education, occupation = excluded.occupation, hobby = excluded.hobby,
+      referral_source = excluded.referral_source, religion_id = excluded.religion_id, other_religion = excluded.other_religion,
+      education_id = excluded.education_id, other_education = excluded.other_education, occupation_id = excluded.occupation_id,
+      other_occupation = excluded.other_occupation, province_domain_id = excluded.province_domain_id, city_domain_id = excluded.city_domain_id,
+      district_domain_id = excluded.district_domain_id, subdistrict_domain_id = excluded.subdistrict_domain_id,
+      postal_code_domain_id = excluded.postal_code_domain_id, address_line = excluded.address_line, rt_rw = excluded.rt_rw,
       updated_at = now();
 
   insert into public.patient_family_data (
-    clinic_id,
-    patient_id,
-    guardian_name,
-    guardian_relation,
-    guardian_phone,
-    guardian_address,
-    father_name,
-    father_age,
-    father_education,
-    father_occupation,
-    mother_name,
-    mother_age,
-    mother_education,
-    mother_occupation,
-    marital_status,
-    number_of_children,
-    monthly_income,
-    family_notes,
-    guardian_province_domain_id,
-    guardian_city_domain_id,
-    guardian_district_domain_id,
-    guardian_subdistrict_domain_id,
-    guardian_postal_code_domain_id,
-    guardian_address_line,
-    guardian_rt_rw,
-    father_education_id,
-    other_father_education,
-    father_occupation_id,
-    other_father_occupation,
-    mother_education_id,
-    other_mother_education,
-    mother_occupation_id,
-    other_mother_occupation,
-    marital_status_id,
-    other_marital_status
-  )
-  values (
-    invitation_row.clinic_id,
-    patient_id_value,
-    nullif(registration_payload ->> 'guardianName', ''),
-    nullif(registration_payload ->> 'guardianRelation', ''),
-    nullif(registration_payload ->> 'guardianPhone', ''),
-    coalesce(nullif(registration_payload ->> 'guardianAddress', ''), nullif(registration_payload ->> 'guardianAddressLine', '')),
-    nullif(registration_payload ->> 'fatherName', ''),
-    nullif(registration_payload ->> 'fatherAge', '')::bigint,
+    clinic_id, patient_id, guardian_name, guardian_relation, guardian_phone, guardian_address, father_name, father_age, father_education,
+    father_occupation, mother_name, mother_age, mother_education, mother_occupation, marital_status, number_of_children, monthly_income,
+    family_notes, guardian_province_domain_id, guardian_city_domain_id, guardian_district_domain_id, guardian_subdistrict_domain_id,
+    guardian_postal_code_domain_id, guardian_address_line, guardian_rt_rw, father_education_id, other_father_education,
+    father_occupation_id, other_father_occupation, mother_education_id, other_mother_education, mother_occupation_id,
+    other_mother_occupation, marital_status_id, other_marital_status
+  ) values (
+    invitation_row.clinic_id, patient_id_value, nullif(registration_payload ->> 'guardianName', ''), nullif(registration_payload ->> 'guardianRelation', ''),
+    nullif(registration_payload ->> 'guardianPhone', ''), coalesce(nullif(registration_payload ->> 'guardianAddress', ''), nullif(registration_payload ->> 'guardianAddressLine', '')),
+    nullif(registration_payload ->> 'fatherName', ''), nullif(registration_payload ->> 'fatherAge', '')::bigint,
     coalesce((select e.name from public.education e where e.id = nullif(registration_payload ->> 'fatherEducationId', '')::uuid), nullif(registration_payload ->> 'otherFatherEducation', ''), nullif(registration_payload ->> 'fatherEducation', '')),
     coalesce((select o.name from public.occupation o where o.id = nullif(registration_payload ->> 'fatherOccupationId', '')::uuid), nullif(registration_payload ->> 'otherFatherOccupation', ''), nullif(registration_payload ->> 'fatherOccupation', '')),
-    nullif(registration_payload ->> 'motherName', ''),
-    nullif(registration_payload ->> 'motherAge', '')::bigint,
+    nullif(registration_payload ->> 'motherName', ''), nullif(registration_payload ->> 'motherAge', '')::bigint,
     coalesce((select e.name from public.education e where e.id = nullif(registration_payload ->> 'motherEducationId', '')::uuid), nullif(registration_payload ->> 'otherMotherEducation', ''), nullif(registration_payload ->> 'motherEducation', '')),
     coalesce((select o.name from public.occupation o where o.id = nullif(registration_payload ->> 'motherOccupationId', '')::uuid), nullif(registration_payload ->> 'otherMotherOccupation', ''), nullif(registration_payload ->> 'motherOccupation', '')),
     coalesce((select ms.name from public.marital_status ms where ms.id = nullif(registration_payload ->> 'maritalStatusId', '')::uuid), nullif(registration_payload ->> 'otherMaritalStatus', ''), nullif(registration_payload ->> 'maritalStatus', '')),
-    nullif(registration_payload ->> 'numberOfChildren', '')::bigint,
-    nullif(registration_payload ->> 'monthlyIncome', '')::numeric(12,2),
-    nullif(registration_payload ->> 'familyNotes', ''),
-    nullif(registration_payload ->> 'guardianProvinceDomainId', '')::bigint,
-    nullif(registration_payload ->> 'guardianCityDomainId', '')::bigint,
-    nullif(registration_payload ->> 'guardianDistrictDomainId', '')::bigint,
-    nullif(registration_payload ->> 'guardianSubdistrictDomainId', '')::bigint,
-    nullif(registration_payload ->> 'guardianPostalCodeDomainId', '')::bigint,
-    nullif(registration_payload ->> 'guardianAddressLine', ''),
-    nullif(registration_payload ->> 'guardianRtRw', ''),
-    nullif(registration_payload ->> 'fatherEducationId', '')::uuid,
-    nullif(registration_payload ->> 'otherFatherEducation', ''),
-    nullif(registration_payload ->> 'fatherOccupationId', '')::uuid,
-    nullif(registration_payload ->> 'otherFatherOccupation', ''),
-    nullif(registration_payload ->> 'motherEducationId', '')::uuid,
-    nullif(registration_payload ->> 'otherMotherEducation', ''),
-    nullif(registration_payload ->> 'motherOccupationId', '')::uuid,
-    nullif(registration_payload ->> 'otherMotherOccupation', ''),
-    nullif(registration_payload ->> 'maritalStatusId', '')::uuid,
-    nullif(registration_payload ->> 'otherMaritalStatus', '')
+    nullif(registration_payload ->> 'numberOfChildren', '')::bigint, nullif(registration_payload ->> 'monthlyIncome', '')::numeric(12,2), nullif(registration_payload ->> 'familyNotes', ''),
+    nullif(registration_payload ->> 'guardianProvinceDomainId', '')::bigint, nullif(registration_payload ->> 'guardianCityDomainId', '')::bigint,
+    nullif(registration_payload ->> 'guardianDistrictDomainId', '')::bigint, nullif(registration_payload ->> 'guardianSubdistrictDomainId', '')::bigint,
+    nullif(registration_payload ->> 'guardianPostalCodeDomainId', '')::bigint, nullif(registration_payload ->> 'guardianAddressLine', ''), nullif(registration_payload ->> 'guardianRtRw', ''),
+    nullif(registration_payload ->> 'fatherEducationId', '')::uuid, nullif(registration_payload ->> 'otherFatherEducation', ''),
+    nullif(registration_payload ->> 'fatherOccupationId', '')::uuid, nullif(registration_payload ->> 'otherFatherOccupation', ''),
+    nullif(registration_payload ->> 'motherEducationId', '')::uuid, nullif(registration_payload ->> 'otherMotherEducation', ''),
+    nullif(registration_payload ->> 'motherOccupationId', '')::uuid, nullif(registration_payload ->> 'otherMotherOccupation', ''),
+    nullif(registration_payload ->> 'maritalStatusId', '')::uuid, nullif(registration_payload ->> 'otherMaritalStatus', '')
   )
   on conflict (clinic_id, patient_id) do update
-  set guardian_name = excluded.guardian_name,
-      guardian_relation = excluded.guardian_relation,
-      guardian_phone = excluded.guardian_phone,
-      guardian_address = excluded.guardian_address,
-      father_name = excluded.father_name,
-      father_age = excluded.father_age,
-      father_education = excluded.father_education,
-      father_occupation = excluded.father_occupation,
-      mother_name = excluded.mother_name,
-      mother_age = excluded.mother_age,
-      mother_education = excluded.mother_education,
-      mother_occupation = excluded.mother_occupation,
-      marital_status = excluded.marital_status,
-      number_of_children = excluded.number_of_children,
-      monthly_income = excluded.monthly_income,
-      family_notes = excluded.family_notes,
-      guardian_province_domain_id = excluded.guardian_province_domain_id,
-      guardian_city_domain_id = excluded.guardian_city_domain_id,
-      guardian_district_domain_id = excluded.guardian_district_domain_id,
-      guardian_subdistrict_domain_id = excluded.guardian_subdistrict_domain_id,
-      guardian_postal_code_domain_id = excluded.guardian_postal_code_domain_id,
-      guardian_address_line = excluded.guardian_address_line,
-      guardian_rt_rw = excluded.guardian_rt_rw,
-      father_education_id = excluded.father_education_id,
-      other_father_education = excluded.other_father_education,
-      father_occupation_id = excluded.father_occupation_id,
-      other_father_occupation = excluded.other_father_occupation,
-      mother_education_id = excluded.mother_education_id,
-      other_mother_education = excluded.other_mother_education,
-      mother_occupation_id = excluded.mother_occupation_id,
-      other_mother_occupation = excluded.other_mother_occupation,
-      marital_status_id = excluded.marital_status_id,
-      other_marital_status = excluded.other_marital_status,
-      updated_at = now();
+  set guardian_name = excluded.guardian_name, guardian_relation = excluded.guardian_relation, guardian_phone = excluded.guardian_phone,
+      guardian_address = excluded.guardian_address, father_name = excluded.father_name, father_age = excluded.father_age,
+      father_education = excluded.father_education, father_occupation = excluded.father_occupation, mother_name = excluded.mother_name,
+      mother_age = excluded.mother_age, mother_education = excluded.mother_education, mother_occupation = excluded.mother_occupation,
+      marital_status = excluded.marital_status, number_of_children = excluded.number_of_children, monthly_income = excluded.monthly_income,
+      family_notes = excluded.family_notes, guardian_province_domain_id = excluded.guardian_province_domain_id,
+      guardian_city_domain_id = excluded.guardian_city_domain_id, guardian_district_domain_id = excluded.guardian_district_domain_id,
+      guardian_subdistrict_domain_id = excluded.guardian_subdistrict_domain_id, guardian_postal_code_domain_id = excluded.guardian_postal_code_domain_id,
+      guardian_address_line = excluded.guardian_address_line, guardian_rt_rw = excluded.guardian_rt_rw, father_education_id = excluded.father_education_id,
+      other_father_education = excluded.other_father_education, father_occupation_id = excluded.father_occupation_id,
+      other_father_occupation = excluded.other_father_occupation, mother_education_id = excluded.mother_education_id,
+      other_mother_education = excluded.other_mother_education, mother_occupation_id = excluded.mother_occupation_id,
+      other_mother_occupation = excluded.other_mother_occupation, marital_status_id = excluded.marital_status_id,
+      other_marital_status = excluded.other_marital_status, updated_at = now();
 
   appointment_id_value := invitation_row.appointment_id;
-
   if appointment_id_value is null then
     appointment_start := coalesce(invitation_row.session_start_at, date_trunc('day', now()) + interval '1 day' + interval '9 hours');
     appointment_end := coalesce(invitation_row.session_end_at, appointment_start + interval '45 minutes');
@@ -2073,7 +2188,6 @@ begin
   end if;
 
   select pv.id into visit_id_value from public.patient_visits pv where pv.appointment_id = appointment_id_value limit 1;
-
   if visit_id_value is null then
     insert into public.patient_visits (clinic_id, clinic_patient_id, patient_id, appointment_id, status)
     values (invitation_row.clinic_id, clinic_patient_id_value, patient_id_value, appointment_id_value, 'scheduled')
@@ -2575,7 +2689,8 @@ CREATE TABLE IF NOT EXISTS "public"."patient_clinic_consents" (
     "revoked_at" timestamp with time zone,
     "revoked_reason" "text",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "signature_id" "uuid"
 );
 
 
@@ -2690,6 +2805,24 @@ CREATE TABLE IF NOT EXISTS "public"."patient_personal_data" (
 
 
 ALTER TABLE "public"."patient_personal_data" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."patient_signatures" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "patient_id" "uuid" NOT NULL,
+    "storage_bucket" "text" DEFAULT 'patient_signatures'::"text" NOT NULL,
+    "storage_path" "text" NOT NULL,
+    "signed_by_name" "text" NOT NULL,
+    "signed_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "locked_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "signed_ip" "text",
+    "signed_user_agent" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."patient_signatures" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."patient_visits" (
@@ -2929,6 +3062,16 @@ ALTER TABLE ONLY "public"."patient_personal_data"
 
 
 
+ALTER TABLE ONLY "public"."patient_signatures"
+    ADD CONSTRAINT "patient_signatures_patient_id_key" UNIQUE ("patient_id");
+
+
+
+ALTER TABLE ONLY "public"."patient_signatures"
+    ADD CONSTRAINT "patient_signatures_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."patient_visits"
     ADD CONSTRAINT "patient_visits_pkey" PRIMARY KEY ("id");
 
@@ -3048,6 +3191,10 @@ CREATE INDEX "patient_clinic_consents_invitation_idx" ON "public"."patient_clini
 
 
 CREATE INDEX "patient_clinic_consents_patient_idx" ON "public"."patient_clinic_consents" USING "btree" ("patient_id");
+
+
+
+CREATE INDEX "patient_clinic_consents_signature_idx" ON "public"."patient_clinic_consents" USING "btree" ("signature_id");
 
 
 
@@ -3348,6 +3495,11 @@ ALTER TABLE ONLY "public"."patient_clinic_consents"
 
 
 
+ALTER TABLE ONLY "public"."patient_clinic_consents"
+    ADD CONSTRAINT "patient_clinic_consents_signature_id_fkey" FOREIGN KEY ("signature_id") REFERENCES "public"."patient_signatures"("id");
+
+
+
 ALTER TABLE ONLY "public"."patient_family_data"
     ADD CONSTRAINT "patient_family_data_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
@@ -3435,6 +3587,11 @@ ALTER TABLE ONLY "public"."patient_personal_data"
 
 ALTER TABLE ONLY "public"."patient_personal_data"
     ADD CONSTRAINT "patient_personal_data_religion_id_fkey" FOREIGN KEY ("religion_id") REFERENCES "public"."religion"("id");
+
+
+
+ALTER TABLE ONLY "public"."patient_signatures"
+    ADD CONSTRAINT "patient_signatures_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
 
 
@@ -3692,6 +3849,15 @@ ALTER TABLE "public"."patient_personal_data" ENABLE ROW LEVEL SECURITY;
 
 
 CREATE POLICY "patient_personal_data_clinic_ops_all" ON "public"."patient_personal_data" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
+
+
+
+ALTER TABLE "public"."patient_signatures" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "patient_signatures_clinic_ops_select" ON "public"."patient_signatures" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."clinic_patients" "cp"
+  WHERE (("cp"."patient_id" = "patient_signatures"."patient_id") AND "public"."has_ops_access"("cp"."clinic_id")))));
 
 
 
@@ -3955,6 +4121,12 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "signature_id" "uuid", "consent_ip" "text", "consent_user_agent" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "signature_id" "uuid", "consent_ip" "text", "consent_user_agent" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "signature_id" "uuid", "consent_ip" "text", "consent_user_agent" "text") TO "service_role";
 
 
 
@@ -4243,6 +4415,12 @@ GRANT ALL ON TABLE "public"."patient_personal_data" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."patient_signatures" TO "anon";
+GRANT ALL ON TABLE "public"."patient_signatures" TO "authenticated";
+GRANT ALL ON TABLE "public"."patient_signatures" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."patient_visits" TO "anon";
 GRANT ALL ON TABLE "public"."patient_visits" TO "authenticated";
 GRANT ALL ON TABLE "public"."patient_visits" TO "service_role";
@@ -4344,4 +4522,11 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 --
 -- Dumped schema changes for auth and storage
 --
+
+CREATE POLICY "patient_signatures_clinic_read" ON "storage"."objects" FOR SELECT TO "authenticated" USING ((("bucket_id" = 'patient_signatures'::"text") AND (EXISTS ( SELECT 1
+   FROM ("public"."patient_signatures" "ps"
+     JOIN "public"."clinic_patients" "cp" ON (("cp"."patient_id" = "ps"."patient_id")))
+  WHERE (("ps"."storage_path" = "objects"."name") AND "public"."has_ops_access"("cp"."clinic_id"))))));
+
+
 
