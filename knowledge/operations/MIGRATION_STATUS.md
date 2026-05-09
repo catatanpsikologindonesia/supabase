@@ -11,6 +11,7 @@ On 2026-04-23, the migration history was consolidated into a single baseline to 
 
 Local files (active):
 1. `20260506212421_signature_consent_registration_rpcs.sql`
+2. `20260508114021_demo-requests-client-audit-columns.sql` — ✅ additive; extends `public.demo_requests` with `client_ip text` and `user_agent text` for audit trail parity with the upgraded `submit-demo-request` edge function. **Local only — not yet pushed to remote.**
 
 ## Automated Workflow Status
 
@@ -72,3 +73,7 @@ Local files (active):
 - 2026-05-06 20260506211828: Applied patient_clinic_consents_signature_link
 - 2026-05-06 20260506211957: Applied create_patient_signatures_bucket
 - 2026-05-06 20260506212421: Applied signature_consent_registration_rpcs
+# Migration Status
+
+- `20260508120000_demo_requests_address_subscribe_fields.sql` — ✅ additive; extends `public.demo_requests` with `address_line`, `rt_rw`, `subscribe`, `privacy`, `fullname`, and `position` to support the richer landing-page demo form and admin review surface.
+- Local note: the migration above has already been applied successfully to the local Supabase stack on 2026-05-08; no remote deploy or remote migration push has been performed.

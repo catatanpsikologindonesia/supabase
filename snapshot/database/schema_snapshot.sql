@@ -2555,7 +2555,15 @@ CREATE TABLE IF NOT EXISTS "public"."demo_requests" (
     "status" "public"."demo_request_status_enum" DEFAULT 'pending'::"public"."demo_request_status_enum" NOT NULL,
     "submitted_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "address_line" "text",
+    "rt_rw" "text",
+    "subscribe" boolean DEFAULT false NOT NULL,
+    "privacy" boolean DEFAULT true NOT NULL,
+    "fullname" "text",
+    "position" "text",
+    "client_ip" "text",
+    "user_agent" "text"
 );
 
 

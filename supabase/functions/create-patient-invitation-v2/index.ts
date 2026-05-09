@@ -29,6 +29,48 @@ type InvitationCreateRpcResponse = {
   invitationId?: string;
 };
 
+function normalizeWhatsappTarget(rawPhone: string): string {
+  const digits = rawPhone.replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`;
+  if (digits.startsWith('62')) return digits;
+  return digits;
+}
+
+function buildWhatsappInvitationMessage(params: {
+  clinicName: string;
+  registrationUrl: string | null;
+  flow: InvitationFlow | null | undefined;
+  sessionDate: string;
+  sessionTime: string;
+  timezone: string;
+}): string {
+  const scheduleLine = `Jadwal sesi: ${params.sessionDate} ${params.sessionTime} (${params.timezone})`;
+  if (params.flow === 'info_only') {
+    return [
+      `Halo, berikut adalah pengingat jadwal sesi Anda bersama ${params.clinicName}.`,
+      scheduleLine,
+      'Jika ada perubahan jadwal atau kebutuhan lain, silakan hubungi klinik Anda.',
+    ].join('\n');
+  }
+
+  if (params.flow === 'consent_required') {
+    return [
+      `Halo, Anda mendapatkan undangan sesi dari ${params.clinicName}.`,
+      scheduleLine,
+      'Sebelum sesi dimulai, mohon lengkapi persetujuan data melalui link berikut:',
+      params.registrationUrl ?? '-',
+    ].join('\n');
+  }
+
+  return [
+    `Halo, Anda mendapatkan undangan pendaftaran dari ${params.clinicName}.`,
+    scheduleLine,
+    'Sebelum sesi dimulai, mohon selesaikan registrasi melalui link berikut:',
+    params.registrationUrl ?? '-',
+  ].join('\n');
+}
+
 function asTrimmedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -140,6 +182,18 @@ Deno.serve(async (req) => {
       return jsonResponse({ req, requestId, status: 403, success: false, code: 'FORBIDDEN', message: 'Membership klinik aktif tidak ditemukan.' });
     }
 
+    const { data: clinicRow, error: clinicError } = await auth.supabase
+      .from('clinics')
+      .select('name')
+      .eq('id', activeMembership.clinic_id)
+      .maybeSingle<{ name: string | null }>();
+
+    if (clinicError) {
+      return jsonResponse({ req, requestId, status: 500, success: false, code: 'INTERNAL_ERROR', message: `Gagal memuat nama klinik: ${clinicError.message}` });
+    }
+
+    const clinicName = asTrimmedString(clinicRow?.name) || 'Catatan Psikolog';
+
     const requestAuthClient = createRequestAuthClient(req);
     const { data: rpcData, error: rpcError } = await requestAuthClient.rpc('create_patient_invitation_with_schedule', {
       target_clinic_id: activeMembership.clinic_id,
@@ -181,11 +235,40 @@ Deno.serve(async (req) => {
       ? `${registrationBaseUrl.replace(/\/$/, '')}/register?token=${encodeURIComponent(rpcResult.token)}`
       : null;
 
+    const whatsappUrl =
+      contactType === 'phone' && registrationUrl
+        ? `https://wa.me/${encodeURIComponent(normalizeWhatsappTarget(phone))}?text=${encodeURIComponent(
+            buildWhatsappInvitationMessage({
+              clinicName,
+              registrationUrl,
+              flow: rpcResult.flow ?? null,
+              sessionDate,
+              sessionTime,
+              timezone: recipientTimezone,
+            }),
+          )}`
+        : null;
+
+    const whatsappMessage =
+      contactType === 'phone'
+        ? buildWhatsappInvitationMessage({
+            clinicName,
+            registrationUrl,
+            flow: rpcResult.flow ?? null,
+            sessionDate,
+            sessionTime,
+            timezone: recipientTimezone,
+          })
+        : null;
+
     if (skipEmail) {
       return jsonResponse({
         req, requestId, status: 200, success: true, code: 'OK',
-        message: 'Undangan berhasil dibuat. Salin link di bawah untuk dikirim ke pasien.',
-        data: { flow: rpcResult.flow ?? null, registrationUrl },
+        message:
+          contactType === 'phone'
+            ? 'Undangan berhasil dibuat. WhatsApp akan dibuka dengan pesan siap kirim.'
+            : 'Undangan berhasil dibuat. Salin link di bawah untuk dikirim ke pasien.',
+        data: { flow: rpcResult.flow ?? null, registrationUrl, whatsappUrl, whatsappMessage },
       });
     }
 

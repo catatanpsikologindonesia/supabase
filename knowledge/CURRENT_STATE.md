@@ -25,6 +25,7 @@ This repository is the operational Supabase home for Catatan Psikolog. It owns l
 - `pg_cron` is not currently enabled on the active Catatan Psikolog remote project
 - storage buckets and storage objects are currently empty on the active Catatan Psikolog remote project
 - local startup and snapshot flows now remain compatible with that reduced feature surface without changing the source-of-truth workflow
+- `demo_requests` now also stores landing-page address line, RT/RW, subscribe flag, privacy consent flag, and normalized `fullname` / `position` fields for richer admin-side review without dropping the older `pic_name` / `pic_role` shape.
 
 ## Email Delivery
 
@@ -92,6 +93,7 @@ Invitation variants:
 - the edge function now forwards the caller JWT into the invitation RPC so `auth.uid()`-dependent checks survive the edge boundary
 - the function now honors the request `clinic_id` when resolving the active membership in multiclinic scenarios
 - fallback registration links use the active query-based route shape: `/register?token=...`
+- phone-based invitations now return a prefilled `wa.me` deeplink plus the raw WhatsApp message body so the portal can offer a dedicated "Kirim via WhatsApp" action alongside a manual copy fallback; the message copy includes the clinic name, the session schedule, and flow-specific wording (`registration_required`, `consent_required`, `info_only`).
 - invitation email rendering also uses the active query-based registration route instead of the retired `/register/:token` path
 - the Google Apps Script dispatcher now falls back to the executor default sender when `support@catatanpsikolog.id` is not available as a configured Gmail alias
 - fallback success responses now expose a safe `mailFailureReason` code and log structured dispatcher-failure details without leaking webhook secrets or raw email HTML
