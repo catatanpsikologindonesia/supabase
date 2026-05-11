@@ -275,6 +275,7 @@ serve(async (req) => {
     };
 
     let emailStatus: 'sent' | 'failed' = 'sent';
+    let emailErrorMsg: string | null = null;
 
     try {
       const adminEmail = buildAdminEmail(emailInput);
@@ -295,6 +296,7 @@ serve(async (req) => {
       });
     } catch (mailError) {
       emailStatus = 'failed';
+      emailErrorMsg = mailError instanceof Error ? mailError.message : 'Unknown mail dispatch error';
       console.error('[submit-demo-request] mail dispatch warning', requestId, mailError);
     }
 
@@ -302,7 +304,10 @@ serve(async (req) => {
     try {
       await supabase
         .from('demo_requests')
-        .update({ status: 'pending' })
+        .update({
+          email_delivery_status: emailStatus,
+          email_delivery_error: emailErrorMsg,
+        })
         .eq('id', data.id);
     } catch (_updateError) {
       // Non-fatal — row already inserted

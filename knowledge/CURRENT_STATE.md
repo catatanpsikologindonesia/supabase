@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-05-05 (Admin Clinic Registration Local Baseline)
+Last updated: 2026-05-11
 
 ## Repository Role
 
@@ -26,6 +26,7 @@ This repository is the operational Supabase home for Catatan Psikolog. It owns l
 - storage buckets and storage objects are currently empty on the active Catatan Psikolog remote project
 - local startup and snapshot flows now remain compatible with that reduced feature surface without changing the source-of-truth workflow
 - `demo_requests` now also stores landing-page address line, RT/RW, subscribe flag, privacy consent flag, and normalized `fullname` / `position` fields for richer admin-side review without dropping the older `pic_name` / `pic_role` shape.
+- `demo_requests` now also tracks `email_delivery_status` (pending/sent/failed), `email_delivery_error`, `registration_status` (registered/not_registered), `registered_at`, `client_ip`, and `user_agent` for end-to-end lead tracking from landing-page submission through clinic registration.
 
 ## Email Delivery
 
@@ -168,6 +169,11 @@ Invitation variants:
   - `submit-patient-registration` now accepts invitation lookups with `contact_type = phone`, no longer requires an invitation email on the public submit path, and creates or resolves patient auth users through the admin API for phone-based invitations.
   - `update_patient_registration_by_user_id` now validates `auth.users.phone` against phone invitations, preserves existing patient email on phone-only registrations, and keeps the invited phone as the fallback patient phone when the intake form leaves the patient phone blank.
   - active local migration baseline is now `20260505230112_fix_phone_registration_submit_flow.sql` after replay-clean squash.
+- 2026-05-11 demo-requests delivery and registration tracking:
+  - additive migration `20260511042709_demo-requests-delivery-registration-tracking` added `email_delivery_status`, `email_delivery_error`, `registration_status`, `registered_at` columns to `demo_requests`.
+  - `submit-demo-request` edge function now updates `email_delivery_status` and `email_delivery_error` after attempting mail dispatch instead of leaving the status at the default `pending`.
+  - stale migration mirrors `20260506212421_signature_consent_registration_rpcs.md` and `20260508114021_demo-requests-client-audit-columns.md` were removed by the auto-squash pipeline.
+  - stale migration SQL files `20260506212421_signature_consent_registration_rpcs.sql` and `20260508114021_demo-requests-client-audit-columns.sql` removed by the auto-squash pipeline.
 - use `make start-local` for normal development
 - use `make start-local-restore` when you explicitly want to restore `snapshot/database/db_full_snapshot.dump` during startup
 - use `make prepare-local` only when you explicitly need restore + migration replay

@@ -2591,7 +2591,15 @@ CREATE TABLE IF NOT EXISTS "public"."demo_requests" (
     "status" "public"."demo_request_status_enum" DEFAULT 'pending'::"public"."demo_request_status_enum" NOT NULL,
     "submitted_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "client_ip" "text",
+    "user_agent" "text",
+    "email_delivery_status" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "email_delivery_error" "text",
+    "registration_status" "text" DEFAULT 'not_registered'::"text" NOT NULL,
+    "registered_at" timestamp with time zone,
+    CONSTRAINT "demo_requests_email_delivery_status_check" CHECK (("email_delivery_status" = ANY (ARRAY['pending'::"text", 'sent'::"text", 'failed'::"text"]))),
+    CONSTRAINT "demo_requests_registration_status_check" CHECK (("registration_status" = ANY (ARRAY['registered'::"text", 'not_registered'::"text"])))
 );
 
 
