@@ -98,30 +98,42 @@ ${SQL_CONTENT}
 \`\`\`
 EOF
 
-# 3. Apply to Database
-echo "==> [3/8] Applying migration to local database..."
-if supabase migration up; then
+# 3. Repair any orphaned migration history entries
+echo "==> [3/8] Repairing orphaned local migration history..."
+supabase db dump --local --schema supabase_migrations --data-only 2>/dev/null \
+  | rg -o "'[0-9]{14}'" \
+  | tr -d "'" \
+  | while read version; do
+    if ! ls "supabase/migrations/${version}"_*.sql >/dev/null 2>&1; then
+      echo "    -> Reverting orphaned version: ${version}"
+      supabase migration repair --status reverted "${version}" --local 2>/dev/null || true
+    fi
+  done
+
+# 4. Apply to Database
+echo "==> [4/8] Applying migration to local database..."
+if yes | supabase db push --local; then
     echo "==> Migration applied successfully."
     
-    # 4. Update Status Log
+    # 5. Update Status Log
     STATUS_FILE="knowledge/operations/MIGRATION_STATUS.md"
     mkdir -p "$(dirname "$STATUS_FILE")"
     echo "- $(date +%Y-%m-%d) $TIMESTAMP: Applied $MIGRATION_NAME" >> "$STATUS_FILE"
 
-    # 5. AUTO-SQUASH (The Cleanup)
-    echo "==> [5/8] Tidying up stale migrations (Squashing)..."
-    if supabase migration squash; then
+    # 6. AUTO-SQUASH (The Cleanup)
+    echo "==> [6/8] Tidying up stale migrations (Squashing)..."
+    if supabase migration squash --yes; then
         echo "==> Squashing complete. Folder is now lean."
         
-        # 6. DELETE Stale Knowledge Files
-        echo "==> [6/8] Deleting stale knowledge files..."
+        # 7. DELETE Stale Knowledge Files
+        echo "==> [7/8] Deleting stale knowledge files..."
         find "$KNOWLEDGE_DIR" -maxdepth 1 -name "*.md" ! -name "$(basename "$KNOWLEDGE_FILE")" -delete
     else
         echo "==> WARNING: Squash failed. Skipping cleanup."
     fi
 
-    # 7. Refresh local source-of-truth snapshot
-    echo "==> [7/8] Refreshing local database snapshot artifacts..."
+    # 8. Refresh local source-of-truth snapshot
+    echo "==> [8/8] Refreshing local database snapshot artifacts..."
     mkdir -p "$SNAPSHOT_DB_DIR"
     supabase db dump --local --schema public --file "$SNAPSHOT_DB_DIR/schema_snapshot.sql"
 
