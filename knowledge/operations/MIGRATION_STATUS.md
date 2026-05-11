@@ -78,3 +78,5 @@ Local files (active):
 - `20260508120000_demo_requests_address_subscribe_fields.sql` — ✅ additive; extends `public.demo_requests` with `address_line`, `rt_rw`, `subscribe`, `privacy`, `fullname`, and `position` to support the richer landing-page demo form and admin review surface.
 - Local note: the migration above has already been applied successfully to the local Supabase stack on 2026-05-08; no remote deploy or remote migration push has been performed.
 - 2026-05-11 20260511042709: Applied demo-requests-delivery-registration-tracking
+- 2026-05-12 20260512010326: Applied clinic-lifecycle-b2b-agreements
+- 2026-05-12 20260512013433: Applied clinic-lifecycle-b2b-schema-sync (schema sync trigger)

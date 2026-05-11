@@ -2487,6 +2487,40 @@ CREATE TABLE IF NOT EXISTS "public"."appointments" (
 ALTER TABLE "public"."appointments" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."b2b_agreement_templates" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "title" "text" NOT NULL,
+    "content" "text" NOT NULL,
+    "is_active" boolean DEFAULT false,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."b2b_agreement_templates" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."b2b_invitations" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL,
+    "token_hash" "text" NOT NULL,
+    "template_id" "uuid",
+    "status" "text" DEFAULT 'pending'::"text",
+    "signed_at" timestamp with time zone,
+    "signature_url" "text",
+    "signature_storage_path" "text",
+    "signed_by_name" "text",
+    "signed_by_position" "text",
+    "created_by" "uuid",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "b2b_invitations_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'signed'::"text", 'expired'::"text", 'cancelled'::"text"])))
+);
+
+
+ALTER TABLE "public"."b2b_invitations" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."clinic_memberships" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "clinic_id" "uuid" NOT NULL,
@@ -2533,7 +2567,19 @@ CREATE TABLE IF NOT EXISTS "public"."clinics" (
     "owner_user_id" "uuid",
     "is_active" boolean DEFAULT true NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "expired_date" timestamp with time zone,
+    "is_agreement_signed" boolean DEFAULT false,
+    "permit_number" "text",
+    "owner_ktp_number" "text",
+    "phone_number" "text",
+    "address_line" "text",
+    "rt_rw" "text",
+    "province_name" "text",
+    "city_name" "text",
+    "district_name" "text",
+    "subdistrict_name" "text",
+    "postal_code" "text"
 );
 
 
@@ -2985,6 +3031,21 @@ ALTER TABLE ONLY "public"."appointments"
 
 
 
+ALTER TABLE ONLY "public"."b2b_agreement_templates"
+    ADD CONSTRAINT "b2b_agreement_templates_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."b2b_invitations"
+    ADD CONSTRAINT "b2b_invitations_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."b2b_invitations"
+    ADD CONSTRAINT "b2b_invitations_token_hash_key" UNIQUE ("token_hash");
+
+
+
 ALTER TABLE ONLY "public"."clinic_memberships"
     ADD CONSTRAINT "clinic_memberships_pkey" PRIMARY KEY ("id");
 
@@ -3388,6 +3449,21 @@ ALTER TABLE ONLY "public"."appointments"
 
 
 
+ALTER TABLE ONLY "public"."b2b_invitations"
+    ADD CONSTRAINT "b2b_invitations_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."b2b_invitations"
+    ADD CONSTRAINT "b2b_invitations_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."b2b_invitations"
+    ADD CONSTRAINT "b2b_invitations_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."b2b_agreement_templates"("id");
+
+
+
 ALTER TABLE ONLY "public"."clinic_memberships"
     ADD CONSTRAINT "clinic_memberships_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
@@ -3688,6 +3764,18 @@ ALTER TABLE "public"."address_province" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."address_subdistrict" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "admin_all_b2b_invitations" ON "public"."b2b_invitations" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."admin_profiles"
+  WHERE (("admin_profiles"."id" = "auth"."uid"()) AND ("admin_profiles"."is_active" = true)))));
+
+
+
+CREATE POLICY "admin_all_b2b_templates" ON "public"."b2b_agreement_templates" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."admin_profiles"
+  WHERE (("admin_profiles"."id" = "auth"."uid"()) AND ("admin_profiles"."is_active" = true)))));
+
+
+
 ALTER TABLE "public"."admin_profiles" ENABLE ROW LEVEL SECURITY;
 
 
@@ -3722,6 +3810,12 @@ CREATE POLICY "appointments_clinic_ops_all" ON "public"."appointments" TO "authe
 
 
 
+ALTER TABLE "public"."b2b_agreement_templates" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."b2b_invitations" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."clinic_memberships" ENABLE ROW LEVEL SECURITY;
 
 
@@ -3730,6 +3824,12 @@ CREATE POLICY "clinic_memberships_member_select" ON "public"."clinic_memberships
 
 
 CREATE POLICY "clinic_memberships_owner_manage" ON "public"."clinic_memberships" TO "authenticated" USING ("public"."has_owner_access"("clinic_id")) WITH CHECK ("public"."has_owner_access"("clinic_id"));
+
+
+
+CREATE POLICY "clinic_owner_read_b2b_invitations" ON "public"."b2b_invitations" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."clinic_memberships"
+  WHERE (("clinic_memberships"."clinic_id" = "b2b_invitations"."clinic_id") AND ("clinic_memberships"."user_id" = "auth"."uid"()) AND ("clinic_memberships"."is_owner" = true) AND ("clinic_memberships"."is_active" = true)))));
 
 
 
@@ -3883,6 +3983,10 @@ CREATE POLICY "patients_clinic_access_all" ON "public"."patients" TO "authentica
 
 
 
+CREATE POLICY "public_read_active_b2b_template" ON "public"."b2b_agreement_templates" FOR SELECT TO "anon" USING (("is_active" = true));
+
+
+
 CREATE POLICY "public_read_address_city" ON "public"."address_city" FOR SELECT USING (true);
 
 
@@ -3900,6 +4004,14 @@ CREATE POLICY "public_read_address_province" ON "public"."address_province" FOR 
 
 
 CREATE POLICY "public_read_address_subdistrict" ON "public"."address_subdistrict" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "public_read_pending_b2b_invitation" ON "public"."b2b_invitations" FOR SELECT TO "anon" USING (("status" = 'pending'::"text"));
+
+
+
+CREATE POLICY "public_update_b2b_invitation" ON "public"."b2b_invitations" FOR UPDATE TO "anon" USING (("status" = 'pending'::"text")) WITH CHECK (("status" = 'signed'::"text"));
 
 
 
@@ -4336,6 +4448,18 @@ GRANT ALL ON TABLE "public"."admin_profiles" TO "service_role";
 GRANT ALL ON TABLE "public"."appointments" TO "anon";
 GRANT ALL ON TABLE "public"."appointments" TO "authenticated";
 GRANT ALL ON TABLE "public"."appointments" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."b2b_agreement_templates" TO "anon";
+GRANT ALL ON TABLE "public"."b2b_agreement_templates" TO "authenticated";
+GRANT ALL ON TABLE "public"."b2b_agreement_templates" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."b2b_invitations" TO "anon";
+GRANT ALL ON TABLE "public"."b2b_invitations" TO "authenticated";
+GRANT ALL ON TABLE "public"."b2b_invitations" TO "service_role";
 
 
 

@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-05-11
+Last updated: 2026-05-12
 
 ## Repository Role
 
@@ -47,6 +47,14 @@ Active functions:
 - `verify-referral-pin`
 - `admin-create-clinic`
 - `admin-add-clinic-member`
+- `admin-update-clinic`
+- `admin-toggle-clinic-active`
+- `admin-get-b2b-templates`
+- `admin-set-b2b-template-active`
+- `create-b2b-invitation`
+- `get-b2b-invitation`
+- `submit-b2b-invitation`
+- `extend-clinic-expiry`
 
 Invitation variants:
 
@@ -188,3 +196,8 @@ Invitation variants:
   - All legacy migrations have been consolidated into a single clean source of truth (`supabase/migrations/`) to ensure environmental parity and resolved schema drift.
 - if local storage binaries change, run `make export-storage` so repository snapshots stay aligned with the local source of truth
 - edge mail secrets are wired through `supabase/config.toml`
+- 2026-05-12 clinic lifecycle + B2B agreement baseline:
+  - additive migration `20260512010326_clinic-lifecycle-b2b-agreements.sql` adds `expired_date`, `is_agreement_signed`, `permit_number`, `owner_ktp_number`, `phone_number`, address fields to `clinics`; creates `b2b_agreement_templates`, `b2b_invitations` tables; creates `b2b-signatures` storage bucket; seeds active default B2B template.
+  - 8 new edge functions: `admin-update-clinic`, `admin-toggle-clinic-active`, `admin-get-b2b-templates`, `admin-set-b2b-template-active`, `create-b2b-invitation`, `get-b2b-invitation`, `submit-b2b-invitation`, `extend-clinic-expiry`.
+  - Admin portal updated: ClinicsPage (new columns + toggle/edit actions), ClinicEditPage (new), B2BAgreementTemplatesPage (new), DemoRequestsPage (message column), DashboardPage (clinic lifecycle KPIs + B2B menu).
+  - User portal already has: PortalSessionProvider (agreementStatus + expiryStatus), ClinicAgreementGate, B2bAgreementPage (signature pad + all phases), edge-public.ts (GET/POST for b2b functions), App.tsx (`/b2b-agreement` route).
