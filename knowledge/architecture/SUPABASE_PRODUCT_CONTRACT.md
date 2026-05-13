@@ -1,6 +1,6 @@
 # Supabase Product Contract
 
-This document outlines the detailed consumption of this Supabase project (`CatatanPsikolog`) by the two frontend repositories within the Lintas Buana Sistem Digital organization.
+This document outlines the detailed consumption of this Supabase project (`CatatanPsikolog`) by the frontend repositories within the Lintas Buana Sistem Digital organization.
 
 ## 1. `catatan-psikolog-landing-page`
 
@@ -56,3 +56,72 @@ Frontend callers are located in `src/lib/edge-public.ts`.
 - `send-patient-invitation`
 - `send-referral-pin`
 These functions are not directly invoked by the frontend code. They are reusable mail-delivery surfaces used by authenticated orchestration helpers and operational testing flows.
+
+## 3. `catatan-psikolog-admin-portal`
+
+**Status:** Consumes multiple Supabase features for internal clinic onboarding, lead review, and clinic lifecycle management.
+
+The admin portal is a React + Vite SPA used by LBSD internal staff. It directly communicates with this Supabase instance for admin authentication, demo-request review, clinic registration, clinic detail, and clinic management operations.
+
+### Tables Consumed Directly (via Supabase JS Client)
+- `admin_profiles`
+- `clinics`
+- `demo_requests`
+
+### Tables Consumed Indirectly (via RPCs & Edge Functions)
+- `clinic_memberships` (via `create_clinic_with_owner`, `admin_add_clinic_member`, `admin_get_clinic_detail`)
+- `users` (via `admin-create-clinic`, `admin-add-clinic-member`)
+
+### Database Functions (RPCs) Consumed
+- `admin_add_clinic_member`
+- `admin_get_clinic_detail`
+- `admin_list_clinics`
+- `create_clinic_with_owner`
+- `is_admin_at_least`
+
+### Edge Functions Consumed
+- `admin-create-clinic`
+- `admin-add-clinic-member`
+- `admin-update-clinic`
+- `admin-toggle-clinic-active`
+- `admin-get-b2b-templates`
+- `admin-set-b2b-template-active`
+- `create-b2b-invitation`
+- `get-b2b-invitation`
+- `submit-b2b-invitation`
+- `extend-clinic-expiry`
+
+### Admin Clinic Onboarding Contract
+
+Manual clinic registration from `/dashboard/clinics/register` now depends on the following backend contract:
+
+- The admin portal sends clinic metadata through `admin-create-clinic`:
+  - `clinic_name`
+  - `clinic_slug`
+  - `permit_number`
+  - `owner_ktp_number`
+  - `phone_number`
+  - `address_line`
+  - `rt_rw`
+  - `province_name`
+  - `city_name`
+  - `district_name`
+  - `subdistrict_name`
+  - `postal_code`
+  - `expired_date`
+  - `owner_email`
+  - `owner_password`
+  - `owner_full_name`
+- `admin-create-clinic` forwards that payload into `create_clinic_with_owner(...)`.
+- `create_clinic_with_owner(...)` persists the clinic metadata into `public.clinics` while also creating the owner membership.
+
+### Demo Requests Linkage Contract
+
+The admin portal demo-request flow also depends on these `demo_requests` fields:
+
+- `message` — optional landing-page note shown on both sent and failed lead review pages
+- `registration_status` — lead converted vs not converted
+- `registered_at` — conversion timestamp
+- `registered_clinic_id` — links the lead row to the created `public.clinics.id`
+
+This linkage enables the demo-review flow to act as a seamless handoff into manual clinic onboarding while preserving lead-tracking state.
