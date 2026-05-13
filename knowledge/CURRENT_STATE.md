@@ -27,6 +27,7 @@ This repository is the operational Supabase home for Catatan Psikolog. It owns l
 - local startup and snapshot flows now remain compatible with that reduced feature surface without changing the source-of-truth workflow
 - `demo_requests` now also stores landing-page address line, RT/RW, subscribe flag, privacy consent flag, and normalized `fullname` / `position` fields for richer admin-side review without dropping the older `pic_name` / `pic_role` shape.
 - `demo_requests` now also tracks `email_delivery_status` (pending/sent/failed), `email_delivery_error`, `registration_status` (registered/not_registered), `registered_at`, `client_ip`, and `user_agent` for end-to-end lead tracking from landing-page submission through clinic registration.
+- `demo_requests` now also links successful manual clinic onboarding through `registered_clinic_id`, so admin-side registration can point back to the created `clinics` row.
 
 ## Email Delivery
 
@@ -213,3 +214,7 @@ Invitation variants:
   - Schema: `expired_date`, `is_agreement_signed`, `permit_number`, `phone_number` on `clinics`; `b2b_agreement_templates`, `b2b_invitations` tables; `b2b-signatures` storage bucket.
   - 8 edge functions: `admin-update-clinic`, `admin-toggle-clinic-active`, `admin-get-b2b-templates`, `admin-set-b2b-template-active`, `create-b2b-invitation`, `get-b2b-invitation`, `submit-b2b-invitation`, `extend-clinic-expiry`.
   - `scripts/apply_migration.sh` fixed: `supabase migration up` → `yes | supabase db push --local` (targets local DB, not remote). Added auto-repair step for orphaned migration history. Squash now uses `--yes` for non-interactive mode.
+- 2026-05-13 clinic registration parity hardening:
+  - additive migration `20260513133454_clinic-registration-demo-parity` added `demo_requests.registered_clinic_id`.
+  - `create_clinic_with_owner(...)` now persists clinic registration metadata already captured by the admin portal: `permit_number`, `owner_ktp_number`, `phone_number`, `address_line`, `rt_rw`, `province_name`, `city_name`, `district_name`, `subdistrict_name`, `postal_code`, and `expired_date`.
+  - `admin-create-clinic` now forwards the full admin registration payload to that RPC instead of dropping the optional clinic metadata.

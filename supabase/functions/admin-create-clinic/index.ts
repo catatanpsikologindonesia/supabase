@@ -24,6 +24,14 @@ type CreateClinicRpcResult = {
   membershipId?: string;
 };
 
+function asNullableIsoDate(value: unknown): string | null {
+  const text = nullableText(value);
+  if (!text) return null;
+
+  const normalized = `${text}T00:00:00.000Z`;
+  return Number.isNaN(Date.parse(normalized)) ? null : normalized;
+}
+
 function respond(
   status: number,
   requestId: string,
@@ -147,6 +155,17 @@ Deno.serve(async (req) => {
     const ownerEmail = asString(body?.owner_email).toLowerCase();
     const ownerPassword = asString(body?.owner_password);
     const ownerFullName = asString(body?.owner_full_name);
+    const permitNumber = nullableText(body?.permit_number);
+    const ownerKtpNumber = nullableText(body?.owner_ktp_number);
+    const phoneNumber = nullableText(body?.phone_number);
+    const addressLine = nullableText(body?.address_line);
+    const rtRw = nullableText(body?.rt_rw);
+    const provinceName = nullableText(body?.province_name);
+    const cityName = nullableText(body?.city_name);
+    const districtName = nullableText(body?.district_name);
+    const subdistrictName = nullableText(body?.subdistrict_name);
+    const postalCode = nullableText(body?.postal_code);
+    const expiredDate = asNullableIsoDate(body?.expired_date);
 
     if (!clinicName) {
       return respond(400, requestId, allowedOrigin, {
@@ -218,6 +237,17 @@ Deno.serve(async (req) => {
       clinic_name: clinicName,
       clinic_slug: clinicSlug,
       owner_user_id: newUserId,
+      permit_number: permitNumber,
+      owner_ktp_number: ownerKtpNumber,
+      phone_number: phoneNumber,
+      address_line: addressLine,
+      rt_rw: rtRw,
+      province_name: provinceName,
+      city_name: cityName,
+      district_name: districtName,
+      subdistrict_name: subdistrictName,
+      postal_code: postalCode,
+      expired_date: expiredDate,
     });
 
     const rpcPayload = (rpcResult ?? null) as CreateClinicRpcResult | null;
