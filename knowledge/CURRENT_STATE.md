@@ -55,6 +55,9 @@ Active functions:
 - `get-b2b-invitation`
 - `submit-b2b-invitation`
 - `extend-clinic-expiry`
+- `send-otp`
+- `verify-otp`
+- `reset-password`
 
 Invitation variants:
 
@@ -86,6 +89,15 @@ Invitation variants:
 - patient consent acceptance is now exposed through public edge function `accept-patient-consent`
 - intended caller is the public consent flow in `catatan-psikolog-user-portal`
 - the function forwards consent IP and user-agent metadata to RPC `accept_patient_consent_by_token`
+
+## Public Auth Recovery Surface
+
+- forgot-password recovery is now exposed through public edge functions `send-otp`, `verify-otp`, and `reset-password`
+- intended caller is the public auth recovery flow in `catatan-psikolog-user-portal`
+- additive local migration `20260513131224_auth-recovery-otp.sql` created `public.otp_verifications` and helper function `public.is_registered_profile_email(text)`
+- `send-otp` stores hashed OTP codes, applies IP/email rate limits, and sends the recovery code through the shared Google Apps Script mail dispatcher
+- `verify-otp` validates the active OTP window and marks the selected verification row as verified before returning `verification_id`
+- `reset-password` validates password policy, resolves the matching `clinic_staff` auth user from `clinic_memberships.email`, updates `auth.users` through the admin API, and deletes the used OTP row on success
 
 ## Authenticated Therapy Write Surface
 

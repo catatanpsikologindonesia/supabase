@@ -72,6 +72,18 @@ Active mail functions:
 
 - `send-patient-invitation`
 - `send-referral-pin`
+- `send-otp`
+
+Active public auth-recovery functions:
+
+- `send-otp`
+- `verify-otp`
+- `reset-password`
+
+Supporting auth-recovery data surface:
+
+- `public.otp_verifications`
+- `public.is_registered_profile_email(text)`
 
 `send-patient-invitation` supports:
 
