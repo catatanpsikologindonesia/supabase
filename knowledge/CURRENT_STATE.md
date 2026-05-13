@@ -28,6 +28,7 @@ This repository is the operational Supabase home for Catatan Psikolog. It owns l
 - `demo_requests` now also stores landing-page address line, RT/RW, subscribe flag, privacy consent flag, and normalized `fullname` / `position` fields for richer admin-side review without dropping the older `pic_name` / `pic_role` shape.
 - `demo_requests` now also tracks `email_delivery_status` (pending/sent/failed), `email_delivery_error`, `registration_status` (registered/not_registered), `registered_at`, `client_ip`, and `user_agent` for end-to-end lead tracking from landing-page submission through clinic registration.
 - `demo_requests` now also links successful manual clinic onboarding through `registered_clinic_id`, so admin-side registration can point back to the created `clinics` row.
+- `clinics` now also stores `full_address` so the admin onboarding payload can persist the same computed address summary shown in the registration form.
 
 ## Email Delivery
 
@@ -218,3 +219,6 @@ Invitation variants:
   - additive migration `20260513133454_clinic-registration-demo-parity` added `demo_requests.registered_clinic_id`.
   - `create_clinic_with_owner(...)` now persists clinic registration metadata already captured by the admin portal: `permit_number`, `owner_ktp_number`, `phone_number`, `address_line`, `rt_rw`, `province_name`, `city_name`, `district_name`, `subdistrict_name`, `postal_code`, and `expired_date`.
   - `admin-create-clinic` now forwards the full admin registration payload to that RPC instead of dropping the optional clinic metadata.
+ - 2026-05-13 final registration parity follow-up:
+  - additive migration `20260513144457_clinic-full-address-parity` added `clinics.full_address`.
+  - additive migration `20260513150000_clinic-full-address-rpc-parity` expanded `create_clinic_with_owner(...)` to persist `full_address` alongside the rest of the clinic metadata.

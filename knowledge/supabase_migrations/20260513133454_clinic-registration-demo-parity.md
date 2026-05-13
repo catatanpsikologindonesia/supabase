@@ -4,7 +4,7 @@
 - **Applied At**: 2026-05-13 13:34:58
 
 ## Description
-Add `registered_clinic_id` to `demo_requests` and expand `create_clinic_with_owner` so admin clinic registration persists full clinic metadata captured by the Psikolog admin portal.
+Add `registered_clinic_id` to `demo_requests` and expand `create_clinic_with_owner` so admin clinic registration persists full clinic metadata captured by the Psikolog admin portal, including `full_address`.
 
 ## SQL Content
 ```sql

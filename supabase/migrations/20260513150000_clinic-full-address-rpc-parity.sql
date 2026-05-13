@@ -1,6 +1,3 @@
-ALTER TABLE public.demo_requests
-ADD COLUMN IF NOT EXISTS registered_clinic_id uuid REFERENCES public.clinics(id) ON DELETE SET NULL;
-
 CREATE OR REPLACE FUNCTION public.create_clinic_with_owner(
   clinic_name text,
   clinic_slug text DEFAULT NULL::text,
@@ -32,20 +29,12 @@ declare
   owner_membership_id uuid;
 begin
   if owner_user_id is null then
-    return jsonb_build_object(
-      'status', 'error',
-      'code', 'AUTH_REQUIRED',
-      'message', 'Akun login tidak ditemukan.'
-    );
+    return jsonb_build_object('status', 'error', 'code', 'AUTH_REQUIRED', 'message', 'Akun login tidak ditemukan.');
   end if;
 
   normalized_name := nullif(btrim(clinic_name), '');
   if normalized_name is null then
-    return jsonb_build_object(
-      'status', 'error',
-      'code', 'INVALID_CLINIC_NAME',
-      'message', 'Nama klinik wajib diisi.'
-    );
+    return jsonb_build_object('status', 'error', 'code', 'INVALID_CLINIC_NAME', 'message', 'Nama klinik wajib diisi.');
   end if;
 
   base_slug := nullif(regexp_replace(lower(coalesce(clinic_slug, normalized_name)), '[^a-z0-9]+', '-', 'g'), '');
@@ -93,12 +82,7 @@ begin
         updated_at = now()
     where c.id = existing_clinic_id;
 
-    return jsonb_build_object(
-      'status', 'success',
-      'message', 'Owner sudah memiliki klinik aktif.',
-      'clinicId', existing_clinic_id,
-      'membershipId', owner_membership_id
-    );
+    return jsonb_build_object('status', 'success', 'message', 'Owner sudah memiliki klinik aktif.', 'clinicId', existing_clinic_id, 'membershipId', owner_membership_id);
   end if;
 
   insert into public.clinics (
@@ -117,8 +101,7 @@ begin
     subdistrict_name,
     postal_code,
     full_address
-  )
-  values (
+  ) values (
     normalized_name,
     final_slug,
     owner_user_id,
@@ -157,54 +140,17 @@ begin
   )
   returning id into owner_membership_id;
 
-  return jsonb_build_object(
-    'status', 'success',
-    'message', 'Klinik berhasil dibuat.',
-    'clinicId', created_clinic_id,
-    'membershipId', owner_membership_id
-  );
+  return jsonb_build_object('status', 'success', 'message', 'Klinik berhasil dibuat.', 'clinicId', created_clinic_id, 'membershipId', owner_membership_id);
 exception
   when others then
-    return jsonb_build_object(
-      'status', 'error',
-      'code', 'SERVER_ERROR',
-      'message', 'Gagal membuat klinik: ' || sqlerrm
-    );
+    return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal membuat klinik: ' || sqlerrm);
 end;
 $$;
 
 ALTER FUNCTION public.create_clinic_with_owner(
-  text,
-  text,
-  uuid,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  timestamptz
+  text, text, uuid, text, text, text, text, text, text, text, text, text, text, text, timestamptz
 ) OWNER TO postgres;
 
 GRANT ALL ON FUNCTION public.create_clinic_with_owner(
-  text,
-  text,
-  uuid,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  text,
-  timestamptz
+  text, text, uuid, text, text, text, text, text, text, text, text, text, text, text, timestamptz
 ) TO anon, authenticated, service_role;

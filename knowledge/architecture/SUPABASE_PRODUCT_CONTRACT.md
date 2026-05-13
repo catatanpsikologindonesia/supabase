@@ -108,12 +108,14 @@ Manual clinic registration from `/dashboard/clinics/register` now depends on the
   - `district_name`
   - `subdistrict_name`
   - `postal_code`
+  - `full_address`
   - `expired_date`
   - `owner_email`
   - `owner_password`
   - `owner_full_name`
 - `admin-create-clinic` forwards that payload into `create_clinic_with_owner(...)`.
 - `create_clinic_with_owner(...)` persists the clinic metadata into `public.clinics` while also creating the owner membership.
+- The admin portal now computes `full_address` client-side and sends it as part of the same onboarding contract so the backend stores both the structured address parts and a ready-to-display address summary.
 
 ### Demo Requests Linkage Contract
 
