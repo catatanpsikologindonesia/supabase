@@ -12,3 +12,4 @@ This file provides a quick reference for AI agents operating within the `Supabas
 - **Do not** use `sed` manually when `replace_file_content` is available.
 - Always check the `KNOWLEDGE_BASELINE.md` before making architectural assumptions.
 - Verify changes with `make knowledge-language-check`.
+- **Knowledge Sync Guard**: Run `make guard-knowledge-sync` before every push, or `make install-hooks` to auto-run it on `git push`. Bypass with `SKIP_KNOWLEDGE_GUARD=1`.

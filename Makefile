@@ -118,3 +118,9 @@ push-prod:
 
 push-remote:
 	$(MAKE) push-staging
+
+guard-knowledge-sync:
+	bash ./scripts/guard-knowledge-sync.sh
+
+install-hooks:
+	bash ./scripts/install-hooks.sh
