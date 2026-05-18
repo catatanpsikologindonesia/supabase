@@ -13,3 +13,4 @@ This file tracks all migrations applied via `scripts/apply_migration.sh`.
 - `scripts/apply_migration.sh` fixed: `supabase migration up` → `yes | supabase db push --local` (targets local DB, not remote)
 - Added step 3: auto-repair orphaned local migration history before applying new migration
 - `supabase migration squash --yes` — non-interactive squash
+- 2026-05-18 20260518233806: Applied test-backup-psikolog

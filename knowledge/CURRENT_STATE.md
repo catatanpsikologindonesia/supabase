@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-05-12
+Last updated: 2026-05-16
 
 ## Repository Role
 
@@ -218,6 +218,13 @@ Invitation variants:
 - 2026-05-13 clinic registration parity hardening:
   - additive migration `20260513133454_clinic-registration-demo-parity` added `demo_requests.registered_clinic_id`.
   - `create_clinic_with_owner(...)` now persists clinic registration metadata already captured by the admin portal: `permit_number`, `owner_ktp_number`, `phone_number`, `address_line`, `rt_rw`, `province_name`, `city_name`, `district_name`, `subdistrict_name`, `postal_code`, and `expired_date`.
+- 2026-05-16 Dokter-parity clinic extension workflow:
+  - additive migration `20260516224717_clinic-extension-dokter-parity.sql` added `clinic_extension_request_status_enum`, `b2b_agreements`, `clinic_extension_requests`, and Dokter-style RPCs `approve_clinic_extension_request(uuid, integer)`, `reject_clinic_extension_request(uuid)`, and `get_clinics_with_pending_extension()`.
+  - `b2b_agreements` now stores the signed agreement record separately from `b2b_invitations`, aligning Psikolog's backend contract with Dokter's renewal workflow.
+  - `clinic_extension_requests` now tracks owner-side renewal submissions with `PENDING / APPROVED / REJECTED` state, `approved_by`, and `added_days`.
+  - RLS now allows clinic owners to insert/select their own extension requests and allows LBSD admins to review/update them.
+  - `submit-b2b-invitation` now also persists a signed agreement row into `b2b_agreements` after public invitation signing succeeds, while continuing to update the original invitation status.
+  - follow-up migration `20260517050122_b2b-agreements-storage-policy.sql` added authenticated Storage policies for bucket `b2b-signatures`, fixing the new clinic-detail renewal path so owner-side signature uploads are allowed at runtime.
   - `admin-create-clinic` now forwards the full admin registration payload to that RPC instead of dropping the optional clinic metadata.
  - 2026-05-13 final registration parity follow-up:
   - additive migration `20260513144457_clinic-full-address-parity` added `clinics.full_address`.

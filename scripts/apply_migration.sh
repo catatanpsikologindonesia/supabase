@@ -34,7 +34,7 @@ find_portal_path() {
 
 # --- HELPER: Ensure Pre-requisites ---
 ensure_environment_ready() {
-    echo "==> [0/9] Checking environment readiness..."
+    echo "==> [0/10] Checking environment readiness..."
     
     if ! docker info > /dev/null 2>&1; then
         echo "    -> Docker is not running. Attempting to start Docker daemon..."
@@ -56,7 +56,7 @@ ensure_environment_ready() {
                 retries=$((retries + 1))
                 if [ "$retries" -ge 20 ]; then
                     echo ""
-                    echo "    [!] ERROR: Docker failed to start after 60s. Please start it manually."
+                    echo "    [!] ERROR: Docker failed to start after 60s. Please start Docker manually."
                     exit 1
                 fi
                 echo -n "."
@@ -76,12 +76,36 @@ ensure_environment_ready() {
 
 ensure_environment_ready
 
-# 1. Create Migration File
-echo "==> [1/8] Creating migration file: $FILENAME"
+# --- 1. PRE-MIGRATION DATA BACKUP ---
+# Always backup local data before any destructive operation (squash -> db reset).
+# Single file, overwritten each run — always the latest snapshot.
+# Restore via: bash scripts/restore_local_db.sh
+echo "==> [1/10] Creating pre-migration data backup..."
+BACKUP_FILE="snapshot/database/db_full_snapshot.dump"
+mkdir -p "$(dirname "$BACKUP_FILE")"
+PROJECT_ID="$(awk -F= '/^project_id[[:space:]]*=/{gsub(/[ "\r]/, "", $2); print $2; exit}' supabase/config.toml)"
+DB_CONTAINER="supabase_db_${PROJECT_ID}"
+if ! docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
+    echo "    [!] ERROR: Cannot find Supabase DB container. Backup failed."
+    exit 1
+fi
+echo "    -> Backing up from container: $DB_CONTAINER"
+docker exec "$DB_CONTAINER" pg_dump -U postgres -d postgres \
+    -Fc \
+    -n auth -n public -n cron -n storage \
+    --exclude-table-data='"auth"."schema_migrations"' \
+    --exclude-table-data='"public"."supabase_migrations"' \
+    -f /tmp/_apply_migration_backup.dump 2>/dev/null
+docker cp "$DB_CONTAINER":/tmp/_apply_migration_backup.dump "$BACKUP_FILE" 2>/dev/null
+docker exec "$DB_CONTAINER" rm -f /tmp/_apply_migration_backup.dump 2>/dev/null
+echo "    -> Backup saved to: $BACKUP_FILE"
+
+# 2. Create Migration File
+echo "==> [2/10] Creating migration file: $FILENAME"
 echo "$SQL_CONTENT" > "$FILENAME"
 
-# 2. Create Knowledge Mirror
-echo "==> [2/8] Mirroring to knowledge: $KNOWLEDGE_FILE"
+# 3. Create Knowledge Mirror
+echo "==> [3/10] Mirroring to knowledge: $KNOWLEDGE_FILE"
 mkdir -p "$KNOWLEDGE_DIR"
 cat <<EOF > "$KNOWLEDGE_FILE"
 # Migration: ${MIGRATION_NAME}
@@ -98,8 +122,8 @@ ${SQL_CONTENT}
 \`\`\`
 EOF
 
-# 3. Repair any orphaned migration history entries
-echo "==> [3/8] Repairing orphaned local migration history..."
+# 4. Repair any orphaned migration history entries
+echo "==> [4/10] Repairing orphaned local migration history..."
 supabase db dump --local --schema supabase_migrations --data-only 2>/dev/null \
   | rg -o "'[0-9]{14}'" \
   | tr -d "'" \
@@ -110,35 +134,35 @@ supabase db dump --local --schema supabase_migrations --data-only 2>/dev/null \
     fi
   done
 
-# 4. Apply to Database
-echo "==> [4/8] Applying migration to local database..."
-if yes | supabase db push --local; then
+# 5. Apply to Database
+echo "==> [5/10] Applying migration to local database..."
+if supabase db push --local <<< "y" 2>&1; then
     echo "==> Migration applied successfully."
     
-    # 5. Update Status Log
+    # 6. Update Status Log
     STATUS_FILE="knowledge/operations/MIGRATION_STATUS.md"
     mkdir -p "$(dirname "$STATUS_FILE")"
     echo "- $(date +%Y-%m-%d) $TIMESTAMP: Applied $MIGRATION_NAME" >> "$STATUS_FILE"
 
-    # 6. AUTO-SQUASH (The Cleanup)
-    echo "==> [6/8] Tidying up stale migrations (Squashing)..."
+    # 7. AUTO-SQUASH (The Cleanup)
+    echo "==> [7/10] Tidying up stale migrations (Squashing)..."
     if supabase migration squash --yes; then
         echo "==> Squashing complete. Folder is now lean."
         
-        # 7. DELETE Stale Knowledge Files
-        echo "==> [7/8] Deleting stale knowledge files..."
+        # 8. DELETE Stale Knowledge Files
+        echo "==> [8/10] Deleting stale knowledge files..."
         find "$KNOWLEDGE_DIR" -maxdepth 1 -name "*.md" ! -name "$(basename "$KNOWLEDGE_FILE")" -delete
     else
         echo "==> WARNING: Squash failed. Skipping cleanup."
     fi
 
-    # 8. Refresh local source-of-truth snapshot
-    echo "==> [8/8] Refreshing local database snapshot artifacts..."
+    # 9. Refresh local source-of-truth snapshot
+    echo "==> [9/10] Refreshing local database snapshot artifacts..."
     mkdir -p "$SNAPSHOT_DB_DIR"
     supabase db dump --local --schema public --file "$SNAPSHOT_DB_DIR/schema_snapshot.sql"
 
-    # 9. FRONTEND SYNC (Global Discovery Bridge)
-    echo "==> [9/10] Searching and Syncing frontend portals..."
+    # 10. FRONTEND SYNC (Global Discovery Bridge)
+    echo "==> [10/10] Searching and Syncing frontend portals..."
     PORTAL_NAMES=(
         "catatan-psikolog-user-portal"
         "catatan-psikolog-admin-portal"
@@ -155,9 +179,11 @@ if yes | supabase db push --local; then
             echo "    [!] Skip: Portal '$name' not found."
         fi
     done
-    echo "==> [10/10] All systems synchronized."
+    echo "==> All systems synchronized."
 
 else
     echo "==> ERROR: Failed to apply migration. Please check your SQL syntax."
+    echo "    -> Data backup exists at: $BACKUP_FILE"
+    echo "    -> Restore via: bash scripts/restore_local_db.sh"
     exit 1
 fi

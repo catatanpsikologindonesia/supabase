@@ -73,6 +73,16 @@ CREATE TYPE "public"."birth_process" AS ENUM (
 ALTER TYPE "public"."birth_process" OWNER TO "postgres";
 
 
+CREATE TYPE "public"."clinic_extension_request_status_enum" AS ENUM (
+    'PENDING',
+    'APPROVED',
+    'REJECTED'
+);
+
+
+ALTER TYPE "public"."clinic_extension_request_status_enum" OWNER TO "postgres";
+
+
 CREATE TYPE "public"."consent_source" AS ENUM (
     'registration_wizard',
     'invite_consent_page',
@@ -728,6 +738,70 @@ CREATE OR REPLACE FUNCTION "public"."admin_list_clinics"() RETURNS TABLE("clinic
 ALTER FUNCTION "public"."admin_list_clinics"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) RETURNS TABLE("request_id" "uuid", "clinic_id" "uuid", "approved_at" timestamp with time zone, "new_expired_date" timestamp with time zone)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_catalog'
+    AS $$
+DECLARE
+  v_request public.clinic_extension_requests%ROWTYPE;
+  v_current_expired_date timestamptz;
+  v_approved_at timestamptz := timezone('utc', now());
+  v_new_expired_date timestamptz;
+BEGIN
+  IF NOT public.is_admin_at_least('ADMIN') THEN
+    RAISE EXCEPTION 'Hanya admin yang dapat menyetujui pengajuan perpanjangan.';
+  END IF;
+
+  IF coalesce(p_added_days, 0) <= 0 THEN
+    RAISE EXCEPTION 'Durasi perpanjangan harus lebih dari 0 hari.';
+  END IF;
+
+  SELECT * INTO v_request
+  FROM public.clinic_extension_requests cer
+  WHERE cer.id = p_request_id
+  FOR UPDATE;
+
+  IF v_request.id IS NULL THEN
+    RAISE EXCEPTION 'Pengajuan perpanjangan tidak ditemukan.';
+  END IF;
+
+  IF v_request.status <> 'PENDING' THEN
+    RAISE EXCEPTION 'Hanya pengajuan berstatus PENDING yang dapat disetujui.';
+  END IF;
+
+  SELECT c.expired_date INTO v_current_expired_date
+  FROM public.clinics c
+  WHERE c.id = v_request.clinic_id
+  FOR UPDATE;
+
+  v_new_expired_date := (
+    CASE
+      WHEN v_current_expired_date IS NULL OR v_current_expired_date < v_approved_at THEN v_approved_at
+      ELSE v_current_expired_date
+    END
+  ) + make_interval(days => p_added_days);
+
+  UPDATE public.clinic_extension_requests
+  SET status = 'APPROVED',
+      approved_at = v_approved_at,
+      approved_by = auth.uid(),
+      added_days = p_added_days
+  WHERE id = v_request.id;
+
+  UPDATE public.clinics
+  SET expired_date = v_new_expired_date,
+      updated_at = timezone('utc', now())
+  WHERE id = v_request.clinic_id;
+
+  RETURN QUERY
+  SELECT v_request.id, v_request.clinic_id, v_approved_at, v_new_expired_date;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text" DEFAULT NULL::"text", "owner_user_id" "uuid" DEFAULT "auth"."uid"()) RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -837,6 +911,298 @@ $$;
 
 
 ALTER FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text" DEFAULT NULL::"text", "owner_user_id" "uuid" DEFAULT "auth"."uid"(), "permit_number" "text" DEFAULT NULL::"text", "owner_ktp_number" "text" DEFAULT NULL::"text", "phone_number" "text" DEFAULT NULL::"text", "address_line" "text" DEFAULT NULL::"text", "rt_rw" "text" DEFAULT NULL::"text", "province_name" "text" DEFAULT NULL::"text", "city_name" "text" DEFAULT NULL::"text", "district_name" "text" DEFAULT NULL::"text", "subdistrict_name" "text" DEFAULT NULL::"text", "postal_code" "text" DEFAULT NULL::"text", "expired_date" timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  normalized_name text;
+  base_slug text;
+  final_slug text;
+  suffix int := 0;
+  created_clinic_id uuid;
+  existing_clinic_id uuid;
+  owner_membership_id uuid;
+begin
+  if owner_user_id is null then
+    return jsonb_build_object(
+      'status', 'error',
+      'code', 'AUTH_REQUIRED',
+      'message', 'Akun login tidak ditemukan.'
+    );
+  end if;
+
+  normalized_name := nullif(btrim(clinic_name), '');
+  if normalized_name is null then
+    return jsonb_build_object(
+      'status', 'error',
+      'code', 'INVALID_CLINIC_NAME',
+      'message', 'Nama klinik wajib diisi.'
+    );
+  end if;
+
+  base_slug := nullif(regexp_replace(lower(coalesce(clinic_slug, normalized_name)), '[^a-z0-9]+', '-', 'g'), '');
+  base_slug := trim(both '-' from coalesce(base_slug, 'clinic'));
+  if base_slug = '' then
+    base_slug := 'clinic';
+  end if;
+
+  final_slug := base_slug;
+
+  while exists (select 1 from public.clinics c where c.slug = final_slug) loop
+    suffix := suffix + 1;
+    final_slug := base_slug || '-' || suffix::text;
+  end loop;
+
+  insert into public.users (id, role)
+  values (owner_user_id, 'clinic_staff'::public.user_role)
+  on conflict (id) do update
+  set role = 'clinic_staff'::public.user_role,
+      updated_at = now();
+
+  select cm.clinic_id, cm.id
+  into existing_clinic_id, owner_membership_id
+  from public.clinic_memberships cm
+  where cm.user_id = owner_user_id
+    and cm.is_owner = true
+    and cm.is_active = true
+  order by cm.created_at asc
+  limit 1;
+
+  if existing_clinic_id is not null then
+    update public.clinics c
+    set permit_number = coalesce(nullif(btrim(create_clinic_with_owner.permit_number), ''), c.permit_number),
+        owner_ktp_number = coalesce(nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''), c.owner_ktp_number),
+        phone_number = coalesce(nullif(btrim(create_clinic_with_owner.phone_number), ''), c.phone_number),
+        address_line = coalesce(nullif(btrim(create_clinic_with_owner.address_line), ''), c.address_line),
+        rt_rw = coalesce(nullif(btrim(create_clinic_with_owner.rt_rw), ''), c.rt_rw),
+        province_name = coalesce(nullif(btrim(create_clinic_with_owner.province_name), ''), c.province_name),
+        city_name = coalesce(nullif(btrim(create_clinic_with_owner.city_name), ''), c.city_name),
+        district_name = coalesce(nullif(btrim(create_clinic_with_owner.district_name), ''), c.district_name),
+        subdistrict_name = coalesce(nullif(btrim(create_clinic_with_owner.subdistrict_name), ''), c.subdistrict_name),
+        postal_code = coalesce(nullif(btrim(create_clinic_with_owner.postal_code), ''), c.postal_code),
+        expired_date = coalesce(create_clinic_with_owner.expired_date, c.expired_date),
+        updated_at = now()
+    where c.id = existing_clinic_id;
+
+    return jsonb_build_object(
+      'status', 'success',
+      'message', 'Owner sudah memiliki klinik aktif.',
+      'clinicId', existing_clinic_id,
+      'membershipId', owner_membership_id
+    );
+  end if;
+
+  insert into public.clinics (
+    name,
+    slug,
+    owner_user_id,
+    expired_date,
+    permit_number,
+    owner_ktp_number,
+    phone_number,
+    address_line,
+    rt_rw,
+    province_name,
+    city_name,
+    district_name,
+    subdistrict_name,
+    postal_code
+  )
+  values (
+    normalized_name,
+    final_slug,
+    owner_user_id,
+    create_clinic_with_owner.expired_date,
+    nullif(btrim(create_clinic_with_owner.permit_number), ''),
+    nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''),
+    nullif(btrim(create_clinic_with_owner.phone_number), ''),
+    nullif(btrim(create_clinic_with_owner.address_line), ''),
+    nullif(btrim(create_clinic_with_owner.rt_rw), ''),
+    nullif(btrim(create_clinic_with_owner.province_name), ''),
+    nullif(btrim(create_clinic_with_owner.city_name), ''),
+    nullif(btrim(create_clinic_with_owner.district_name), ''),
+    nullif(btrim(create_clinic_with_owner.subdistrict_name), ''),
+    nullif(btrim(create_clinic_with_owner.postal_code), '')
+  )
+  returning id into created_clinic_id;
+
+  insert into public.clinic_memberships (
+    clinic_id,
+    user_id,
+    is_owner,
+    is_staff,
+    is_practitioner,
+    profession,
+    is_active
+  )
+  values (
+    created_clinic_id,
+    owner_user_id,
+    true,
+    true,
+    true,
+    'psychologist'::public.practitioner_profession,
+    true
+  )
+  returning id into owner_membership_id;
+
+  return jsonb_build_object(
+    'status', 'success',
+    'message', 'Klinik berhasil dibuat.',
+    'clinicId', created_clinic_id,
+    'membershipId', owner_membership_id
+  );
+exception
+  when others then
+    return jsonb_build_object(
+      'status', 'error',
+      'code', 'SERVER_ERROR',
+      'message', 'Gagal membuat klinik: ' || sqlerrm
+    );
+end;
+$$;
+
+
+ALTER FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "expired_date" timestamp with time zone) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text" DEFAULT NULL::"text", "owner_user_id" "uuid" DEFAULT "auth"."uid"(), "permit_number" "text" DEFAULT NULL::"text", "owner_ktp_number" "text" DEFAULT NULL::"text", "phone_number" "text" DEFAULT NULL::"text", "address_line" "text" DEFAULT NULL::"text", "rt_rw" "text" DEFAULT NULL::"text", "province_name" "text" DEFAULT NULL::"text", "city_name" "text" DEFAULT NULL::"text", "district_name" "text" DEFAULT NULL::"text", "subdistrict_name" "text" DEFAULT NULL::"text", "postal_code" "text" DEFAULT NULL::"text", "full_address" "text" DEFAULT NULL::"text", "expired_date" timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  normalized_name text;
+  base_slug text;
+  final_slug text;
+  suffix int := 0;
+  created_clinic_id uuid;
+  existing_clinic_id uuid;
+  owner_membership_id uuid;
+begin
+  if owner_user_id is null then
+    return jsonb_build_object('status', 'error', 'code', 'AUTH_REQUIRED', 'message', 'Akun login tidak ditemukan.');
+  end if;
+
+  normalized_name := nullif(btrim(clinic_name), '');
+  if normalized_name is null then
+    return jsonb_build_object('status', 'error', 'code', 'INVALID_CLINIC_NAME', 'message', 'Nama klinik wajib diisi.');
+  end if;
+
+  base_slug := nullif(regexp_replace(lower(coalesce(clinic_slug, normalized_name)), '[^a-z0-9]+', '-', 'g'), '');
+  base_slug := trim(both '-' from coalesce(base_slug, 'clinic'));
+  if base_slug = '' then
+    base_slug := 'clinic';
+  end if;
+
+  final_slug := base_slug;
+
+  while exists (select 1 from public.clinics c where c.slug = final_slug) loop
+    suffix := suffix + 1;
+    final_slug := base_slug || '-' || suffix::text;
+  end loop;
+
+  insert into public.users (id, role)
+  values (owner_user_id, 'clinic_staff'::public.user_role)
+  on conflict (id) do update
+  set role = 'clinic_staff'::public.user_role,
+      updated_at = now();
+
+  select cm.clinic_id, cm.id
+  into existing_clinic_id, owner_membership_id
+  from public.clinic_memberships cm
+  where cm.user_id = owner_user_id
+    and cm.is_owner = true
+    and cm.is_active = true
+  order by cm.created_at asc
+  limit 1;
+
+  if existing_clinic_id is not null then
+    update public.clinics c
+    set permit_number = coalesce(nullif(btrim(create_clinic_with_owner.permit_number), ''), c.permit_number),
+        owner_ktp_number = coalesce(nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''), c.owner_ktp_number),
+        phone_number = coalesce(nullif(btrim(create_clinic_with_owner.phone_number), ''), c.phone_number),
+        address_line = coalesce(nullif(btrim(create_clinic_with_owner.address_line), ''), c.address_line),
+        rt_rw = coalesce(nullif(btrim(create_clinic_with_owner.rt_rw), ''), c.rt_rw),
+        province_name = coalesce(nullif(btrim(create_clinic_with_owner.province_name), ''), c.province_name),
+        city_name = coalesce(nullif(btrim(create_clinic_with_owner.city_name), ''), c.city_name),
+        district_name = coalesce(nullif(btrim(create_clinic_with_owner.district_name), ''), c.district_name),
+        subdistrict_name = coalesce(nullif(btrim(create_clinic_with_owner.subdistrict_name), ''), c.subdistrict_name),
+        postal_code = coalesce(nullif(btrim(create_clinic_with_owner.postal_code), ''), c.postal_code),
+        full_address = coalesce(nullif(btrim(create_clinic_with_owner.full_address), ''), c.full_address),
+        expired_date = coalesce(create_clinic_with_owner.expired_date, c.expired_date),
+        updated_at = now()
+    where c.id = existing_clinic_id;
+
+    return jsonb_build_object('status', 'success', 'message', 'Owner sudah memiliki klinik aktif.', 'clinicId', existing_clinic_id, 'membershipId', owner_membership_id);
+  end if;
+
+  insert into public.clinics (
+    name,
+    slug,
+    owner_user_id,
+    expired_date,
+    permit_number,
+    owner_ktp_number,
+    phone_number,
+    address_line,
+    rt_rw,
+    province_name,
+    city_name,
+    district_name,
+    subdistrict_name,
+    postal_code,
+    full_address
+  ) values (
+    normalized_name,
+    final_slug,
+    owner_user_id,
+    create_clinic_with_owner.expired_date,
+    nullif(btrim(create_clinic_with_owner.permit_number), ''),
+    nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''),
+    nullif(btrim(create_clinic_with_owner.phone_number), ''),
+    nullif(btrim(create_clinic_with_owner.address_line), ''),
+    nullif(btrim(create_clinic_with_owner.rt_rw), ''),
+    nullif(btrim(create_clinic_with_owner.province_name), ''),
+    nullif(btrim(create_clinic_with_owner.city_name), ''),
+    nullif(btrim(create_clinic_with_owner.district_name), ''),
+    nullif(btrim(create_clinic_with_owner.subdistrict_name), ''),
+    nullif(btrim(create_clinic_with_owner.postal_code), ''),
+    nullif(btrim(create_clinic_with_owner.full_address), '')
+  )
+  returning id into created_clinic_id;
+
+  insert into public.clinic_memberships (
+    clinic_id,
+    user_id,
+    is_owner,
+    is_staff,
+    is_practitioner,
+    profession,
+    is_active
+  )
+  values (
+    created_clinic_id,
+    owner_user_id,
+    true,
+    true,
+    true,
+    'psychologist'::public.practitioner_profession,
+    true
+  )
+  returning id into owner_membership_id;
+
+  return jsonb_build_object('status', 'success', 'message', 'Klinik berhasil dibuat.', 'clinicId', created_clinic_id, 'membershipId', owner_membership_id);
+exception
+  when others then
+    return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal membuat klinik: ' || sqlerrm);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "full_address" "text", "expired_date" timestamp with time zone) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_patient_from_auth_user"("auth_email" "text", "auth_user_id" "uuid", "invite_token" "text", "auth_phone" "text" DEFAULT NULL::"text") RETURNS "jsonb"
@@ -1189,6 +1555,41 @@ $$;
 ALTER FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_clinics_with_pending_extension"() RETURNS TABLE("id" "uuid", "name" "text", "slug" character varying, "is_active" boolean, "owner_user_id" "uuid", "created_at" timestamp with time zone, "updated_at" timestamp with time zone, "expired_date" timestamp with time zone, "is_agreement_signed" boolean, "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_catalog'
+    AS $$
+  SELECT DISTINCT
+    c.id,
+    c.name,
+    c.slug,
+    c.is_active,
+    c.owner_user_id,
+    c.created_at,
+    c.updated_at,
+    c.expired_date,
+    c.is_agreement_signed,
+    c.permit_number,
+    c.owner_ktp_number,
+    c.phone_number,
+    c.address_line,
+    c.rt_rw,
+    c.province_name,
+    c.city_name,
+    c.district_name,
+    c.subdistrict_name,
+    c.postal_code
+  FROM public.clinics c
+  INNER JOIN public.clinic_extension_requests cer
+    ON cer.clinic_id = c.id
+   AND cer.status = 'PENDING'
+  ORDER BY c.created_at DESC;
+$$;
+
+
+ALTER FUNCTION "public"."get_clinics_with_pending_extension"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_invitation_by_token"("invite_token" "text") RETURNS TABLE("email" "text", "phone" "text", "contact_type" "text", "expires_at" timestamp with time zone, "is_used" boolean, "clinic_id" "uuid", "clinic_name" "text", "flow" "public"."patient_invitation_flow", "used_reason" "public"."patient_invitation_used_reason", "session_start_at" timestamp with time zone, "session_end_at" timestamp with time zone, "session_timezone" "text", "target_patient_id" "uuid")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -1359,6 +1760,65 @@ $$;
 
 
 ALTER FUNCTION "public"."is_portal_staff"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."is_registered_profile_email"("p_email" "text") RETURNS boolean
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public'
+    AS $$
+  select exists (
+    select 1
+    from public.users u
+    left join public.clinic_memberships cm on cm.user_id = u.id
+    where lower(trim(coalesce(cm.email, ''))) = lower(trim(p_email))
+      and u.role = 'clinic_staff'
+    limit 1
+  );
+$$;
+
+
+ALTER FUNCTION "public"."is_registered_profile_email"("p_email" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") RETURNS TABLE("request_id" "uuid", "clinic_id" "uuid", "rejected_at" timestamp with time zone)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_catalog'
+    AS $$
+DECLARE
+  v_request public.clinic_extension_requests%ROWTYPE;
+  v_rejected_at timestamptz := timezone('utc', now());
+BEGIN
+  IF NOT public.is_admin_at_least('ADMIN') THEN
+    RAISE EXCEPTION 'Hanya admin yang dapat menolak pengajuan perpanjangan.';
+  END IF;
+
+  SELECT * INTO v_request
+  FROM public.clinic_extension_requests cer
+  WHERE cer.id = p_request_id
+  FOR UPDATE;
+
+  IF v_request.id IS NULL THEN
+    RAISE EXCEPTION 'Pengajuan perpanjangan tidak ditemukan.';
+  END IF;
+
+  IF v_request.status <> 'PENDING' THEN
+    RAISE EXCEPTION 'Hanya pengajuan berstatus PENDING yang dapat ditolak.';
+  END IF;
+
+  UPDATE public.clinic_extension_requests
+  SET status = 'REJECTED',
+      approved_at = NULL,
+      approved_by = NULL,
+      added_days = NULL
+  WHERE id = v_request.id;
+
+  RETURN QUERY
+  SELECT v_request.id, v_request.clinic_id, v_rejected_at;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."rls_auto_enable"() RETURNS "event_trigger"
@@ -2464,6 +2924,21 @@ CREATE TABLE IF NOT EXISTS "public"."b2b_agreement_templates" (
 ALTER TABLE "public"."b2b_agreement_templates" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."b2b_agreements" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL,
+    "template_id" "uuid" NOT NULL,
+    "signed_by_name" "text" NOT NULL,
+    "signed_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "signature_image_path" "text" NOT NULL,
+    CONSTRAINT "b2b_agreements_signature_image_path_check" CHECK (("btrim"("signature_image_path") <> ''::"text")),
+    CONSTRAINT "b2b_agreements_signed_by_name_check" CHECK (("btrim"("signed_by_name") <> ''::"text"))
+);
+
+
+ALTER TABLE "public"."b2b_agreements" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."b2b_invitations" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "clinic_id" "uuid" NOT NULL,
@@ -2483,6 +2958,23 @@ CREATE TABLE IF NOT EXISTS "public"."b2b_invitations" (
 
 
 ALTER TABLE "public"."b2b_invitations" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."clinic_extension_requests" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "clinic_id" "uuid" NOT NULL,
+    "b2b_agreement_id" "uuid" NOT NULL,
+    "status" "public"."clinic_extension_request_status_enum" DEFAULT 'PENDING'::"public"."clinic_extension_request_status_enum" NOT NULL,
+    "requested_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "approved_at" timestamp with time zone,
+    "approved_by" "uuid",
+    "added_days" integer,
+    CONSTRAINT "clinic_extension_requests_added_days_check" CHECK ((("added_days" IS NULL) OR ("added_days" > 0))),
+    CONSTRAINT "clinic_extension_requests_approval_fields_check" CHECK (((("status" = 'PENDING'::"public"."clinic_extension_request_status_enum") AND ("approved_at" IS NULL) AND ("approved_by" IS NULL) AND ("added_days" IS NULL)) OR (("status" = 'REJECTED'::"public"."clinic_extension_request_status_enum") AND ("approved_at" IS NULL) AND ("approved_by" IS NULL) AND ("added_days" IS NULL)) OR (("status" = 'APPROVED'::"public"."clinic_extension_request_status_enum") AND ("approved_at" IS NOT NULL) AND ("approved_by" IS NOT NULL) AND ("added_days" IS NOT NULL))))
+);
+
+
+ALTER TABLE "public"."clinic_extension_requests" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."clinic_memberships" (
@@ -2543,7 +3035,8 @@ CREATE TABLE IF NOT EXISTS "public"."clinics" (
     "city_name" "text",
     "district_name" "text",
     "subdistrict_name" "text",
-    "postal_code" "text"
+    "postal_code" "text",
+    "full_address" "text"
 );
 
 
@@ -2576,6 +3069,21 @@ CREATE TABLE IF NOT EXISTS "public"."cognitive_assessments" (
 
 
 ALTER TABLE "public"."cognitive_assessments" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."consent_templates" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "title" "text" NOT NULL,
+    "body" "text" NOT NULL,
+    "is_active" boolean DEFAULT false NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "consent_templates_body_check" CHECK (("btrim"("body") <> ''::"text")),
+    CONSTRAINT "consent_templates_title_check" CHECK (("btrim"("title") <> ''::"text"))
+);
+
+
+ALTER TABLE "public"."consent_templates" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."demo_requests" (
@@ -2614,6 +3122,7 @@ CREATE TABLE IF NOT EXISTS "public"."demo_requests" (
     "email_delivery_error" "text",
     "registration_status" "text" DEFAULT 'not_registered'::"text" NOT NULL,
     "registered_at" timestamp with time zone,
+    "registered_clinic_id" "uuid",
     CONSTRAINT "demo_requests_email_delivery_status_check" CHECK (("email_delivery_status" = ANY (ARRAY['pending'::"text", 'sent'::"text", 'failed'::"text"]))),
     CONSTRAINT "demo_requests_registration_status_check" CHECK (("registration_status" = ANY (ARRAY['registered'::"text", 'not_registered'::"text"])))
 );
@@ -2699,6 +3208,22 @@ CREATE TABLE IF NOT EXISTS "public"."occupation" (
 ALTER TABLE "public"."occupation" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."otp_verifications" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "email" "text" NOT NULL,
+    "otp_code" "text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "expires_at" timestamp with time zone NOT NULL,
+    "is_verified" boolean DEFAULT false,
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    "created_by" "uuid",
+    "updated_by" "uuid"
+);
+
+
+ALTER TABLE "public"."otp_verifications" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."patient_clinic_consents" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "clinic_id" "uuid" NOT NULL,
@@ -2719,6 +3244,23 @@ CREATE TABLE IF NOT EXISTS "public"."patient_clinic_consents" (
 
 
 ALTER TABLE "public"."patient_clinic_consents" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."patient_consents" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "visit_id" "uuid",
+    "patient_id" "uuid" NOT NULL,
+    "consent_type" "text" NOT NULL,
+    "signed_by_name" "text" NOT NULL,
+    "signature_path" "text",
+    "notes" "text" DEFAULT ''::"text",
+    "signed_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "patient_consents_consent_type_check" CHECK (("consent_type" = ANY (ARRAY['informed'::"text", 'general'::"text"])))
+);
+
+
+ALTER TABLE "public"."patient_consents" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."patient_family_data" (
@@ -3006,6 +3548,11 @@ ALTER TABLE ONLY "public"."b2b_agreement_templates"
 
 
 
+ALTER TABLE ONLY "public"."b2b_agreements"
+    ADD CONSTRAINT "b2b_agreements_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."b2b_invitations"
     ADD CONSTRAINT "b2b_invitations_pkey" PRIMARY KEY ("id");
 
@@ -3013,6 +3560,11 @@ ALTER TABLE ONLY "public"."b2b_invitations"
 
 ALTER TABLE ONLY "public"."b2b_invitations"
     ADD CONSTRAINT "b2b_invitations_token_hash_key" UNIQUE ("token_hash");
+
+
+
+ALTER TABLE ONLY "public"."clinic_extension_requests"
+    ADD CONSTRAINT "clinic_extension_requests_pkey" PRIMARY KEY ("id");
 
 
 
@@ -3051,6 +3603,11 @@ ALTER TABLE ONLY "public"."cognitive_assessments"
 
 
 
+ALTER TABLE ONLY "public"."consent_templates"
+    ADD CONSTRAINT "consent_templates_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."demo_requests"
     ADD CONSTRAINT "demo_requests_pkey" PRIMARY KEY ("id");
 
@@ -3081,8 +3638,18 @@ ALTER TABLE ONLY "public"."occupation"
 
 
 
+ALTER TABLE ONLY "public"."otp_verifications"
+    ADD CONSTRAINT "otp_verifications_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."patient_clinic_consents"
     ADD CONSTRAINT "patient_clinic_consents_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."patient_consents"
+    ADD CONSTRAINT "patient_consents_pkey" PRIMARY KEY ("id");
 
 
 
@@ -3161,6 +3728,18 @@ CREATE INDEX "appointments_start_time_idx" ON "public"."appointments" USING "btr
 
 
 
+CREATE UNIQUE INDEX "clinic_extension_requests_b2b_agreement_id_key" ON "public"."clinic_extension_requests" USING "btree" ("b2b_agreement_id");
+
+
+
+CREATE INDEX "clinic_extension_requests_clinic_id_requested_at_idx" ON "public"."clinic_extension_requests" USING "btree" ("clinic_id", "requested_at" DESC);
+
+
+
+CREATE UNIQUE INDEX "clinic_extension_requests_pending_unique_idx" ON "public"."clinic_extension_requests" USING "btree" ("clinic_id") WHERE ("status" = 'PENDING'::"public"."clinic_extension_request_status_enum");
+
+
+
 CREATE INDEX "clinic_memberships_clinic_idx" ON "public"."clinic_memberships" USING "btree" ("clinic_id");
 
 
@@ -3189,6 +3768,10 @@ CREATE UNIQUE INDEX "cognitive_assessments_visit_id_unique" ON "public"."cogniti
 
 
 
+CREATE UNIQUE INDEX "consent_templates_single_active_idx" ON "public"."consent_templates" USING "btree" ("is_active") WHERE ("is_active" = true);
+
+
+
 CREATE INDEX "developmental_history_clinic_id_idx" ON "public"."developmental_history" USING "btree" ("clinic_id");
 
 
@@ -3206,6 +3789,18 @@ CREATE UNIQUE INDEX "education_name_unique_idx" ON "public"."education" USING "b
 
 
 CREATE UNIQUE INDEX "idx_admin_profiles_email_lower" ON "public"."admin_profiles" USING "btree" ("lower"("email")) WHERE ("email" IS NOT NULL);
+
+
+
+CREATE INDEX "idx_otp_verifications_email_created_at" ON "public"."otp_verifications" USING "btree" ("email", "created_at" DESC);
+
+
+
+CREATE INDEX "idx_patient_consents_patient_id" ON "public"."patient_consents" USING "btree" ("patient_id");
+
+
+
+CREATE INDEX "idx_patient_consents_visit_id" ON "public"."patient_consents" USING "btree" ("visit_id");
 
 
 
@@ -3419,6 +4014,16 @@ ALTER TABLE ONLY "public"."appointments"
 
 
 
+ALTER TABLE ONLY "public"."b2b_agreements"
+    ADD CONSTRAINT "b2b_agreements_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."b2b_agreements"
+    ADD CONSTRAINT "b2b_agreements_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."b2b_agreement_templates"("id") ON DELETE RESTRICT;
+
+
+
 ALTER TABLE ONLY "public"."b2b_invitations"
     ADD CONSTRAINT "b2b_invitations_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
@@ -3431,6 +4036,21 @@ ALTER TABLE ONLY "public"."b2b_invitations"
 
 ALTER TABLE ONLY "public"."b2b_invitations"
     ADD CONSTRAINT "b2b_invitations_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."b2b_agreement_templates"("id");
+
+
+
+ALTER TABLE ONLY "public"."clinic_extension_requests"
+    ADD CONSTRAINT "clinic_extension_requests_approved_by_fkey" FOREIGN KEY ("approved_by") REFERENCES "public"."admin_profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."clinic_extension_requests"
+    ADD CONSTRAINT "clinic_extension_requests_b2b_agreement_id_fkey" FOREIGN KEY ("b2b_agreement_id") REFERENCES "public"."b2b_agreements"("id") ON DELETE RESTRICT;
+
+
+
+ALTER TABLE ONLY "public"."clinic_extension_requests"
+    ADD CONSTRAINT "clinic_extension_requests_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
 
 
@@ -3486,6 +4106,11 @@ ALTER TABLE ONLY "public"."demo_requests"
 
 ALTER TABLE ONLY "public"."demo_requests"
     ADD CONSTRAINT "demo_requests_province_id_fkey" FOREIGN KEY ("province_id") REFERENCES "public"."address_province"("id");
+
+
+
+ALTER TABLE ONLY "public"."demo_requests"
+    ADD CONSTRAINT "demo_requests_registered_clinic_id_fkey" FOREIGN KEY ("registered_clinic_id") REFERENCES "public"."clinics"("id") ON DELETE SET NULL;
 
 
 
@@ -3551,6 +4176,16 @@ ALTER TABLE ONLY "public"."patient_clinic_consents"
 
 ALTER TABLE ONLY "public"."patient_clinic_consents"
     ADD CONSTRAINT "patient_clinic_consents_signature_id_fkey" FOREIGN KEY ("signature_id") REFERENCES "public"."patient_signatures"("id");
+
+
+
+ALTER TABLE ONLY "public"."patient_consents"
+    ADD CONSTRAINT "patient_consents_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."patient_consents"
+    ADD CONSTRAINT "patient_consents_visit_id_fkey" FOREIGN KEY ("visit_id") REFERENCES "public"."patient_visits"("id") ON DELETE CASCADE;
 
 
 
@@ -3783,7 +4418,33 @@ CREATE POLICY "appointments_clinic_ops_all" ON "public"."appointments" TO "authe
 ALTER TABLE "public"."b2b_agreement_templates" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."b2b_agreements" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "b2b_agreements_owner_insert" ON "public"."b2b_agreements" FOR INSERT TO "authenticated" WITH CHECK ("public"."has_owner_access"("clinic_id"));
+
+
+
+CREATE POLICY "b2b_agreements_select" ON "public"."b2b_agreements" FOR SELECT TO "authenticated" USING (("public"."is_admin_at_least"('STAFF'::"text") OR "public"."has_active_membership"("clinic_id")));
+
+
+
 ALTER TABLE "public"."b2b_invitations" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."clinic_extension_requests" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "clinic_extension_requests_insert" ON "public"."clinic_extension_requests" FOR INSERT TO "authenticated" WITH CHECK (("public"."is_admin_at_least"('STAFF'::"text") OR "public"."has_owner_access"("clinic_id")));
+
+
+
+CREATE POLICY "clinic_extension_requests_select" ON "public"."clinic_extension_requests" FOR SELECT TO "authenticated" USING (("public"."is_admin_at_least"('STAFF'::"text") OR "public"."has_active_membership"("clinic_id")));
+
+
+
+CREATE POLICY "clinic_extension_requests_update" ON "public"."clinic_extension_requests" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+
 
 
 ALTER TABLE "public"."clinic_memberships" ENABLE ROW LEVEL SECURITY;
@@ -3825,6 +4486,25 @@ ALTER TABLE "public"."cognitive_assessments" ENABLE ROW LEVEL SECURITY;
 
 
 CREATE POLICY "cognitive_assessments_clinic_ops_all" ON "public"."cognitive_assessments" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
+
+
+
+ALTER TABLE "public"."consent_templates" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "consent_templates_delete" ON "public"."consent_templates" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('ADMIN'::"text"));
+
+
+
+CREATE POLICY "consent_templates_insert" ON "public"."consent_templates" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('ADMIN'::"text"));
+
+
+
+CREATE POLICY "consent_templates_select" ON "public"."consent_templates" FOR SELECT TO "authenticated" USING (true);
+
+
+
+CREATE POLICY "consent_templates_update" ON "public"."consent_templates" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('ADMIN'::"text")) WITH CHECK ("public"."is_admin_at_least"('ADMIN'::"text"));
 
 
 
@@ -3902,10 +4582,28 @@ CREATE POLICY "occupation_select_all" ON "public"."occupation" FOR SELECT TO "au
 
 
 
+ALTER TABLE "public"."otp_verifications" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."patient_clinic_consents" ENABLE ROW LEVEL SECURITY;
 
 
 CREATE POLICY "patient_clinic_consents_clinic_ops_all" ON "public"."patient_clinic_consents" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
+
+
+
+ALTER TABLE "public"."patient_consents" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "patient_consents_insert" ON "public"."patient_consents" FOR INSERT TO "authenticated" WITH CHECK (true);
+
+
+
+CREATE POLICY "patient_consents_select" ON "public"."patient_consents" FOR SELECT TO "authenticated" USING (true);
+
+
+
+CREATE POLICY "patient_consents_update" ON "public"."patient_consents" FOR UPDATE TO "authenticated" USING (true) WITH CHECK (true);
 
 
 
@@ -4080,9 +4778,27 @@ GRANT ALL ON FUNCTION "public"."admin_list_clinics"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) TO "anon";
+GRANT ALL ON FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "expired_date" timestamp with time zone) TO "anon";
+GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "expired_date" timestamp with time zone) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "expired_date" timestamp with time zone) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "full_address" "text", "expired_date" timestamp with time zone) TO "anon";
+GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "full_address" "text", "expired_date" timestamp with time zone) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "full_address" "text", "expired_date" timestamp with time zone) TO "service_role";
 
 
 
@@ -4101,6 +4817,12 @@ GRANT ALL ON FUNCTION "public"."create_patient_invitation_with_schedule"("target
 GRANT ALL ON FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) TO "anon";
 GRANT ALL ON FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_clinics_with_pending_extension"() TO "anon";
+GRANT ALL ON FUNCTION "public"."get_clinics_with_pending_extension"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_clinics_with_pending_extension"() TO "service_role";
 
 
 
@@ -4155,6 +4877,18 @@ GRANT ALL ON FUNCTION "public"."is_admin_at_least"("p_min_role" "text") TO "serv
 GRANT ALL ON FUNCTION "public"."is_portal_staff"() TO "anon";
 GRANT ALL ON FUNCTION "public"."is_portal_staff"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."is_portal_staff"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."is_registered_profile_email"("p_email" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."is_registered_profile_email"("p_email" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."is_registered_profile_email"("p_email" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") TO "service_role";
 
 
 
@@ -4248,9 +4982,21 @@ GRANT ALL ON TABLE "public"."b2b_agreement_templates" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."b2b_agreements" TO "anon";
+GRANT ALL ON TABLE "public"."b2b_agreements" TO "authenticated";
+GRANT ALL ON TABLE "public"."b2b_agreements" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."b2b_invitations" TO "anon";
 GRANT ALL ON TABLE "public"."b2b_invitations" TO "authenticated";
 GRANT ALL ON TABLE "public"."b2b_invitations" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."clinic_extension_requests" TO "anon";
+GRANT ALL ON TABLE "public"."clinic_extension_requests" TO "authenticated";
+GRANT ALL ON TABLE "public"."clinic_extension_requests" TO "service_role";
 
 
 
@@ -4275,6 +5021,12 @@ GRANT ALL ON TABLE "public"."clinics" TO "service_role";
 GRANT ALL ON TABLE "public"."cognitive_assessments" TO "anon";
 GRANT ALL ON TABLE "public"."cognitive_assessments" TO "authenticated";
 GRANT ALL ON TABLE "public"."cognitive_assessments" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."consent_templates" TO "anon";
+GRANT ALL ON TABLE "public"."consent_templates" TO "authenticated";
+GRANT ALL ON TABLE "public"."consent_templates" TO "service_role";
 
 
 
@@ -4314,9 +5066,21 @@ GRANT ALL ON TABLE "public"."occupation" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."otp_verifications" TO "anon";
+GRANT ALL ON TABLE "public"."otp_verifications" TO "authenticated";
+GRANT ALL ON TABLE "public"."otp_verifications" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "anon";
 GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "authenticated";
 GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."patient_consents" TO "anon";
+GRANT ALL ON TABLE "public"."patient_consents" TO "authenticated";
+GRANT ALL ON TABLE "public"."patient_consents" TO "service_role";
 
 
 

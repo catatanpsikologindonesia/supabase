@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
 
     const { data: invitation, error: fetchError } = await service
       .from('b2b_invitations')
-      .select('id, clinic_id, status, expires_at')
+      .select('id, clinic_id, template_id, status, expires_at, signer_name, signer_position')
       .eq('token_hash', tokenHash)
       .single();
 
@@ -144,12 +144,33 @@ Deno.serve(async (req) => {
     }
 
     const now = new Date().toISOString();
+
+    const { error: agreementInsertError } = await service
+      .from('b2b_agreements')
+      .insert({
+        clinic_id: invitation.clinic_id,
+        template_id: invitation.template_id,
+        signed_by_name: invitation.signer_name ?? 'Clinic Owner',
+        signed_at: now,
+        signature_image_path: fileName,
+      });
+
+    if (agreementInsertError) {
+      console.error('[submit-b2b-invitation] agreement insert error:', agreementInsertError);
+      return respond(500, requestId, allowedOrigin, {
+        success: false, code: 'CREATE_FAILED', message: 'Failed to store signed agreement.', request_id: requestId,
+      });
+    }
+
     const { error: updateError } = await service
       .from('b2b_invitations')
       .update({
         status: 'signed',
         signed_at: now,
         signature_url: signatureUrl,
+        signature_storage_path: fileName,
+        signed_by_name: invitation.signer_name ?? 'Clinic Owner',
+        signed_by_position: invitation.signer_position ?? null,
         signed_ip: signedIp,
         signed_user_agent: signedUserAgent,
         updated_at: now,
