@@ -1,41 +1,66 @@
 # Local Stack And Mirror
 
-## Daily Commands
+## Main Commands
 
 ```bash
 make start-local
+make start-local-restore
+make restore-local
 make prepare-local
 make mirror-remote-to-local
 ```
 
-## Recommended Usage
-
-- use `make start-local` for normal development
-- use `make prepare-local` only when you intentionally need restore + migration replay
-- use `make mirror-remote-to-local` only when you intentionally want remote parity copied into local state
-
 ## Current Local Startup Behavior
 
-`make start-local` now:
+`make start-local` runs `scripts/start_local_stack.sh`, which currently:
 
-- loads `.env.local`
-- restores the local DB snapshot by default
-- validates the restored core-table counts against `snapshot/database/db_counts.txt` when that metadata exists
+- prepares Colima-compatible Docker socket links
+- loads `.env.local` when present
+- cleans stale Supabase containers for this project id when needed
 - starts the local Supabase stack
-- restores binary storage snapshot from `snapshot/storage/objects/` when present
-- cleans stale Docker containers for the current project when name conflicts occur
-- retries startup once after cleanup
-- treats repository-owned local artifacts as the startup baseline
+- preserves the current local DB by default
+- optionally restores the committed DB snapshot when `AUTO_PREPARE_LOCAL_ON_START=1`
+- ensures required schemas and grants exist locally
+- restores local storage binaries snapshot
+- prints local URLs and keys from runtime status where available
 
-## Snapshot Safety
+## Current Restore Behavior
 
-- `scripts/pull_remote_snapshot.sh` now requires the resolved `SUPABASE_PROJECT_REF` to match the expected project ref before writing snapshot artifacts.
-- remote snapshot pulls persist `snapshot/database/db_counts.txt` so later local restores can prove the restored row counts match the snapshot source.
-- if `restore_local_db.sh` restores a dump but the core business-table counts do not match the snapshot metadata, the script exits non-zero instead of silently continuing with a corrupted local baseline.
+`make restore-local` runs `scripts/restore_local_db.sh`, which currently:
+
+- restores from `snapshot/database/db_full_snapshot.dump` by default
+- restores inside the local Postgres container
+- recreates required local schemas
+- resyncs sequences
+- optionally restores auth snapshot only with explicit opt-in
+- verifies key table counts using `snapshot/database/db_counts.txt` when available
+
+## Current Prepare Behavior
+
+`make prepare-local` currently:
+
+- parks migration SQL files temporarily
+- restores the local DB snapshot
+- re-applies parked migrations on top
+- verifies key local artifacts
+- restores the migration files back into place
+
+## Current Mirror Behavior
+
+`make mirror-remote-to-local` runs `scripts/full_mirror_remote_to_local.sh`, which currently:
+
+- pulls remote snapshot artifacts
+- starts the local stack
+- restores the DB snapshot locally
+- syncs auth
+- syncs cron jobs
+- syncs storage objects and metadata
+- captures remote function metadata
+- compares key remote and local counts
 
 ## Local Ports
 
 - API `55321`
 - DB `55322`
 - Studio `55323`
-- Mailpit `55324`
+- Inbucket `55324`

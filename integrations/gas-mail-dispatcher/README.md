@@ -1,43 +1,46 @@
 # GAS Mail Dispatcher
 
-Single source of truth untuk jalur pengiriman email Catatan Psikolog:
+Google Apps Script is the outbound email bridge for this Supabase backend.
 
-- HTML email dirender di Supabase edge function.
-- GAS hanya bertugas memverifikasi signature, mencegah replay, lalu mengirim email via `GmailApp.sendEmail`.
+## Current Role
 
-## Script Properties
+- edge functions render the email HTML
+- Supabase signs the request with HMAC SHA-256
+- Apps Script verifies the signature and replay fields
+- Apps Script sends the message through Gmail
 
-Tambahkan Script Property berikut di Apps Script:
-
-- `MAIL_WEBHOOK_SECRET`
-
-Nilainya harus sama persis dengan env Supabase:
+## Required Script Property
 
 - `MAIL_WEBHOOK_SECRET`
 
-## Mail Identity
+It must match the Supabase runtime secret with the same name.
 
-- sender name: `Catatan Psikolog Support`
-- sender address: `support@catatanpsikolog.id`
-- if the Apps Script executor account does not have `support@catatanpsikolog.id` configured as a valid Gmail alias, the dispatcher will automatically fall back to the account default sender address
-
-## Required Supabase Env
+## Required Supabase Secrets
 
 - `MAIL_DISPATCHER_WEBHOOK_URL`
 - `MAIL_WEBHOOK_SECRET`
 
-## Edge Functions
+## Current Mail-Related Functions
 
 - `send-patient-invitation`
 - `send-referral-pin`
+- `send-otp`
+- `submit-demo-request`
+
+Authenticated orchestration functions also trigger shared mail helpers through `_shared/patient_invitation_mail.ts` and `_shared/referral_pin_mail.ts`.
+
+## Sender Identity
+
+- preferred sender name: `Catatan Psikolog Support`
+- preferred sender address: `support@catatanpsikolog.id`
+
+If the executing Apps Script account does not expose that alias, Gmail falls back to the account default sender address.
 
 ## Payload Contract
 
-Dispatcher menerima JSON berikut:
-
 ```json
 {
-  "timestamp": "2026-04-04T16:00:00.000Z",
+  "timestamp": "2026-05-19T00:00:00.000Z",
   "request_id": "uuid-or-stable-request-id",
   "to": "recipient@example.com",
   "subject": "Email subject",
@@ -48,7 +51,7 @@ Dispatcher menerima JSON berikut:
 }
 ```
 
-String yang ditandatangani:
+Signed message order:
 
 ```text
 timestamp
@@ -57,18 +60,12 @@ to
 subject
 html
 reply_to
-use_custom_from ? 1 : 0
+use_custom_from
 ```
 
-## Deploy
+## Deployment
 
-1. Copy [Code.gs](./Code.gs) ke Apps Script project baru.
-2. Set Script Property `MAIL_WEBHOOK_SECRET`.
-3. Deploy sebagai Web App.
-4. Simpan URL Web App itu ke env Supabase `MAIL_DISPATCHER_WEBHOOK_URL`.
-5. Deploy edge function yang membutuhkan email.
-
-## Notes
-
-- `Code.gs` sengaja general-purpose. Dia tidak tahu business flow invite/referral.
-- Semua subject, template, dan penerima email ditentukan dari Supabase project Catatan Psikolog.
+1. Copy `Code.gs` into an Apps Script project.
+2. Set the `MAIL_WEBHOOK_SECRET` script property.
+3. Deploy the script as a web app.
+4. Save the web app URL into `MAIL_DISPATCHER_WEBHOOK_URL` in Supabase secrets.

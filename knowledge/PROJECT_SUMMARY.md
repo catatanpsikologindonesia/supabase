@@ -1,13 +1,32 @@
 # Project Summary
 
-**Project Name:** Catatan Psikolog - Supabase Backend
+**Project Name:** Catatan Psikolog Supabase Backend
 
-**Purpose:** Provides the primary operational database, authentication, and edge function infrastructure for the Catatan Psikolog psychology clinic management ecosystem.
+## Purpose
 
-**Key Components:**
-- Supabase Migrations (`supabase/migrations`)
-- Edge Functions (`supabase/functions`)
-- Automation Scripts (`scripts/`)
-- Snapshots & Backup Configurations (`snapshot/`)
+Provide the shared database and backend execution layer for Catatan Psikolog.
 
-**Target Audience:** Clinic staff, psychologists, and patients accessing data through the `catatan-psikolog-user-portal`.
+## Current Components
+
+- squashed SQL schema baseline in `supabase/migrations/`
+- 23 Deno edge functions in `supabase/functions/`
+- `_shared/` helper modules for auth, HTTP, mail, rate limiting, OTP, validation, and signature storage
+- script-based local restore, parity, mirror, and deployment tooling in `scripts/`
+- database snapshot artifacts in `snapshot/database/`
+
+## Current Consumers
+
+- `catatan-psikolog-user-portal`
+- `catatan-psikolog-admin-portal`
+- `catatan-psikolog-landing-page`
+
+## Main Business Domains In Code
+
+- clinic onboarding and lifecycle
+- B2B invitation and agreement flows
+- patient invitation and registration flows
+- consent capture
+- therapy session persistence
+- referral creation and PIN verification
+- OTP-based password reset support
+- Indonesian address and reference data

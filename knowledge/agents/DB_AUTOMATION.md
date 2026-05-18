@@ -1,23 +1,31 @@
-# Database Automation Protocol (Catatan Psikolog)
+# Database Automation Protocol
 
-All database schema changes in this repository MUST be automated using the provided script to ensure environmental parity across portals.
+All schema work in this repository is script-driven.
 
-## Automated Script
-Path: `scripts/apply_migration.sh`
+## Required Entry Point
 
-### Usage
 ```bash
-# From the root of Supabase/CatatanPsikolog
-./scripts/apply_migration.sh "your_migration_name" "YOUR SQL QUERY HERE"
+bash scripts/apply_migration.sh "your_migration_name" "YOUR SQL HERE"
 ```
 
-## Workflow
-1. **Synthesize**: Generate the correct SQL for the requested change.
-2. **Execute**: Call the script above with a descriptive name and the SQL.
-3. **Verify**: Ensure the script returns success.
-4. **Knowledge**: The script will automatically update `knowledge/supabase_migrations/`.
-5. **Auto-Cleanup (Squash)**: The script will automatically run `supabase migration squash` and delete stale files.
-6. **Frontend Sync**: The script will automatically search for `catatan-psikolog-user-portal` and `catatan-psikolog-admin-portal` and run `make sync-schema`.
+## Current Script Behavior
 
-## Rationale
-Ensures that the Database, Migrations, Knowledge base, and TypeScript types in all frontend portals are synchronized simultaneously.
+`scripts/apply_migration.sh` currently:
+
+1. checks Docker and local Supabase readiness
+2. creates a full local DB backup at `snapshot/database/db_full_snapshot.dump`
+3. writes the migration file into `supabase/migrations/`
+4. mirrors the migration into `knowledge/supabase_migrations/`
+5. repairs orphaned local migration history if needed
+6. applies the migration with `supabase db push --local`
+7. appends a line to `knowledge/operations/MIGRATION_STATUS.md`
+8. runs `supabase migration squash --yes`
+9. deletes stale migration mirror markdown files after squash
+10. refreshes `snapshot/database/schema_snapshot.sql`
+11. searches for the user portal, admin portal, and landing page repos and runs `make sync-schema` where available
+
+## Rules
+
+- do not use `supabase migration new`
+- do not create migration SQL files manually outside the script flow
+- verify the generated migration result in both code and knowledge files

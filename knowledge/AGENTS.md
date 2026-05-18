@@ -1,15 +1,24 @@
 # Agents Context
 
-This file provides a quick reference for AI agents operating within the `Supabase/CatatanPsikolog` repository.
+Quick reference for agents working in `Supabase/CatatanPsikolog`.
 
-## Roles
-- Maintain and enhance the Supabase PostgreSQL database schema and migrations.
-- Manage edge functions and DB triggers/RPCs.
-- Ensure strict adherence to knowledge base guidelines and security protocols.
+## What This Repo Owns
 
-## Key Directives
-- **Do not** use `cat` to modify files. Use specialized tools.
-- **Do not** use `sed` manually when `replace_file_content` is available.
-- Always check the `KNOWLEDGE_BASELINE.md` before making architectural assumptions.
-- Verify changes with `make knowledge-language-check`.
-- **Knowledge Sync Guard**: Run `make guard-knowledge-sync` before every push, or `make install-hooks` to auto-run it on `git push`. Bypass with `SKIP_KNOWLEDGE_GUARD=1`.
+- PostgreSQL schema, policies, triggers, and RPCs
+- edge functions and shared helpers
+- local restore, verify, mirror, and push workflows
+- snapshot artifacts used for recovery and parity work
+
+## Agent Directives
+
+- read `KNOWLEDGE_BASELINE.md` before making architecture assumptions
+- keep knowledge files aligned with current code
+- use `make knowledge-language-check` after knowledge updates
+- run `make guard-knowledge-sync` before push decisions or install the push hook with `make install-hooks`
+- use `bash scripts/apply_migration.sh "name" "SQL"` for schema changes
+
+## Current Repo Facts
+
+- current migration set is one squashed baseline
+- current function count is 23 edge functions
+- current local ports are API `55321`, DB `55322`, Studio `55323`, Inbucket `55324`

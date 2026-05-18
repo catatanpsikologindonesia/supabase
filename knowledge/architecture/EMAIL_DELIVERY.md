@@ -1,64 +1,46 @@
 # Email Delivery
 
-## Current Model
+## Current Delivery Model
 
-Catatan Psikolog email delivery is handled by Supabase edge functions that forward requests to a Google Apps Script dispatcher.
+Email delivery in this repository is handled by edge-function code that posts signed payloads to a Google Apps Script dispatcher.
 
-Authenticated orchestration functions now call shared in-repo mail helpers directly when they need immediate post-write delivery, instead of performing HTTP self-calls into sibling edge functions during local runtime.
+## Current Mail-Related Surfaces In Code
 
-## Active Edge Functions
+Primary function entry points:
 
 - `send-patient-invitation`
 - `send-referral-pin`
+- `send-otp`
+- `submit-demo-request`
 
-## Trusted Inputs
+Shared helper entry points:
 
-The portal no longer sends trusted email content payloads to these functions.
+- `_shared/mail_dispatcher.ts`
+- `_shared/patient_invitation_mail.ts`
+- `_shared/referral_pin_mail.ts`
+- `_shared/email_templates/demo_request.ts`
+- `_shared/email_templates/patient_invitation.ts`
+- `_shared/email_templates/registration_invite.ts`
+- `_shared/email_templates/referral_pin.ts`
 
-- `send-patient-invitation` accepts `invitation_id`, `registration_base_url`, and `recipient_timezone`
-- `send-referral-pin` accepts `referral_id`, `portal_base_url`, and `recipient_timezone`
+## Trust Boundary
 
-The functions resolve recipients, flow data, clinic context, referral details, and related content from the database.
+- edge functions resolve authoritative recipient and business data from the database when required by the flow
+- navigation context such as base URLs and timezones may be provided by callers
+- message delivery still terminates at the GAS webhook, not direct SMTP
 
-## Ownership Checks
-
-- invitation emails require the authenticated staff user to match the `invited_by_membership_id` owner
-- referral emails require the authenticated staff user to match the `practitioner_membership_id` owner
-
-This reduces the risk of a leaked clinic staff token being used to send arbitrary branded email payloads.
-
-## Invitation Variants
-
-`send-patient-invitation` serves three variants:
-
-- `registration_required`
-- `consent_required`
-- `info_only`
-
-## Runtime Secrets
-
-Required mail secrets:
+## Current Runtime Secrets
 
 - `MAIL_DISPATCHER_WEBHOOK_URL`
 - `MAIL_WEBHOOK_SECRET`
 
-Current deployed dispatcher endpoint (active as of 2026-04-27):
-
-- `https://script.google.com/macros/s/AKfycbwSntcwwDc4bnsTfH51xL6ZgMjep_xHp8CDp57oxU2iyc7NQFYfuWOMZKfUAeHNw1JC1g/exec`
-
-These are exposed to edge functions through `edge_runtime.secrets` in `supabase/config.toml`.
-
-## Timezone Handling
-
-- templates accept `recipient_timezone`
-- explicit `(Asia/Jakarta)` suffixes were removed from rendered email strings
-- fallback timezone remains `Asia/Jakarta`
-
-## Branding
-
-Current email brand family is based on `#A5A5D3`.
-
 ## Sender Behavior
 
+- preferred sender name: `Catatan Psikolog Support`
 - preferred sender address: `support@catatanpsikolog.id`
-- if the Apps Script executor account does not expose that alias, the dispatcher falls back to the executor default sender address
+- if the alias is unavailable in Gmail, Apps Script falls back to the executor account default sender
+
+## Timezone Behavior
+
+- templates accept recipient timezone input where needed
+- fallback timezone remains `Asia/Jakarta`

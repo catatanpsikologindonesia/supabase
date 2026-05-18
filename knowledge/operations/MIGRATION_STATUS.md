@@ -1,16 +1,36 @@
 # Migration Status
 
-This file tracks all migrations applied via `scripts/apply_migration.sh`.
+## Current Migration Layout
 
-## History
+The repository currently keeps one squashed migration file:
 
-- 2026-05-12 20260512015012: Applied clinic-lifecycle-b2b-full-schema (squashed baseline after script fix)
+- `20260518234046_rebuild-from-schema.sql`
 
-## Current Migration (Squashed)
-- `20260512015012_clinic-lifecycle-b2b-full-schema.sql` — single squashed file containing complete public schema
+This file is the active schema baseline under `supabase/migrations/`.
 
-## Script Fix (2026-05-12)
-- `scripts/apply_migration.sh` fixed: `supabase migration up` → `yes | supabase db push --local` (targets local DB, not remote)
-- Added step 3: auto-repair orphaned local migration history before applying new migration
-- `supabase migration squash --yes` — non-interactive squash
-- 2026-05-18 20260518233806: Applied test-backup-psikolog
+## Automation Entry Point
+
+Schema changes must use:
+
+```bash
+bash scripts/apply_migration.sh "name" "SQL"
+```
+
+## Current Script Behavior
+
+The migration script currently:
+
+- creates a pre-migration local DB backup
+- writes the SQL migration file
+- mirrors the migration into `knowledge/supabase_migrations/`
+- repairs orphaned local migration history when needed
+- applies the migration with `supabase db push --local`
+- appends a status line to this file
+- squashes migrations with `supabase migration squash --yes`
+- deletes stale migration mirror markdown files
+- refreshes `snapshot/database/schema_snapshot.sql`
+- attempts `make sync-schema` in the user portal, admin portal, and landing page repos if found
+
+## Historical Status Lines Present In File History
+
+The current code appends plain bullet lines to this file after each successful migration run. This document describes the active process and current squashed result rather than reconstructing older entries from prior doc text.

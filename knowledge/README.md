@@ -1,26 +1,34 @@
 # Catatan Psikolog Supabase Knowledge
 
-This folder contains focused operational, architectural, policy, and agent documentation for the Catatan Psikolog Supabase repository.
+Knowledge index for the Catatan Psikolog Supabase repository.
 
-## Reading Order
+## Suggested Read Order
 
 1. `PROJECT_SUMMARY.md`
 2. `CURRENT_STATE.md`
-3. `AGENTS.md`
-4. `KNOWLEDGE_BASELINE.md`
+3. `KNOWLEDGE_BASELINE.md`
+4. `AGENTS.md`
 5. `architecture/REPOSITORY_MAP.md`
 6. `architecture/SUPABASE_PRODUCT_CONTRACT.md`
 7. `architecture/EMAIL_DELIVERY.md`
 8. `operations/LOCAL_STACK_AND_MIRROR.md`
 9. `operations/DEPLOYMENT_AND_PARITY.md`
-10. `operations/SECURITY.md`
-11. `agents/WORKING_RULES.md`
+10. `operations/MIGRATION_STATUS.md`
+11. `operations/SECURITY.md`
+12. `agents/WORKING_RULES.md`
+13. `agents/DB_AUTOMATION.md`
+14. `agents/AGENTS.md`
 
-## Local Source Of Truth Rule
+## Current Knowledge Scope
 
-- Local repository state is the operational source of truth for push decisions.
-- `make start-local` preserves the current local DB state by default while restoring runtime-owned storage artifacts needed for local parity.
-- `make start-local-restore` is the explicit path to restore the local DB baseline snapshot during startup.
-- Before any push to Supabase cloud, agents must ensure local artifacts are current.
-- If storage binaries changed locally, refresh the committed local snapshot with `make export-storage`.
-- Remote-to-local mirror flows are recovery tools only and must not be used as the default response to parity mismatch when local intentional changes are in progress.
+- repo purpose and current backend shape
+- active migration and snapshot model
+- frontend contract boundaries
+- local restore, mirror, verify, and push workflows
+- email delivery path and security expectations
+
+## Repository Truth Rule
+
+- current code under `supabase/`, `scripts/`, and `snapshot/` is the source of truth for this repo
+- knowledge files should describe current code only
+- if backend behavior changes, update the matching knowledge file in the same change set

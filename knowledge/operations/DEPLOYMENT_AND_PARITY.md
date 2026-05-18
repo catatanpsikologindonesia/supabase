@@ -1,44 +1,57 @@
 # Deployment And Parity
 
-## Verification
-
-Run the local source-of-truth runtime first:
-
-```bash
-make start-local
-```
-
-If local storage binaries changed, refresh the committed storage snapshot:
-
-```bash
-make export-storage
-```
-
-Then run:
+## Current Verification Command
 
 ```bash
 make verify-local-remote
 ```
 
-This validates the local state against the remote project across schema, functions, storage, auth, and cron.
+This runs `scripts/verify_local_remote_diff.sh`.
 
-## Deployment
+## Current Verification Coverage
 
-Use:
+The verify script currently compares:
+
+- public tables
+- public SQL functions
+- public views
+- cron availability
+- cron jobs
+- storage objects
+- auth user and identity counts
+- remote versus local edge-function slugs
+
+Verification reports are written into `snapshot/verification/`.
+
+## Current Deployment Commands
 
 ```bash
 make push-staging
 make push-prod
+make push-remote
 ```
 
 `make push-remote` is the staging alias.
 
-## Expected Deployment Flow
+## Current Push Flow
 
-1. start and validate the local source-of-truth runtime
-2. refresh local storage snapshot if binary storage changed
-3. verify local and remote parity
-4. create a remote backup snapshot
-5. push schema changes
-6. deploy edge functions
-7. run post-push verification
+`scripts/push_remote_changes.sh` currently:
+
+1. loads local secrets and checks the expected project ref
+2. ensures the Supabase CLI link matches the target project
+3. runs local versus remote verification
+4. pulls a remote backup snapshot before push
+5. runs `supabase db push`
+6. syncs extensions
+7. syncs cron jobs
+8. syncs storage binaries and bucket metadata
+9. syncs storage policies
+10. pushes project config where supported
+11. pushes edge-function secrets from the selected env file
+12. deploys every non-underscored edge-function directory
+13. verifies remote function deployment
+14. exports remote cron and extension snapshots back to the repo
+
+## Current Staging Project Reference
+
+- `ixwaaziifteubxkxtdwj`

@@ -1,60 +1,77 @@
 # Catatan Psikolog Supabase
 
-Operational Supabase repository for the Catatan Psikolog product line. This repository is the source of truth for local mirror workflows, snapshots, migrations, edge functions, and controlled remote deployments.
+Shared Supabase backend for the Catatan Psikolog product line.
 
-## What This Repository Owns
+## Repository Scope
 
-- Supabase CLI workspace under `supabase/`
-- database snapshots and verification outputs under `snapshot/`
-- local mirror, restore, and deploy scripts under `scripts/`
-- Google Apps Script based email delivery integration
-- repository knowledge under `knowledge/`
+- PostgreSQL schema and RLS under `supabase/migrations/`
+- Edge functions under `supabase/functions/`
+- Local stack, restore, mirror, verify, and push automation under `scripts/`
+- Snapshot artifacts under `snapshot/`
+- Repo knowledge under `knowledge/`
+- Google Apps Script mail dispatcher integration under `integrations/gas-mail-dispatcher/`
 
-## Main Capabilities
+## Current Edge Functions
 
-- start the local Supabase stack safely without forcing a restore
-- restore or fully mirror remote state into the local stack
-- verify local versus remote parity
-- deploy schema and edge-function changes to staging or production
-- host the Catatan Psikolog outbound email edge functions
+- `accept-patient-consent`
+- `address-reference`
+- `admin-add-clinic-member`
+- `admin-create-clinic`
+- `admin-get-b2b-templates`
+- `admin-set-b2b-template-active`
+- `admin-toggle-clinic-active`
+- `admin-update-clinic`
+- `create-b2b-invitation`
+- `create-patient-invitation`
+- `create-patient-invitation-v2`
+- `create-referral`
+- `extend-clinic-expiry`
+- `get-b2b-invitation`
+- `reset-password`
+- `send-otp`
+- `send-patient-invitation`
+- `send-referral-pin`
+- `submit-b2b-invitation`
+- `submit-demo-request`
+- `submit-patient-registration`
+- `verify-otp`
+- `verify-referral-pin`
 
-## Prerequisites
+## Shared Function Helpers
 
-- Supabase CLI
-- Docker runtime
-- `psql`
-- `pg_restore`
-- `jq`
+- `_shared/auth.ts`
+- `_shared/http.ts`
+- `_shared/mail_dispatcher.ts`
+- `_shared/mail_flow_errors.ts`
+- `_shared/password_policy.ts`
+- `_shared/patient_invitation_mail.ts`
+- `_shared/rate_limit.ts`
+- `_shared/referral_pin_mail.ts`
+- `_shared/signature_storage.ts`
+- `_shared/otp.ts`
+- `_shared/validation.ts`
+- `_shared/email_templates/*`
 
-## Environment Files
+## Database State
 
-This private repository currently keeps active environment files in git.
+The repo currently keeps a single squashed migration baseline:
 
-- `.env.local`
-- `.env.local.keys`
-- `.env.staging`
-- `.env.prod`
+- `supabase/migrations/20260518234046_rebuild-from-schema.sql`
 
-Important mail-related values:
+That baseline defines the active public schema, RLS policies, triggers, and RPC surfaces.
 
-- `MAIL_DISPATCHER_WEBHOOK_URL`
-- `MAIL_WEBHOOK_SECRET`
+## Core Commands
 
-### Golden Development Workflow
-
-The recommended entry point is from any frontend portal root:
-- `make run-local`: Full stack start that preserves the current local DB state and syncs frontend schema.
-- `make run-local-fast`: Incremental start (preserves existing local data).
-- `make run-local-restore`: Explicit baseline restore before app start.
-- Frontend `make` helper targets invoke repository `scripts/*.sh` through `bash`, so these entry points do not depend on script executable permissions.
-
-### Supabase Commands (from this repo)
 ```bash
-make start-local              # Normal start (preserves current local DB)
-make start-local-restore      # Start stack and restore local baseline snapshot
-make pull-snapshot            # Refresh local artifacts from production
-bash scripts/apply_migration.sh "<name>" "<sql>" # Automated migration & sync
-make verify-local-remote      # Parity check
+make start-local
+make start-local-restore
+make restore-local
+make pull-snapshot
+make verify-local-remote
+make mirror-remote-to-local
+make push-staging
+make push-prod
+bash scripts/apply_migration.sh "name" "SQL"
 ```
 
 ## Local Ports
@@ -62,35 +79,21 @@ make verify-local-remote      # Parity check
 - API `55321`
 - DB `55322`
 - Studio `55323`
-- Mailpit `55324`
+- Inbucket `55324`
 
-## Email Delivery
+## Current Snapshot Artifacts
 
-The current delivery path is edge-function based and posts to a Google Apps Script dispatcher.
-
-Active mail functions:
-
-- `send-patient-invitation`
-- `send-referral-pin`
-- `send-otp`
-
-Active public auth-recovery functions:
-
-- `send-otp`
-- `verify-otp`
-- `reset-password`
-
-Supporting auth-recovery data surface:
-
-- `public.otp_verifications`
-- `public.is_registered_profile_email(text)`
-
-`send-patient-invitation` supports:
-
-- `registration_required`
-- `consent_required`
-- `info_only`
+- `snapshot/database/schema_snapshot.sql`
+- `snapshot/database/db_full_snapshot.dump`
+- `snapshot/database/auth_snapshot.dump`
+- `snapshot/database/db_counts.txt`
+- `snapshot/database/db_tables.txt`
+- `snapshot/database/db_functions.txt`
+- `snapshot/database/db_views.txt`
+- `snapshot/database/db_extensions.txt`
+- `snapshot/database/extensions_export.sql`
+- `snapshot/database/cron_jobs_export.sql`
 
 ## Documentation
 
-Start with [knowledge/README.md](./knowledge/README.md).
+Start with `knowledge/README.md`.

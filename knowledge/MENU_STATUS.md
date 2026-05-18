@@ -1,5 +1,11 @@
 # Menu Status
 
-This document is typically used to track frontend menu structures. However, since this repository is a Supabase backend without a frontend menu UI, this file serves as a stub to maintain directory parity and structure compliance.
+This repository has no frontend menu system.
 
-No frontend menus are managed within this repository.
+## Current Status
+
+- no route menu definitions
+- no sidebar metadata
+- no UI navigation configuration
+
+The file remains as a repository-level stub because this backend repo participates in a shared documentation structure with frontend repositories.
