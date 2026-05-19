@@ -98,7 +98,18 @@ docker exec "$DB_CONTAINER" pg_dump -U postgres -d postgres \
     -f /tmp/_apply_migration_backup.dump 2>/dev/null
 docker cp "$DB_CONTAINER":/tmp/_apply_migration_backup.dump "$BACKUP_FILE" 2>/dev/null
 docker exec "$DB_CONTAINER" rm -f /tmp/_apply_migration_backup.dump 2>/dev/null
+if [[ ! -s "$BACKUP_FILE" ]]; then
+    echo "    [!] ERROR: Backup file is empty or missing after copy: $BACKUP_FILE"
+    echo "    -> Aborting before migration apply to avoid unsafe reset/squash flow."
+    exit 1
+fi
+if ! pg_restore --list "$BACKUP_FILE" >/dev/null 2>&1; then
+    echo "    [!] ERROR: Backup file failed pg_restore validation: $BACKUP_FILE"
+    echo "    -> Aborting before migration apply to avoid unsafe reset/squash flow."
+    exit 1
+fi
 echo "    -> Backup saved to: $BACKUP_FILE"
+echo "    -> Backup verified. Restore via: bash scripts/restore_local_db.sh \"$BACKUP_FILE\""
 
 # 2. Create Migration File
 echo "==> [2/10] Creating migration file: $FILENAME"
@@ -184,6 +195,6 @@ if supabase db push --local <<< "y" 2>&1; then
 else
     echo "==> ERROR: Failed to apply migration. Please check your SQL syntax."
     echo "    -> Data backup exists at: $BACKUP_FILE"
-    echo "    -> Restore via: bash scripts/restore_local_db.sh"
+    echo "    -> Restore via: bash scripts/restore_local_db.sh \"$BACKUP_FILE\""
     exit 1
 fi

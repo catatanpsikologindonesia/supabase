@@ -14,6 +14,14 @@ if [[ ! -f "$DUMP_FILE" ]]; then
   echo "Dump file not found: $DUMP_FILE" >&2
   exit 1
 fi
+if [[ ! -s "$DUMP_FILE" ]]; then
+  echo "Dump file is empty: $DUMP_FILE" >&2
+  exit 1
+fi
+if ! pg_restore --list "$DUMP_FILE" >/dev/null 2>&1; then
+  echo "Dump file is not a readable pg_restore archive: $DUMP_FILE" >&2
+  exit 1
+fi
 
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 export PGOPTIONS='-c client_min_messages=warning'

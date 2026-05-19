@@ -128,6 +128,18 @@ The repo currently exposes script-driven workflows for:
 - extension sync
 - staging and production push flows
 
+Restore and migration hardening currently include:
+
+- backup archive validation in `scripts/apply_migration.sh` before migration apply continues
+- dump existence, non-zero-size, and `pg_restore --list` validation in `scripts/restore_local_db.sh`
+- explicit restore steps documented in `knowledge/KNOWLEDGE_BASELINE.md`
+
+Current parity note:
+
+- `make verify-local-remote` still reports broader local-vs-remote drift in tables, functions, auth counts, storage objects, and edge-function inventory
+- this repository should not be described as remote-parity-clean until that rollout gap is explicitly resolved
+- `_shared/password_policy.ts` is currently in parity with the active Psikolog admin and user frontend validators
+
 ## Snapshot State
 
 Committed database snapshot artifacts currently present:

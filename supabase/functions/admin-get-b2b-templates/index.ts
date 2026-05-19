@@ -1,5 +1,5 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { checkRateLimit, createServiceRoleClient, getClientIp } from '../_shared/rate_limit.ts';
+import { requireAdminRole } from '../_shared/auth.ts';
+import { checkRateLimit, getClientIp } from '../_shared/rate_limit.ts';
 import {
   generateRequestId,
   preflight,
@@ -31,26 +31,6 @@ function respond(
   });
 }
 
-function createCallerClient(authHeader: string) {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')?.trim() ?? '';
-  const supabaseAnonKey =
-    Deno.env.get('SUPABASE_ANON_KEY')?.trim() ||
-    Deno.env.get('SUPABASE_PUBLISHABLE_KEY')?.trim() ||
-    '';
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY for edge function caller client.');
-  }
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    global: {
-      headers: {
-        Authorization: authHeader,
-        apikey: supabaseAnonKey,
-      },
-    },
-  });
-}
-
 Deno.serve(async (req) => {
   const preflightResponse = preflight(req);
   if (preflightResponse) return preflightResponse;
@@ -64,32 +44,12 @@ Deno.serve(async (req) => {
     });
   }
 
-  const authHeader = req.headers.get('Authorization')?.trim() ?? '';
-  if (!authHeader) {
-    return respond(401, requestId, allowedOrigin, {
-      success: false, code: 'UNAUTHORIZED', message: 'Authorization header is required.', request_id: requestId,
-    });
-  }
-
   try {
-    const caller = createCallerClient(authHeader);
-    const { data: { user }, error: userError } = await caller.auth.getUser();
-    if (userError || !user) {
-      return respond(401, requestId, allowedOrigin, {
-        success: false, code: 'UNAUTHORIZED', message: 'Unauthorized.', request_id: requestId,
-      });
-    }
+    const auth = await requireAdminRole(req);
+    if (!auth.ok) return auth.response;
 
-    const { data: isAdmin } = await caller.rpc('is_admin_at_least', { p_min_role: 'STAFF' });
-    if (!isAdmin) {
-      return respond(403, requestId, allowedOrigin, {
-        success: false, code: 'FORBIDDEN', message: 'Caller is not an LBSD admin.', request_id: requestId,
-      });
-    }
-
-    const service = createServiceRoleClient();
     const ip = getClientIp(req);
-    const ipLimit = await checkRateLimit(service, `ip:${ip}`, 'admin-get-b2b-templates', 10, 40);
+    const ipLimit = await checkRateLimit(auth.supabase, `ip:${ip}`, 'admin-get-b2b-templates', 10, 40);
     if (ipLimit.limited) {
       return respond(429, requestId, allowedOrigin, {
         success: false, code: 'RATE_LIMITED', message: 'Too many requests.', request_id: requestId,
@@ -97,7 +57,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: templates, error: fetchError } = await service
+    const { data: templates, error: fetchError } = await auth.supabase
       .from('b2b_agreement_templates')
       .select('*')
       .order('created_at', { ascending: false });

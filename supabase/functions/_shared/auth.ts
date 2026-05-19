@@ -115,3 +115,62 @@ export async function requirePortalRole(
     supabase,
   };
 }
+
+function createAuthResponse(
+  status: number,
+  code: 'UNAUTHORIZED' | 'FORBIDDEN' | 'INTERNAL_ERROR',
+  message: string,
+): Response {
+  return new Response(
+    JSON.stringify({ success: false, code, message }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+}
+
+export async function requireAdminRole(
+  req: Request,
+  minRole: 'STAFF' | 'ADMIN' | 'SUPER_ADMIN' = 'STAFF',
+): Promise<
+  | { ok: true; userId: string; supabase: ReturnType<typeof createServiceRoleClient>; caller: ReturnType<typeof createClient> }
+  | { ok: false; response: Response }
+> {
+  const authHeader = req.headers.get('authorization')?.trim() ?? '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (!token) {
+    return { ok: false, response: createAuthResponse(401, 'UNAUTHORIZED', 'Authorization header is required.') };
+  }
+
+  const serviceSupabase = createServiceRoleClient();
+  const { data: { user }, error: userError } = await serviceSupabase.auth.getUser(token);
+  if (userError || !user) {
+    return { ok: false, response: createAuthResponse(401, 'UNAUTHORIZED', 'Unauthorized.') };
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')?.trim() ?? '';
+  const supabaseAnonKey =
+    Deno.env.get('SUPABASE_ANON_KEY')?.trim() ||
+    Deno.env.get('SUPABASE_PUBLISHABLE_KEY')?.trim() ||
+    '';
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return { ok: false, response: createAuthResponse(500, 'INTERNAL_ERROR', 'Internal server error.') };
+  }
+
+  const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      headers: { Authorization: authHeader, apikey: supabaseAnonKey },
+    },
+  });
+
+  const { data: isAdmin, error: adminError } = await callerClient.rpc('is_admin_at_least', { p_min_role: minRole });
+  if (adminError || !isAdmin) {
+    return { ok: false, response: createAuthResponse(403, 'FORBIDDEN', 'Caller is not an LBSD admin.') };
+  }
+
+  return { ok: true, userId: user.id, supabase: serviceSupabase, caller: callerClient };
+}

@@ -51,6 +51,24 @@ make knowledge-language-check
 bash scripts/apply_migration.sh "name" "SQL"
 ```
 
+## Local Restore Steps
+
+Use the committed local snapshot as the primary recovery source.
+
+1. Ensure Docker/Colima is running.
+2. From repo root, run:
+   `bash scripts/restore_local_db.sh`
+3. To restore a specific archive, run:
+   `bash scripts/restore_local_db.sh "snapshot/database/db_full_snapshot.dump"`
+4. If auth snapshot replay is explicitly needed after the full restore, run:
+   `RESTORE_AUTH_SNAPSHOT_AFTER_FULL_RESTORE=1 bash scripts/restore_local_db.sh`
+
+Restore guardrails:
+
+- the dump file must exist, be non-zero, and pass `pg_restore --list`
+- do not assume partial remote data can replace the local dump during incident recovery
+- after restore, verify printed row counts before treating the environment as healthy
+
 ## Core Rules
 
 - do not use `supabase migration new`
