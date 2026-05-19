@@ -162,209 +162,7 @@ ALTER TYPE "public"."visit_status" OWNER TO "postgres";
 CREATE OR REPLACE FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text" DEFAULT NULL::"text", "consent_user_agent" "text" DEFAULT NULL::"text") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
-    AS $$
-declare
-  invitation_row public.patient_invitations%rowtype;
-  clinic_patient_id_value uuid;
-  practitioner_membership_id_value uuid;
-  appointment_id_value uuid;
-  visit_id_value uuid;
-  session_start_at_value timestamptz;
-  session_end_at_value timestamptz;
-  consent_text_value text := 'Saya menyetujui berbagi data medis saya dengan klinik tujuan untuk keperluan layanan psikologi.';
-begin
-  if invite_token is null or btrim(invite_token) = '' then
-    return jsonb_build_object('status', 'error', 'code', 'INVALID_TOKEN', 'message', 'Token undangan tidak valid.');
-  end if;
-
-  select *
-  into invitation_row
-  from public.patient_invitations pi
-  where pi.token = invite_token
-  limit 1
-  for update;
-
-  if not found then
-    return jsonb_build_object('status', 'error', 'code', 'INVITATION_NOT_FOUND', 'message', 'Undangan tidak ditemukan.');
-  end if;
-
-  if invitation_row.flow <> 'consent_required'::public.patient_invitation_flow then
-    return jsonb_build_object('status', 'error', 'code', 'INVALID_FLOW', 'message', 'Undangan ini tidak menggunakan flow persetujuan data.');
-  end if;
-
-  if coalesce(invitation_row.is_used, false) then
-    if invitation_row.used_reason = 'superseded'::public.patient_invitation_used_reason then
-      return jsonb_build_object('status', 'error', 'code', 'INVITATION_SUPERSEDED', 'message', 'Link undangan ini sudah diganti dengan undangan terbaru.');
-    end if;
-
-    return jsonb_build_object('status', 'error', 'code', 'INVITATION_USED', 'message', 'Link undangan sudah digunakan.');
-  end if;
-
-  if invitation_row.expires_at < now() then
-    return jsonb_build_object('status', 'error', 'code', 'INVITATION_EXPIRED', 'message', 'Link undangan sudah kedaluwarsa.');
-  end if;
-
-  if invitation_row.target_patient_id is null then
-    return jsonb_build_object('status', 'error', 'code', 'PATIENT_NOT_FOUND', 'message', 'Data pasien untuk undangan ini belum tersedia.');
-  end if;
-
-  if invitation_row.clinic_id is null then
-    return jsonb_build_object('status', 'error', 'code', 'INVITATION_CLINIC_REQUIRED', 'message', 'Undangan belum terhubung ke klinik.');
-  end if;
-
-  practitioner_membership_id_value := invitation_row.practitioner_membership_id;
-  if practitioner_membership_id_value is null
-     or not exists (
-      select 1
-      from public.clinic_memberships cm
-      where cm.id = practitioner_membership_id_value
-        and cm.is_active = true
-        and cm.is_practitioner = true
-     ) then
-    select cm.id
-    into practitioner_membership_id_value
-    from public.clinic_memberships cm
-    where cm.clinic_id = invitation_row.clinic_id
-      and cm.is_active = true
-      and cm.is_practitioner = true
-    order by cm.is_owner desc, cm.created_at asc
-    limit 1;
-  end if;
-
-  if practitioner_membership_id_value is null then
-    return jsonb_build_object('status', 'error', 'code', 'NO_PRACTITIONER', 'message', 'Tidak ada practitioner aktif pada klinik ini.');
-  end if;
-
-  if not exists (
-    select 1
-    from public.patient_clinic_consents pcc
-    where pcc.clinic_id = invitation_row.clinic_id
-      and pcc.patient_id = invitation_row.target_patient_id
-      and pcc.revoked_at is null
-  ) then
-    insert into public.patient_clinic_consents (
-      clinic_id,
-      patient_id,
-      invitation_id,
-      consent_version,
-      consent_text,
-      source,
-      accepted_at,
-      accepted_ip,
-      accepted_user_agent,
-      created_at,
-      updated_at
-    )
-    values (
-      invitation_row.clinic_id,
-      invitation_row.target_patient_id,
-      invitation_row.id,
-      'v1',
-      consent_text_value,
-      'invite_consent_page'::public.consent_source,
-      now(),
-      nullif(consent_ip, ''),
-      nullif(consent_user_agent, ''),
-      now(),
-      now()
-    );
-  end if;
-
-  insert into public.clinic_patients (clinic_id, patient_id, mrn, is_active)
-  values (
-    invitation_row.clinic_id,
-    invitation_row.target_patient_id,
-    coalesce(
-      (select p.mrn from public.patients p where p.id = invitation_row.target_patient_id),
-      'MRN-' || to_char(now(), 'YYYYMMDD') || '-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6))
-    ),
-    true
-  )
-  on conflict (clinic_id, patient_id) do update
-  set is_active = true,
-      updated_at = now()
-  returning id into clinic_patient_id_value;
-
-  appointment_id_value := invitation_row.appointment_id;
-
-  if appointment_id_value is null then
-    session_start_at_value := coalesce(
-      invitation_row.session_start_at,
-      date_trunc('day', now()) + interval '1 day' + interval '9 hours'
-    );
-    session_end_at_value := coalesce(
-      invitation_row.session_end_at,
-      session_start_at_value + interval '45 minutes'
-    );
-
-    insert into public.appointments (
-      clinic_id,
-      clinic_patient_id,
-      patient_id,
-      practitioner_membership_id,
-      start_time,
-      end_time,
-      status,
-      notes
-    )
-    values (
-      invitation_row.clinic_id,
-      clinic_patient_id_value,
-      invitation_row.target_patient_id,
-      practitioner_membership_id_value,
-      session_start_at_value,
-      session_end_at_value,
-      'scheduled',
-      'Auto-created after consent acceptance'
-    )
-    returning id into appointment_id_value;
-  end if;
-
-  select pv.id
-  into visit_id_value
-  from public.patient_visits pv
-  where pv.appointment_id = appointment_id_value
-  limit 1;
-
-  if visit_id_value is null then
-    insert into public.patient_visits (
-      clinic_id,
-      clinic_patient_id,
-      patient_id,
-      appointment_id,
-      status
-    )
-    values (
-      invitation_row.clinic_id,
-      clinic_patient_id_value,
-      invitation_row.target_patient_id,
-      appointment_id_value,
-      'scheduled'
-    )
-    returning id into visit_id_value;
-  end if;
-
-  update public.patient_invitations
-  set is_used = true,
-      used_at = now(),
-      used_reason = 'consent_accepted'::public.patient_invitation_used_reason,
-      appointment_id = appointment_id_value,
-      practitioner_membership_id = practitioner_membership_id_value
-  where id = invitation_row.id;
-
-  return jsonb_build_object(
-    'status', 'success',
-    'message', 'Persetujuan data berhasil. Jadwal sesi sudah dikonfirmasi.',
-    'patientId', invitation_row.target_patient_id,
-    'clinicId', invitation_row.clinic_id,
-    'appointmentId', appointment_id_value,
-    'visitId', visit_id_value
-  );
-exception
-  when others then
-    return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal memproses persetujuan: ' || sqlerrm);
-end;
-$$;
+    AS $$ declare invitation_row public.patient_invitations%rowtype; clinic_patient_id_value uuid; practitioner_membership_id_value uuid; appointment_id_value uuid; visit_id_value uuid; session_start_at_value timestamptz; session_end_at_value timestamptz; consent_text_value text := 'Saya menyetujui berbagi data medis saya dengan klinik tujuan untuk keperluan layanan psikologi.'; begin if invite_token is null or btrim(invite_token) = '' then return jsonb_build_object('status', 'error', 'code', 'INVALID_TOKEN', 'message', 'Token undangan tidak valid.'); end if; select * into invitation_row from public.patient_invitations pi where pi.token = invite_token limit 1 for update; if not found then return jsonb_build_object('status', 'error', 'code', 'INVITATION_NOT_FOUND', 'message', 'Undangan tidak ditemukan.'); end if; if invitation_row.flow <> 'consent_required'::public.patient_invitation_flow then return jsonb_build_object('status', 'error', 'code', 'INVALID_FLOW', 'message', 'Undangan ini tidak menggunakan flow persetujuan data.'); end if; if coalesce(invitation_row.is_used, false) then if invitation_row.used_reason = 'superseded'::public.patient_invitation_used_reason then return jsonb_build_object('status', 'error', 'code', 'INVITATION_SUPERSEDED', 'message', 'Link undangan ini sudah diganti dengan undangan terbaru.'); end if; return jsonb_build_object('status', 'error', 'code', 'INVITATION_USED', 'message', 'Link undangan sudah digunakan.'); end if; if invitation_row.expires_at < now() then return jsonb_build_object('status', 'error', 'code', 'INVITATION_EXPIRED', 'message', 'Link undangan sudah kedaluwarsa.'); end if; if invitation_row.target_patient_id is null then return jsonb_build_object('status', 'error', 'code', 'PATIENT_NOT_FOUND', 'message', 'Data pasien untuk undangan ini belum tersedia.'); end if; if invitation_row.clinic_id is null then return jsonb_build_object('status', 'error', 'code', 'INVITATION_CLINIC_REQUIRED', 'message', 'Undangan belum terhubung ke klinik.'); end if; practitioner_membership_id_value := invitation_row.practitioner_membership_id; if practitioner_membership_id_value is null or not exists (select 1 from public.clinic_memberships cm where cm.id = practitioner_membership_id_value and cm.is_active = true and cm.is_practitioner = true) then select cm.id into practitioner_membership_id_value from public.clinic_memberships cm where cm.clinic_id = invitation_row.clinic_id and cm.is_active = true and cm.is_practitioner = true order by cm.is_owner desc, cm.created_at asc limit 1; end if; if practitioner_membership_id_value is null then return jsonb_build_object('status', 'error', 'code', 'NO_PRACTITIONER', 'message', 'Tidak ada practitioner aktif pada klinik ini.'); end if; if not exists (select 1 from public.patient_clinic_consents pcc where pcc.clinic_id = invitation_row.clinic_id and pcc.patient_id = invitation_row.target_patient_id and pcc.revoked_at is null) then insert into public.patient_clinic_consents (clinic_id, patient_id, invitation_id, consent_version, consent_text, source, accepted_at, accepted_ip, accepted_user_agent, created_at, updated_at) values (invitation_row.clinic_id, invitation_row.target_patient_id, invitation_row.id, 'v1', consent_text_value, 'invite_consent_page'::public.consent_source, now(), nullif(consent_ip, ''), nullif(consent_user_agent, ''), now(), now()); end if; insert into public.clinic_patients (clinic_id, patient_id, mrn, is_active) values (invitation_row.clinic_id, invitation_row.target_patient_id, coalesce((select p.mrn from public.patients p where p.id = invitation_row.target_patient_id), 'MRN-' || to_char(now(), 'YYYYMMDD') || '-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6))), true) on conflict (clinic_id, patient_id) do update set is_active = true, updated_at = now() returning id into clinic_patient_id_value; appointment_id_value := invitation_row.appointment_id; if appointment_id_value is null then session_start_at_value := coalesce(invitation_row.session_start_at, date_trunc('day', now()) + interval '1 day' + interval '9 hours'); session_end_at_value := coalesce(invitation_row.session_end_at, session_start_at_value + interval '45 minutes'); insert into public.appointments (clinic_id, clinic_patient_id, patient_id, practitioner_membership_id, start_time, end_time, status, notes) values (invitation_row.clinic_id, clinic_patient_id_value, invitation_row.target_patient_id, practitioner_membership_id_value, session_start_at_value, session_end_at_value, 'scheduled', 'Auto-created after consent acceptance') returning id into appointment_id_value; end if; select pv.id into visit_id_value from public.patient_visits pv where pv.appointment_id = appointment_id_value limit 1; if visit_id_value is null then insert into public.patient_visits (clinic_id, clinic_patient_id, patient_id, appointment_id, status) values (invitation_row.clinic_id, clinic_patient_id_value, invitation_row.target_patient_id, appointment_id_value, 'scheduled') returning id into visit_id_value; end if; update public.patient_invitations set is_used = true, used_at = now(), used_reason = 'consent_accepted'::public.patient_invitation_used_reason, appointment_id = appointment_id_value, practitioner_membership_id = practitioner_membership_id_value where id = invitation_row.id; return jsonb_build_object('status', 'success', 'message', 'Persetujuan data berhasil. Jadwal sesi sudah dikonfirmasi.', 'patientId', invitation_row.target_patient_id, 'clinicId', invitation_row.clinic_id, 'appointmentId', appointment_id_value, 'visitId', visit_id_value); exception when others then return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal memproses persetujuan: ' || sqlerrm); end; $$;
 
 
 ALTER FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") OWNER TO "postgres";
@@ -373,217 +171,7 @@ ALTER FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text",
 CREATE OR REPLACE FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "signature_id" "uuid", "consent_ip" "text" DEFAULT NULL::"text", "consent_user_agent" "text" DEFAULT NULL::"text") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
-    AS $$
-declare
-  invitation_row public.patient_invitations%rowtype;
-  clinic_patient_id_value uuid;
-  practitioner_membership_id_value uuid;
-  appointment_id_value uuid;
-  visit_id_value uuid;
-  session_start_at_value timestamptz;
-  session_end_at_value timestamptz;
-  consent_text_value text := 'Saya menyetujui berbagi data medis saya dengan klinik tujuan untuk keperluan layanan psikologi.';
-begin
-  if invite_token is null or btrim(invite_token) = '' then
-    return jsonb_build_object('status', 'error', 'code', 'INVALID_TOKEN', 'message', 'Token undangan tidak valid.');
-  end if;
-
-  if signature_id is null then
-    return jsonb_build_object('status', 'error', 'code', 'SIGNATURE_REQUIRED', 'message', 'Tanda tangan digital wajib diisi.');
-  end if;
-
-  select *
-  into invitation_row
-  from public.patient_invitations pi
-  where pi.token = invite_token
-  limit 1
-  for update;
-
-  if not found then
-    return jsonb_build_object('status', 'error', 'code', 'INVITATION_NOT_FOUND', 'message', 'Undangan tidak ditemukan.');
-  end if;
-
-  if invitation_row.flow <> 'consent_required'::public.patient_invitation_flow then
-    return jsonb_build_object('status', 'error', 'code', 'INVALID_FLOW', 'message', 'Undangan ini tidak menggunakan flow persetujuan data.');
-  end if;
-
-  if coalesce(invitation_row.is_used, false) then
-    if invitation_row.used_reason = 'superseded'::public.patient_invitation_used_reason then
-      return jsonb_build_object('status', 'error', 'code', 'INVITATION_SUPERSEDED', 'message', 'Link undangan ini sudah diganti dengan undangan terbaru.');
-    end if;
-
-    return jsonb_build_object('status', 'error', 'code', 'INVITATION_USED', 'message', 'Link undangan sudah digunakan.');
-  end if;
-
-  if invitation_row.expires_at < now() then
-    return jsonb_build_object('status', 'error', 'code', 'INVITATION_EXPIRED', 'message', 'Link undangan sudah kedaluwarsa.');
-  end if;
-
-  if invitation_row.target_patient_id is null then
-    return jsonb_build_object('status', 'error', 'code', 'PATIENT_NOT_FOUND', 'message', 'Data pasien untuk undangan ini belum tersedia.');
-  end if;
-
-  if invitation_row.clinic_id is null then
-    return jsonb_build_object('status', 'error', 'code', 'INVITATION_CLINIC_REQUIRED', 'message', 'Undangan belum terhubung ke klinik.');
-  end if;
-
-  if not exists (
-    select 1 from public.patient_signatures ps
-    where ps.id = signature_id
-      and ps.patient_id = invitation_row.target_patient_id
-  ) then
-    return jsonb_build_object('status', 'error', 'code', 'SIGNATURE_INVALID', 'message', 'Tanda tangan digital tidak valid untuk pasien ini.');
-  end if;
-
-  practitioner_membership_id_value := invitation_row.practitioner_membership_id;
-  if practitioner_membership_id_value is null
-     or not exists (
-      select 1
-      from public.clinic_memberships cm
-      where cm.id = practitioner_membership_id_value
-        and cm.is_active = true
-        and cm.is_practitioner = true
-     ) then
-    select cm.id
-    into practitioner_membership_id_value
-    from public.clinic_memberships cm
-    where cm.clinic_id = invitation_row.clinic_id
-      and cm.is_active = true
-      and cm.is_practitioner = true
-    order by cm.is_owner desc, cm.created_at asc
-    limit 1;
-  end if;
-
-  if practitioner_membership_id_value is null then
-    return jsonb_build_object('status', 'error', 'code', 'NO_PRACTITIONER', 'message', 'Tidak ada practitioner aktif pada klinik ini.');
-  end if;
-
-  if not exists (
-    select 1
-    from public.patient_clinic_consents pcc
-    where pcc.clinic_id = invitation_row.clinic_id
-      and pcc.patient_id = invitation_row.target_patient_id
-      and pcc.revoked_at is null
-  ) then
-    insert into public.patient_clinic_consents (
-      clinic_id,
-      patient_id,
-      invitation_id,
-      consent_version,
-      consent_text,
-      source,
-      accepted_at,
-      accepted_ip,
-      accepted_user_agent,
-      signature_id,
-      created_at,
-      updated_at
-    )
-    values (
-      invitation_row.clinic_id,
-      invitation_row.target_patient_id,
-      invitation_row.id,
-      'v1',
-      consent_text_value,
-      'invite_consent_page'::public.consent_source,
-      now(),
-      nullif(consent_ip, ''),
-      nullif(consent_user_agent, ''),
-      signature_id,
-      now(),
-      now()
-    );
-  end if;
-
-  insert into public.clinic_patients (clinic_id, patient_id, mrn, is_active)
-  values (
-    invitation_row.clinic_id,
-    invitation_row.target_patient_id,
-    coalesce(
-      (select p.mrn from public.patients p where p.id = invitation_row.target_patient_id),
-      'MRN-' || to_char(now(), 'YYYYMMDD') || '-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6))
-    ),
-    true
-  )
-  on conflict (clinic_id, patient_id) do update
-  set is_active = true,
-      updated_at = now()
-  returning id into clinic_patient_id_value;
-
-  appointment_id_value := invitation_row.appointment_id;
-
-  if appointment_id_value is null then
-    session_start_at_value := coalesce(invitation_row.session_start_at, date_trunc('day', now()) + interval '1 day' + interval '9 hours');
-    session_end_at_value := coalesce(invitation_row.session_end_at, session_start_at_value + interval '45 minutes');
-
-    insert into public.appointments (
-      clinic_id,
-      clinic_patient_id,
-      patient_id,
-      practitioner_membership_id,
-      start_time,
-      end_time,
-      status,
-      notes
-    )
-    values (
-      invitation_row.clinic_id,
-      clinic_patient_id_value,
-      invitation_row.target_patient_id,
-      practitioner_membership_id_value,
-      session_start_at_value,
-      session_end_at_value,
-      'scheduled',
-      'Auto-created after consent acceptance'
-    )
-    returning id into appointment_id_value;
-  end if;
-
-  select pv.id
-  into visit_id_value
-  from public.patient_visits pv
-  where pv.appointment_id = appointment_id_value
-  limit 1;
-
-  if visit_id_value is null then
-    insert into public.patient_visits (
-      clinic_id,
-      clinic_patient_id,
-      patient_id,
-      appointment_id,
-      status
-    )
-    values (
-      invitation_row.clinic_id,
-      clinic_patient_id_value,
-      invitation_row.target_patient_id,
-      appointment_id_value,
-      'scheduled'
-    )
-    returning id into visit_id_value;
-  end if;
-
-  update public.patient_invitations
-  set is_used = true,
-      used_at = now(),
-      used_reason = 'consent_accepted'::public.patient_invitation_used_reason,
-      appointment_id = appointment_id_value,
-      practitioner_membership_id = practitioner_membership_id_value
-  where id = invitation_row.id;
-
-  return jsonb_build_object(
-    'status', 'success',
-    'message', 'Persetujuan data berhasil. Jadwal sesi sudah dikonfirmasi.',
-    'patientId', invitation_row.target_patient_id,
-    'clinicId', invitation_row.clinic_id,
-    'appointmentId', appointment_id_value,
-    'visitId', visit_id_value
-  );
-exception
-  when others then
-    return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal memproses persetujuan: ' || sqlerrm);
-end;
-$$;
+    AS $$ declare invitation_row public.patient_invitations%rowtype; clinic_patient_id_value uuid; practitioner_membership_id_value uuid; appointment_id_value uuid; visit_id_value uuid; session_start_at_value timestamptz; session_end_at_value timestamptz; consent_text_value text := 'Saya menyetujui berbagi data medis saya dengan klinik tujuan untuk keperluan layanan psikologi.'; begin if invite_token is null or btrim(invite_token) = '' then return jsonb_build_object('status', 'error', 'code', 'INVALID_TOKEN', 'message', 'Token undangan tidak valid.'); end if; if signature_id is null then return jsonb_build_object('status', 'error', 'code', 'SIGNATURE_REQUIRED', 'message', 'Tanda tangan digital wajib diisi.'); end if; select * into invitation_row from public.patient_invitations pi where pi.token = invite_token limit 1 for update; if not found then return jsonb_build_object('status', 'error', 'code', 'INVITATION_NOT_FOUND', 'message', 'Undangan tidak ditemukan.'); end if; if invitation_row.flow <> 'consent_required'::public.patient_invitation_flow then return jsonb_build_object('status', 'error', 'code', 'INVALID_FLOW', 'message', 'Undangan ini tidak menggunakan flow persetujuan data.'); end if; if coalesce(invitation_row.is_used, false) then if invitation_row.used_reason = 'superseded'::public.patient_invitation_used_reason then return jsonb_build_object('status', 'error', 'code', 'INVITATION_SUPERSEDED', 'message', 'Link undangan ini sudah diganti dengan undangan terbaru.'); end if; return jsonb_build_object('status', 'error', 'code', 'INVITATION_USED', 'message', 'Link undangan sudah digunakan.'); end if; if invitation_row.expires_at < now() then return jsonb_build_object('status', 'error', 'code', 'INVITATION_EXPIRED', 'message', 'Link undangan sudah kedaluwarsa.'); end if; if invitation_row.target_patient_id is null then return jsonb_build_object('status', 'error', 'code', 'PATIENT_NOT_FOUND', 'message', 'Data pasien untuk undangan ini belum tersedia.'); end if; if invitation_row.clinic_id is null then return jsonb_build_object('status', 'error', 'code', 'INVITATION_CLINIC_REQUIRED', 'message', 'Undangan belum terhubung ke klinik.'); end if; if not exists (select 1 from public.patient_signatures ps where ps.id = signature_id and ps.patient_id = invitation_row.target_patient_id) then return jsonb_build_object('status', 'error', 'code', 'SIGNATURE_INVALID', 'message', 'Tanda tangan digital tidak valid untuk pasien ini.'); end if; practitioner_membership_id_value := invitation_row.practitioner_membership_id; if practitioner_membership_id_value is null or not exists (select 1 from public.clinic_memberships cm where cm.id = practitioner_membership_id_value and cm.is_active = true and cm.is_practitioner = true) then select cm.id into practitioner_membership_id_value from public.clinic_memberships cm where cm.clinic_id = invitation_row.clinic_id and cm.is_active = true and cm.is_practitioner = true order by cm.is_owner desc, cm.created_at asc limit 1; end if; if practitioner_membership_id_value is null then return jsonb_build_object('status', 'error', 'code', 'NO_PRACTITIONER', 'message', 'Tidak ada practitioner aktif pada klinik ini.'); end if; if not exists (select 1 from public.patient_clinic_consents pcc where pcc.clinic_id = invitation_row.clinic_id and pcc.patient_id = invitation_row.target_patient_id and pcc.revoked_at is null) then insert into public.patient_clinic_consents (clinic_id, patient_id, invitation_id, consent_version, consent_text, source, accepted_at, accepted_ip, accepted_user_agent, signature_id, created_at, updated_at) values (invitation_row.clinic_id, invitation_row.target_patient_id, invitation_row.id, 'v1', consent_text_value, 'invite_consent_page'::public.consent_source, now(), nullif(consent_ip, ''), nullif(consent_user_agent, ''), signature_id, now(), now()); end if; insert into public.clinic_patients (clinic_id, patient_id, mrn, is_active) values (invitation_row.clinic_id, invitation_row.target_patient_id, coalesce((select p.mrn from public.patients p where p.id = invitation_row.target_patient_id), 'MRN-' || to_char(now(), 'YYYYMMDD') || '-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6))), true) on conflict (clinic_id, patient_id) do update set is_active = true, updated_at = now() returning id into clinic_patient_id_value; appointment_id_value := invitation_row.appointment_id; if appointment_id_value is null then session_start_at_value := coalesce(invitation_row.session_start_at, date_trunc('day', now()) + interval '1 day' + interval '9 hours'); session_end_at_value := coalesce(invitation_row.session_end_at, session_start_at_value + interval '45 minutes'); insert into public.appointments (clinic_id, clinic_patient_id, patient_id, practitioner_membership_id, start_time, end_time, status, notes) values (invitation_row.clinic_id, clinic_patient_id_value, invitation_row.target_patient_id, practitioner_membership_id_value, session_start_at_value, session_end_at_value, 'scheduled', 'Auto-created after consent acceptance') returning id into appointment_id_value; end if; select pv.id into visit_id_value from public.patient_visits pv where pv.appointment_id = appointment_id_value limit 1; if visit_id_value is null then insert into public.patient_visits (clinic_id, clinic_patient_id, patient_id, appointment_id, status) values (invitation_row.clinic_id, clinic_patient_id_value, invitation_row.target_patient_id, appointment_id_value, 'scheduled') returning id into visit_id_value; end if; update public.patient_invitations set is_used = true, used_at = now(), used_reason = 'consent_accepted'::public.patient_invitation_used_reason, appointment_id = appointment_id_value, practitioner_membership_id = practitioner_membership_id_value where id = invitation_row.id; return jsonb_build_object('status', 'success', 'message', 'Persetujuan data berhasil. Jadwal sesi sudah dikonfirmasi.', 'patientId', invitation_row.target_patient_id, 'clinicId', invitation_row.clinic_id, 'appointmentId', appointment_id_value, 'visitId', visit_id_value); exception when others then return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal memproses persetujuan: ' || sqlerrm); end; $$;
 
 
 ALTER FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "signature_id" "uuid", "consent_ip" "text", "consent_user_agent" "text") OWNER TO "postgres";
@@ -714,7 +302,7 @@ ALTER FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", 
 CREATE OR REPLACE FUNCTION "public"."admin_add_clinic_member"("p_clinic_id" "uuid", "p_user_id" "uuid", "p_full_name" "text", "p_email" "text", "p_is_staff" boolean DEFAULT false, "p_is_practitioner" boolean DEFAULT false, "p_profession" "public"."practitioner_profession" DEFAULT NULL::"public"."practitioner_profession") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
-    AS $$ DECLARE v_membership_id uuid; v_profession public.practitioner_profession; BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RETURN jsonb_build_object('status', 'error', 'code', 'FORBIDDEN', 'message', 'Caller is not an LBSD admin.'); END IF; IF NOT EXISTS (SELECT 1 FROM public.clinics WHERE id = p_clinic_id) THEN RETURN jsonb_build_object('status', 'error', 'code', 'CLINIC_NOT_FOUND', 'message', 'Clinic does not exist.'); END IF; v_profession := CASE WHEN p_is_practitioner THEN COALESCE(p_profession, 'psychologist'::public.practitioner_profession) ELSE NULL END; INSERT INTO public.users (id, role) VALUES (p_user_id, 'clinic_staff'::public.user_role) ON CONFLICT (id) DO UPDATE SET role = 'clinic_staff'::public.user_role, updated_at = now(); INSERT INTO public.clinic_memberships ( clinic_id, user_id, is_owner, is_staff, is_practitioner, profession, full_name, email, is_active ) VALUES ( p_clinic_id, p_user_id, false, p_is_staff, p_is_practitioner, v_profession, p_full_name, p_email, true ) ON CONFLICT (clinic_id, user_id) DO UPDATE SET is_staff = EXCLUDED.is_staff, is_practitioner = EXCLUDED.is_practitioner, profession = EXCLUDED.profession, full_name = EXCLUDED.full_name, email = EXCLUDED.email, is_active = true, updated_at = now() RETURNING id INTO v_membership_id; RETURN jsonb_build_object('status', 'success', 'message', 'Member added successfully.', 'membershipId', v_membership_id, 'userId', p_user_id); EXCEPTION WHEN others THEN RETURN jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Failed to add member: ' || SQLERRM); END; $$;
+    AS $$ DECLARE v_membership_id uuid; v_profession public.practitioner_profession; BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RETURN jsonb_build_object('status', 'error', 'code', 'FORBIDDEN', 'message', 'Caller is not an LBSD admin.'); END IF; IF NOT EXISTS (SELECT 1 FROM public.clinics WHERE id = p_clinic_id) THEN RETURN jsonb_build_object('status', 'error', 'code', 'CLINIC_NOT_FOUND', 'message', 'Clinic does not exist.'); END IF; v_profession := CASE WHEN p_is_practitioner THEN COALESCE(p_profession, 'psychologist'::public.practitioner_profession) ELSE NULL END; INSERT INTO public.users (id, role) VALUES (p_user_id, 'clinic_staff'::public.user_role) ON CONFLICT (id) DO UPDATE SET role = 'clinic_staff'::public.user_role, updated_at = now(); INSERT INTO public.clinic_memberships (clinic_id, user_id, is_owner, is_staff, is_practitioner, profession, full_name, email, is_active) VALUES (p_clinic_id, p_user_id, false, p_is_staff, p_is_practitioner, v_profession, p_full_name, p_email, true) ON CONFLICT (clinic_id, user_id) DO UPDATE SET is_staff = EXCLUDED.is_staff, is_practitioner = EXCLUDED.is_practitioner, profession = EXCLUDED.profession, full_name = EXCLUDED.full_name, email = EXCLUDED.email, is_active = true, updated_at = now() RETURNING id INTO v_membership_id; RETURN jsonb_build_object('status', 'success', 'message', 'Member added successfully.', 'membershipId', v_membership_id, 'userId', p_user_id); EXCEPTION WHEN others THEN RETURN jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Failed to add member: ' || SQLERRM); END; $$;
 
 
 ALTER FUNCTION "public"."admin_add_clinic_member"("p_clinic_id" "uuid", "p_user_id" "uuid", "p_full_name" "text", "p_email" "text", "p_is_staff" boolean, "p_is_practitioner" boolean, "p_profession" "public"."practitioner_profession") OWNER TO "postgres";
@@ -723,7 +311,7 @@ ALTER FUNCTION "public"."admin_add_clinic_member"("p_clinic_id" "uuid", "p_user_
 CREATE OR REPLACE FUNCTION "public"."admin_get_clinic_detail"("p_clinic_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO 'public'
-    AS $$ DECLARE v_result jsonb; BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RETURN jsonb_build_object('status','error','code','FORBIDDEN','message','Caller is not an LBSD admin.'); END IF; SELECT jsonb_build_object( 'clinic_id', c.id, 'clinic_name', c.name, 'clinic_slug', c.slug, 'is_active', c.is_active, 'owner_user_id', c.owner_user_id, 'created_at', c.created_at, 'memberships', COALESCE(( SELECT jsonb_agg( jsonb_build_object( 'membership_id', cm.id, 'user_id', cm.user_id, 'full_name', COALESCE(cm.full_name, SPLIT_PART(au.email, '@', 1)), 'email', COALESCE(cm.email, LOWER(au.email)), 'phone', cm.phone, 'is_owner', cm.is_owner, 'is_staff', cm.is_staff, 'is_practitioner', cm.is_practitioner, 'profession', cm.profession, 'is_active', cm.is_active, 'created_at', cm.created_at ) ORDER BY cm.is_owner DESC, cm.created_at ASC ) FROM public.clinic_memberships cm LEFT JOIN auth.users au ON au.id = cm.user_id WHERE cm.clinic_id = c.id ), '[]'::jsonb) ) INTO v_result FROM public.clinics c WHERE c.id = p_clinic_id; IF v_result IS NULL THEN RETURN jsonb_build_object('status','error','code','NOT_FOUND','message','Clinic not found.'); END IF; RETURN v_result; END; $$;
+    AS $$ DECLARE v_result jsonb; BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RETURN jsonb_build_object('status','error','code','FORBIDDEN','message','Caller is not an LBSD admin.'); END IF; SELECT jsonb_build_object('clinic_id', c.id, 'clinic_name', c.name, 'clinic_slug', c.slug, 'is_active', c.is_active, 'owner_user_id', c.owner_user_id, 'created_at', c.created_at, 'memberships', COALESCE((SELECT jsonb_agg(jsonb_build_object('membership_id', cm.id, 'user_id', cm.user_id, 'full_name', COALESCE(cm.full_name, SPLIT_PART(au.email, '@', 1)), 'email', COALESCE(cm.email, LOWER(au.email)), 'phone', cm.phone, 'is_owner', cm.is_owner, 'is_staff', cm.is_staff, 'is_practitioner', cm.is_practitioner, 'profession', cm.profession, 'is_active', cm.is_active, 'created_at', cm.created_at) ORDER BY cm.is_owner DESC, cm.created_at ASC) FROM public.clinic_memberships cm LEFT JOIN auth.users au ON au.id = cm.user_id WHERE cm.clinic_id = c.id), '[]'::jsonb)) INTO v_result FROM public.clinics c WHERE c.id = p_clinic_id; IF v_result IS NULL THEN RETURN jsonb_build_object('status','error','code','NOT_FOUND','message','Clinic not found.'); END IF; RETURN v_result; END; $$;
 
 
 ALTER FUNCTION "public"."admin_get_clinic_detail"("p_clinic_id" "uuid") OWNER TO "postgres";
@@ -732,7 +320,7 @@ ALTER FUNCTION "public"."admin_get_clinic_detail"("p_clinic_id" "uuid") OWNER TO
 CREATE OR REPLACE FUNCTION "public"."admin_list_clinics"() RETURNS TABLE("clinic_id" "uuid", "clinic_name" "text", "clinic_slug" "text", "is_active" boolean, "owner_name" "text", "owner_email" "text", "total_memberships" bigint, "active_memberships" bigint, "created_at" timestamp with time zone)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'public'
-    AS $$ SELECT c.id, c.name, c.slug::text, c.is_active, COALESCE( cm_owner.full_name, au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name', SPLIT_PART(au.email, '@', 1) ) AS owner_name, COALESCE(cm_owner.email, LOWER(au.email)) AS owner_email, COUNT(cm.id) AS total_memberships, COUNT(cm.id) FILTER (WHERE cm.is_active = true) AS active_memberships, c.created_at FROM public.clinics c LEFT JOIN LATERAL ( SELECT cm2.user_id, cm2.full_name, cm2.email FROM public.clinic_memberships cm2 WHERE cm2.clinic_id = c.id AND cm2.is_owner = true AND cm2.is_active = true ORDER BY cm2.created_at ASC LIMIT 1 ) cm_owner ON true LEFT JOIN auth.users au ON au.id = cm_owner.user_id LEFT JOIN public.clinic_memberships cm ON cm.clinic_id = c.id WHERE public.is_admin_at_least('STAFF') GROUP BY c.id, c.name, c.slug, c.is_active, c.created_at, cm_owner.full_name, cm_owner.email, au.raw_user_meta_data, au.email ORDER BY c.created_at DESC; $$;
+    AS $$ SELECT c.id, c.name, c.slug::text, c.is_active, COALESCE(cm_owner.full_name, au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name', SPLIT_PART(au.email, '@', 1)) AS owner_name, COALESCE(cm_owner.email, LOWER(au.email)) AS owner_email, COUNT(cm.id) AS total_memberships, COUNT(cm.id) FILTER (WHERE cm.is_active = true) AS active_memberships, c.created_at FROM public.clinics c LEFT JOIN LATERAL (SELECT cm2.user_id, cm2.full_name, cm2.email FROM public.clinic_memberships cm2 WHERE cm2.clinic_id = c.id AND cm2.is_owner = true AND cm2.is_active = true ORDER BY cm2.created_at ASC LIMIT 1) cm_owner ON true LEFT JOIN auth.users au ON au.id = cm_owner.user_id LEFT JOIN public.clinic_memberships cm ON cm.clinic_id = c.id WHERE public.is_admin_at_least('STAFF') GROUP BY c.id, c.name, c.slug, c.is_active, c.created_at, cm_owner.full_name, cm_owner.email, au.raw_user_meta_data, au.email ORDER BY c.created_at DESC; $$;
 
 
 ALTER FUNCTION "public"."admin_list_clinics"() OWNER TO "postgres";
@@ -741,62 +329,7 @@ ALTER FUNCTION "public"."admin_list_clinics"() OWNER TO "postgres";
 CREATE OR REPLACE FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) RETURNS TABLE("request_id" "uuid", "clinic_id" "uuid", "approved_at" timestamp with time zone, "new_expired_date" timestamp with time zone)
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-DECLARE
-  v_request public.clinic_extension_requests%ROWTYPE;
-  v_current_expired_date timestamptz;
-  v_approved_at timestamptz := timezone('utc', now());
-  v_new_expired_date timestamptz;
-BEGIN
-  IF NOT public.is_admin_at_least('ADMIN') THEN
-    RAISE EXCEPTION 'Hanya admin yang dapat menyetujui pengajuan perpanjangan.';
-  END IF;
-
-  IF coalesce(p_added_days, 0) <= 0 THEN
-    RAISE EXCEPTION 'Durasi perpanjangan harus lebih dari 0 hari.';
-  END IF;
-
-  SELECT * INTO v_request
-  FROM public.clinic_extension_requests cer
-  WHERE cer.id = p_request_id
-  FOR UPDATE;
-
-  IF v_request.id IS NULL THEN
-    RAISE EXCEPTION 'Pengajuan perpanjangan tidak ditemukan.';
-  END IF;
-
-  IF v_request.status <> 'PENDING' THEN
-    RAISE EXCEPTION 'Hanya pengajuan berstatus PENDING yang dapat disetujui.';
-  END IF;
-
-  SELECT c.expired_date INTO v_current_expired_date
-  FROM public.clinics c
-  WHERE c.id = v_request.clinic_id
-  FOR UPDATE;
-
-  v_new_expired_date := (
-    CASE
-      WHEN v_current_expired_date IS NULL OR v_current_expired_date < v_approved_at THEN v_approved_at
-      ELSE v_current_expired_date
-    END
-  ) + make_interval(days => p_added_days);
-
-  UPDATE public.clinic_extension_requests
-  SET status = 'APPROVED',
-      approved_at = v_approved_at,
-      approved_by = auth.uid(),
-      added_days = p_added_days
-  WHERE id = v_request.id;
-
-  UPDATE public.clinics
-  SET expired_date = v_new_expired_date,
-      updated_at = timezone('utc', now())
-  WHERE id = v_request.clinic_id;
-
-  RETURN QUERY
-  SELECT v_request.id, v_request.clinic_id, v_approved_at, v_new_expired_date;
-END;
-$$;
+    AS $$ DECLARE v_request public.clinic_extension_requests%ROWTYPE; v_current_expired_date timestamptz; v_approved_at timestamptz := timezone('utc', now()); v_new_expired_date timestamptz; BEGIN IF NOT public.is_admin_at_least('ADMIN') THEN RAISE EXCEPTION 'Hanya admin yang dapat menyetujui pengajuan perpanjangan.'; END IF; IF coalesce(p_added_days, 0) <= 0 THEN RAISE EXCEPTION 'Durasi perpanjangan harus lebih dari 0 hari.'; END IF; SELECT * INTO v_request FROM public.clinic_extension_requests cer WHERE cer.id = p_request_id FOR UPDATE; IF v_request.id IS NULL THEN RAISE EXCEPTION 'Pengajuan perpanjangan tidak ditemukan.'; END IF; IF v_request.status <> 'PENDING' THEN RAISE EXCEPTION 'Hanya pengajuan berstatus PENDING yang dapat disetujui.'; END IF; SELECT c.expired_date INTO v_current_expired_date FROM public.clinics c WHERE c.id = v_request.clinic_id FOR UPDATE; v_new_expired_date := (CASE WHEN v_current_expired_date IS NULL OR v_current_expired_date < v_approved_at THEN v_approved_at ELSE v_current_expired_date END) + make_interval(days => p_added_days); UPDATE public.clinic_extension_requests SET status = 'APPROVED', approved_at = v_approved_at, approved_by = auth.uid(), added_days = p_added_days WHERE id = v_request.id; UPDATE public.clinics SET expired_date = v_new_expired_date, updated_at = timezone('utc', now()) WHERE id = v_request.clinic_id; RETURN QUERY SELECT v_request.id, v_request.clinic_id, v_approved_at, v_new_expired_date; END; $$;
 
 
 ALTER FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) OWNER TO "postgres";
@@ -916,154 +449,7 @@ ALTER FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic
 CREATE OR REPLACE FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text" DEFAULT NULL::"text", "owner_user_id" "uuid" DEFAULT "auth"."uid"(), "permit_number" "text" DEFAULT NULL::"text", "owner_ktp_number" "text" DEFAULT NULL::"text", "phone_number" "text" DEFAULT NULL::"text", "address_line" "text" DEFAULT NULL::"text", "rt_rw" "text" DEFAULT NULL::"text", "province_name" "text" DEFAULT NULL::"text", "city_name" "text" DEFAULT NULL::"text", "district_name" "text" DEFAULT NULL::"text", "subdistrict_name" "text" DEFAULT NULL::"text", "postal_code" "text" DEFAULT NULL::"text", "expired_date" timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
-    AS $$
-declare
-  normalized_name text;
-  base_slug text;
-  final_slug text;
-  suffix int := 0;
-  created_clinic_id uuid;
-  existing_clinic_id uuid;
-  owner_membership_id uuid;
-begin
-  if owner_user_id is null then
-    return jsonb_build_object(
-      'status', 'error',
-      'code', 'AUTH_REQUIRED',
-      'message', 'Akun login tidak ditemukan.'
-    );
-  end if;
-
-  normalized_name := nullif(btrim(clinic_name), '');
-  if normalized_name is null then
-    return jsonb_build_object(
-      'status', 'error',
-      'code', 'INVALID_CLINIC_NAME',
-      'message', 'Nama klinik wajib diisi.'
-    );
-  end if;
-
-  base_slug := nullif(regexp_replace(lower(coalesce(clinic_slug, normalized_name)), '[^a-z0-9]+', '-', 'g'), '');
-  base_slug := trim(both '-' from coalesce(base_slug, 'clinic'));
-  if base_slug = '' then
-    base_slug := 'clinic';
-  end if;
-
-  final_slug := base_slug;
-
-  while exists (select 1 from public.clinics c where c.slug = final_slug) loop
-    suffix := suffix + 1;
-    final_slug := base_slug || '-' || suffix::text;
-  end loop;
-
-  insert into public.users (id, role)
-  values (owner_user_id, 'clinic_staff'::public.user_role)
-  on conflict (id) do update
-  set role = 'clinic_staff'::public.user_role,
-      updated_at = now();
-
-  select cm.clinic_id, cm.id
-  into existing_clinic_id, owner_membership_id
-  from public.clinic_memberships cm
-  where cm.user_id = owner_user_id
-    and cm.is_owner = true
-    and cm.is_active = true
-  order by cm.created_at asc
-  limit 1;
-
-  if existing_clinic_id is not null then
-    update public.clinics c
-    set permit_number = coalesce(nullif(btrim(create_clinic_with_owner.permit_number), ''), c.permit_number),
-        owner_ktp_number = coalesce(nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''), c.owner_ktp_number),
-        phone_number = coalesce(nullif(btrim(create_clinic_with_owner.phone_number), ''), c.phone_number),
-        address_line = coalesce(nullif(btrim(create_clinic_with_owner.address_line), ''), c.address_line),
-        rt_rw = coalesce(nullif(btrim(create_clinic_with_owner.rt_rw), ''), c.rt_rw),
-        province_name = coalesce(nullif(btrim(create_clinic_with_owner.province_name), ''), c.province_name),
-        city_name = coalesce(nullif(btrim(create_clinic_with_owner.city_name), ''), c.city_name),
-        district_name = coalesce(nullif(btrim(create_clinic_with_owner.district_name), ''), c.district_name),
-        subdistrict_name = coalesce(nullif(btrim(create_clinic_with_owner.subdistrict_name), ''), c.subdistrict_name),
-        postal_code = coalesce(nullif(btrim(create_clinic_with_owner.postal_code), ''), c.postal_code),
-        expired_date = coalesce(create_clinic_with_owner.expired_date, c.expired_date),
-        updated_at = now()
-    where c.id = existing_clinic_id;
-
-    return jsonb_build_object(
-      'status', 'success',
-      'message', 'Owner sudah memiliki klinik aktif.',
-      'clinicId', existing_clinic_id,
-      'membershipId', owner_membership_id
-    );
-  end if;
-
-  insert into public.clinics (
-    name,
-    slug,
-    owner_user_id,
-    expired_date,
-    permit_number,
-    owner_ktp_number,
-    phone_number,
-    address_line,
-    rt_rw,
-    province_name,
-    city_name,
-    district_name,
-    subdistrict_name,
-    postal_code
-  )
-  values (
-    normalized_name,
-    final_slug,
-    owner_user_id,
-    create_clinic_with_owner.expired_date,
-    nullif(btrim(create_clinic_with_owner.permit_number), ''),
-    nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''),
-    nullif(btrim(create_clinic_with_owner.phone_number), ''),
-    nullif(btrim(create_clinic_with_owner.address_line), ''),
-    nullif(btrim(create_clinic_with_owner.rt_rw), ''),
-    nullif(btrim(create_clinic_with_owner.province_name), ''),
-    nullif(btrim(create_clinic_with_owner.city_name), ''),
-    nullif(btrim(create_clinic_with_owner.district_name), ''),
-    nullif(btrim(create_clinic_with_owner.subdistrict_name), ''),
-    nullif(btrim(create_clinic_with_owner.postal_code), '')
-  )
-  returning id into created_clinic_id;
-
-  insert into public.clinic_memberships (
-    clinic_id,
-    user_id,
-    is_owner,
-    is_staff,
-    is_practitioner,
-    profession,
-    is_active
-  )
-  values (
-    created_clinic_id,
-    owner_user_id,
-    true,
-    true,
-    true,
-    'psychologist'::public.practitioner_profession,
-    true
-  )
-  returning id into owner_membership_id;
-
-  return jsonb_build_object(
-    'status', 'success',
-    'message', 'Klinik berhasil dibuat.',
-    'clinicId', created_clinic_id,
-    'membershipId', owner_membership_id
-  );
-exception
-  when others then
-    return jsonb_build_object(
-      'status', 'error',
-      'code', 'SERVER_ERROR',
-      'message', 'Gagal membuat klinik: ' || sqlerrm
-    );
-end;
-$$;
+    AS $$ declare normalized_name text; base_slug text; final_slug text; suffix int := 0; created_clinic_id uuid; existing_clinic_id uuid; owner_membership_id uuid; begin if owner_user_id is null then return jsonb_build_object('status', 'error', 'code', 'AUTH_REQUIRED', 'message', 'Akun login tidak ditemukan.'); end if; normalized_name := nullif(btrim(clinic_name), ''); if normalized_name is null then return jsonb_build_object('status', 'error', 'code', 'INVALID_CLINIC_NAME', 'message', 'Nama klinik wajib diisi.'); end if; base_slug := nullif(regexp_replace(lower(coalesce(clinic_slug, normalized_name)), '[^a-z0-9]+', '-', 'g'), ''); base_slug := trim(both '-' from coalesce(base_slug, 'clinic')); if base_slug = '' then base_slug := 'clinic'; end if; final_slug := base_slug; while exists (select 1 from public.clinics c where c.slug = final_slug) loop suffix := suffix + 1; final_slug := base_slug || '-' || suffix::text; end loop; insert into public.users (id, role) values (owner_user_id, 'clinic_staff'::public.user_role) on conflict (id) do update set role = 'clinic_staff'::public.user_role, updated_at = now(); select cm.clinic_id, cm.id into existing_clinic_id, owner_membership_id from public.clinic_memberships cm where cm.user_id = owner_user_id and cm.is_owner = true and cm.is_active = true order by cm.created_at asc limit 1; if existing_clinic_id is not null then update public.clinics c set permit_number = coalesce(nullif(btrim(create_clinic_with_owner.permit_number), ''), c.permit_number), owner_ktp_number = coalesce(nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''), c.owner_ktp_number), phone_number = coalesce(nullif(btrim(create_clinic_with_owner.phone_number), ''), c.phone_number), address_line = coalesce(nullif(btrim(create_clinic_with_owner.address_line), ''), c.address_line), rt_rw = coalesce(nullif(btrim(create_clinic_with_owner.rt_rw), ''), c.rt_rw), province_name = coalesce(nullif(btrim(create_clinic_with_owner.province_name), ''), c.province_name), city_name = coalesce(nullif(btrim(create_clinic_with_owner.city_name), ''), c.city_name), district_name = coalesce(nullif(btrim(create_clinic_with_owner.district_name), ''), c.district_name), subdistrict_name = coalesce(nullif(btrim(create_clinic_with_owner.subdistrict_name), ''), c.subdistrict_name), postal_code = coalesce(nullif(btrim(create_clinic_with_owner.postal_code), ''), c.postal_code), expired_date = coalesce(create_clinic_with_owner.expired_date, c.expired_date), updated_at = now() where c.id = existing_clinic_id; return jsonb_build_object('status', 'success', 'message', 'Owner sudah memiliki klinik aktif.', 'clinicId', existing_clinic_id, 'membershipId', owner_membership_id); end if; insert into public.clinics (name, slug, owner_user_id, expired_date, permit_number, owner_ktp_number, phone_number, address_line, rt_rw, province_name, city_name, district_name, subdistrict_name, postal_code) values (normalized_name, final_slug, owner_user_id, create_clinic_with_owner.expired_date, nullif(btrim(create_clinic_with_owner.permit_number), ''), nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''), nullif(btrim(create_clinic_with_owner.phone_number), ''), nullif(btrim(create_clinic_with_owner.address_line), ''), nullif(btrim(create_clinic_with_owner.rt_rw), ''), nullif(btrim(create_clinic_with_owner.province_name), ''), nullif(btrim(create_clinic_with_owner.city_name), ''), nullif(btrim(create_clinic_with_owner.district_name), ''), nullif(btrim(create_clinic_with_owner.subdistrict_name), ''), nullif(btrim(create_clinic_with_owner.postal_code), '')) returning id into created_clinic_id; insert into public.clinic_memberships (clinic_id, user_id, is_owner, is_staff, is_practitioner, profession, is_active) values (created_clinic_id, owner_user_id, true, true, true, 'psychologist'::public.practitioner_profession, true) returning id into owner_membership_id; return jsonb_build_object('status', 'success', 'message', 'Klinik berhasil dibuat.', 'clinicId', created_clinic_id, 'membershipId', owner_membership_id); exception when others then return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal membuat klinik: ' || sqlerrm); end; $$;
 
 
 ALTER FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "expired_date" timestamp with time zone) OWNER TO "postgres";
@@ -1072,134 +458,7 @@ ALTER FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic
 CREATE OR REPLACE FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text" DEFAULT NULL::"text", "owner_user_id" "uuid" DEFAULT "auth"."uid"(), "permit_number" "text" DEFAULT NULL::"text", "owner_ktp_number" "text" DEFAULT NULL::"text", "phone_number" "text" DEFAULT NULL::"text", "address_line" "text" DEFAULT NULL::"text", "rt_rw" "text" DEFAULT NULL::"text", "province_name" "text" DEFAULT NULL::"text", "city_name" "text" DEFAULT NULL::"text", "district_name" "text" DEFAULT NULL::"text", "subdistrict_name" "text" DEFAULT NULL::"text", "postal_code" "text" DEFAULT NULL::"text", "full_address" "text" DEFAULT NULL::"text", "expired_date" timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
-    AS $$
-declare
-  normalized_name text;
-  base_slug text;
-  final_slug text;
-  suffix int := 0;
-  created_clinic_id uuid;
-  existing_clinic_id uuid;
-  owner_membership_id uuid;
-begin
-  if owner_user_id is null then
-    return jsonb_build_object('status', 'error', 'code', 'AUTH_REQUIRED', 'message', 'Akun login tidak ditemukan.');
-  end if;
-
-  normalized_name := nullif(btrim(clinic_name), '');
-  if normalized_name is null then
-    return jsonb_build_object('status', 'error', 'code', 'INVALID_CLINIC_NAME', 'message', 'Nama klinik wajib diisi.');
-  end if;
-
-  base_slug := nullif(regexp_replace(lower(coalesce(clinic_slug, normalized_name)), '[^a-z0-9]+', '-', 'g'), '');
-  base_slug := trim(both '-' from coalesce(base_slug, 'clinic'));
-  if base_slug = '' then
-    base_slug := 'clinic';
-  end if;
-
-  final_slug := base_slug;
-
-  while exists (select 1 from public.clinics c where c.slug = final_slug) loop
-    suffix := suffix + 1;
-    final_slug := base_slug || '-' || suffix::text;
-  end loop;
-
-  insert into public.users (id, role)
-  values (owner_user_id, 'clinic_staff'::public.user_role)
-  on conflict (id) do update
-  set role = 'clinic_staff'::public.user_role,
-      updated_at = now();
-
-  select cm.clinic_id, cm.id
-  into existing_clinic_id, owner_membership_id
-  from public.clinic_memberships cm
-  where cm.user_id = owner_user_id
-    and cm.is_owner = true
-    and cm.is_active = true
-  order by cm.created_at asc
-  limit 1;
-
-  if existing_clinic_id is not null then
-    update public.clinics c
-    set permit_number = coalesce(nullif(btrim(create_clinic_with_owner.permit_number), ''), c.permit_number),
-        owner_ktp_number = coalesce(nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''), c.owner_ktp_number),
-        phone_number = coalesce(nullif(btrim(create_clinic_with_owner.phone_number), ''), c.phone_number),
-        address_line = coalesce(nullif(btrim(create_clinic_with_owner.address_line), ''), c.address_line),
-        rt_rw = coalesce(nullif(btrim(create_clinic_with_owner.rt_rw), ''), c.rt_rw),
-        province_name = coalesce(nullif(btrim(create_clinic_with_owner.province_name), ''), c.province_name),
-        city_name = coalesce(nullif(btrim(create_clinic_with_owner.city_name), ''), c.city_name),
-        district_name = coalesce(nullif(btrim(create_clinic_with_owner.district_name), ''), c.district_name),
-        subdistrict_name = coalesce(nullif(btrim(create_clinic_with_owner.subdistrict_name), ''), c.subdistrict_name),
-        postal_code = coalesce(nullif(btrim(create_clinic_with_owner.postal_code), ''), c.postal_code),
-        full_address = coalesce(nullif(btrim(create_clinic_with_owner.full_address), ''), c.full_address),
-        expired_date = coalesce(create_clinic_with_owner.expired_date, c.expired_date),
-        updated_at = now()
-    where c.id = existing_clinic_id;
-
-    return jsonb_build_object('status', 'success', 'message', 'Owner sudah memiliki klinik aktif.', 'clinicId', existing_clinic_id, 'membershipId', owner_membership_id);
-  end if;
-
-  insert into public.clinics (
-    name,
-    slug,
-    owner_user_id,
-    expired_date,
-    permit_number,
-    owner_ktp_number,
-    phone_number,
-    address_line,
-    rt_rw,
-    province_name,
-    city_name,
-    district_name,
-    subdistrict_name,
-    postal_code,
-    full_address
-  ) values (
-    normalized_name,
-    final_slug,
-    owner_user_id,
-    create_clinic_with_owner.expired_date,
-    nullif(btrim(create_clinic_with_owner.permit_number), ''),
-    nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''),
-    nullif(btrim(create_clinic_with_owner.phone_number), ''),
-    nullif(btrim(create_clinic_with_owner.address_line), ''),
-    nullif(btrim(create_clinic_with_owner.rt_rw), ''),
-    nullif(btrim(create_clinic_with_owner.province_name), ''),
-    nullif(btrim(create_clinic_with_owner.city_name), ''),
-    nullif(btrim(create_clinic_with_owner.district_name), ''),
-    nullif(btrim(create_clinic_with_owner.subdistrict_name), ''),
-    nullif(btrim(create_clinic_with_owner.postal_code), ''),
-    nullif(btrim(create_clinic_with_owner.full_address), '')
-  )
-  returning id into created_clinic_id;
-
-  insert into public.clinic_memberships (
-    clinic_id,
-    user_id,
-    is_owner,
-    is_staff,
-    is_practitioner,
-    profession,
-    is_active
-  )
-  values (
-    created_clinic_id,
-    owner_user_id,
-    true,
-    true,
-    true,
-    'psychologist'::public.practitioner_profession,
-    true
-  )
-  returning id into owner_membership_id;
-
-  return jsonb_build_object('status', 'success', 'message', 'Klinik berhasil dibuat.', 'clinicId', created_clinic_id, 'membershipId', owner_membership_id);
-exception
-  when others then
-    return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal membuat klinik: ' || sqlerrm);
-end;
-$$;
+    AS $$ declare normalized_name text; base_slug text; final_slug text; suffix int := 0; created_clinic_id uuid; existing_clinic_id uuid; owner_membership_id uuid; begin if owner_user_id is null then return jsonb_build_object('status', 'error', 'code', 'AUTH_REQUIRED', 'message', 'Akun login tidak ditemukan.'); end if; normalized_name := nullif(btrim(clinic_name), ''); if normalized_name is null then return jsonb_build_object('status', 'error', 'code', 'INVALID_CLINIC_NAME', 'message', 'Nama klinik wajib diisi.'); end if; base_slug := nullif(regexp_replace(lower(coalesce(clinic_slug, normalized_name)), '[^a-z0-9]+', '-', 'g'), ''); base_slug := trim(both '-' from coalesce(base_slug, 'clinic')); if base_slug = '' then base_slug := 'clinic'; end if; final_slug := base_slug; while exists (select 1 from public.clinics c where c.slug = final_slug) loop suffix := suffix + 1; final_slug := base_slug || '-' || suffix::text; end loop; insert into public.users (id, role) values (owner_user_id, 'clinic_staff'::public.user_role) on conflict (id) do update set role = 'clinic_staff'::public.user_role, updated_at = now(); select cm.clinic_id, cm.id into existing_clinic_id, owner_membership_id from public.clinic_memberships cm where cm.user_id = owner_user_id and cm.is_owner = true and cm.is_active = true order by cm.created_at asc limit 1; if existing_clinic_id is not null then update public.clinics c set permit_number = coalesce(nullif(btrim(create_clinic_with_owner.permit_number), ''), c.permit_number), owner_ktp_number = coalesce(nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''), c.owner_ktp_number), phone_number = coalesce(nullif(btrim(create_clinic_with_owner.phone_number), ''), c.phone_number), address_line = coalesce(nullif(btrim(create_clinic_with_owner.address_line), ''), c.address_line), rt_rw = coalesce(nullif(btrim(create_clinic_with_owner.rt_rw), ''), c.rt_rw), province_name = coalesce(nullif(btrim(create_clinic_with_owner.province_name), ''), c.province_name), city_name = coalesce(nullif(btrim(create_clinic_with_owner.city_name), ''), c.city_name), district_name = coalesce(nullif(btrim(create_clinic_with_owner.district_name), ''), c.district_name), subdistrict_name = coalesce(nullif(btrim(create_clinic_with_owner.subdistrict_name), ''), c.subdistrict_name), postal_code = coalesce(nullif(btrim(create_clinic_with_owner.postal_code), ''), c.postal_code), full_address = coalesce(nullif(btrim(create_clinic_with_owner.full_address), ''), c.full_address), expired_date = coalesce(create_clinic_with_owner.expired_date, c.expired_date), updated_at = now() where c.id = existing_clinic_id; return jsonb_build_object('status', 'success', 'message', 'Owner sudah memiliki klinik aktif.', 'clinicId', existing_clinic_id, 'membershipId', owner_membership_id); end if; insert into public.clinics (name, slug, owner_user_id, expired_date, permit_number, owner_ktp_number, phone_number, address_line, rt_rw, province_name, city_name, district_name, subdistrict_name, postal_code, full_address) values (normalized_name, final_slug, owner_user_id, create_clinic_with_owner.expired_date, nullif(btrim(create_clinic_with_owner.permit_number), ''), nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''), nullif(btrim(create_clinic_with_owner.phone_number), ''), nullif(btrim(create_clinic_with_owner.address_line), ''), nullif(btrim(create_clinic_with_owner.rt_rw), ''), nullif(btrim(create_clinic_with_owner.province_name), ''), nullif(btrim(create_clinic_with_owner.city_name), ''), nullif(btrim(create_clinic_with_owner.district_name), ''), nullif(btrim(create_clinic_with_owner.subdistrict_name), ''), nullif(btrim(create_clinic_with_owner.postal_code), ''), nullif(btrim(create_clinic_with_owner.full_address), '')) returning id into created_clinic_id; insert into public.clinic_memberships (clinic_id, user_id, is_owner, is_staff, is_practitioner, profession, is_active) values (created_clinic_id, owner_user_id, true, true, true, 'psychologist'::public.practitioner_profession, true) returning id into owner_membership_id; return jsonb_build_object('status', 'success', 'message', 'Klinik berhasil dibuat.', 'clinicId', created_clinic_id, 'membershipId', owner_membership_id); exception when others then return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal membuat klinik: ' || sqlerrm); end; $$;
 
 
 ALTER FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "full_address" "text", "expired_date" timestamp with time zone) OWNER TO "postgres";
@@ -1558,33 +817,7 @@ ALTER FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_ide
 CREATE OR REPLACE FUNCTION "public"."get_clinics_with_pending_extension"() RETURNS TABLE("id" "uuid", "name" "text", "slug" character varying, "is_active" boolean, "owner_user_id" "uuid", "created_at" timestamp with time zone, "updated_at" timestamp with time zone, "expired_date" timestamp with time zone, "is_agreement_signed" boolean, "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-  SELECT DISTINCT
-    c.id,
-    c.name,
-    c.slug,
-    c.is_active,
-    c.owner_user_id,
-    c.created_at,
-    c.updated_at,
-    c.expired_date,
-    c.is_agreement_signed,
-    c.permit_number,
-    c.owner_ktp_number,
-    c.phone_number,
-    c.address_line,
-    c.rt_rw,
-    c.province_name,
-    c.city_name,
-    c.district_name,
-    c.subdistrict_name,
-    c.postal_code
-  FROM public.clinics c
-  INNER JOIN public.clinic_extension_requests cer
-    ON cer.clinic_id = c.id
-   AND cer.status = 'PENDING'
-  ORDER BY c.created_at DESC;
-$$;
+    AS $$ SELECT DISTINCT c.id, c.name, c.slug, c.is_active, c.owner_user_id, c.created_at, c.updated_at, c.expired_date, c.is_agreement_signed, c.permit_number, c.owner_ktp_number, c.phone_number, c.address_line, c.rt_rw, c.province_name, c.city_name, c.district_name, c.subdistrict_name, c.postal_code FROM public.clinics c INNER JOIN public.clinic_extension_requests cer ON cer.clinic_id = c.id AND cer.status = 'PENDING' ORDER BY c.created_at DESC; $$;
 
 
 ALTER FUNCTION "public"."get_clinics_with_pending_extension"() OWNER TO "postgres";
@@ -1765,16 +998,7 @@ ALTER FUNCTION "public"."is_portal_staff"() OWNER TO "postgres";
 CREATE OR REPLACE FUNCTION "public"."is_registered_profile_email"("p_email" "text") RETURNS boolean
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'public'
-    AS $$
-  select exists (
-    select 1
-    from public.users u
-    left join public.clinic_memberships cm on cm.user_id = u.id
-    where lower(trim(coalesce(cm.email, ''))) = lower(trim(p_email))
-      and u.role = 'clinic_staff'
-    limit 1
-  );
-$$;
+    AS $$ select exists (select 1 from public.users u left join public.clinic_memberships cm on cm.user_id = u.id where lower(trim(coalesce(cm.email, ''))) = lower(trim(p_email)) and u.role = 'clinic_staff' limit 1); $$;
 
 
 ALTER FUNCTION "public"."is_registered_profile_email"("p_email" "text") OWNER TO "postgres";
@@ -1783,39 +1007,7 @@ ALTER FUNCTION "public"."is_registered_profile_email"("p_email" "text") OWNER TO
 CREATE OR REPLACE FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") RETURNS TABLE("request_id" "uuid", "clinic_id" "uuid", "rejected_at" timestamp with time zone)
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-DECLARE
-  v_request public.clinic_extension_requests%ROWTYPE;
-  v_rejected_at timestamptz := timezone('utc', now());
-BEGIN
-  IF NOT public.is_admin_at_least('ADMIN') THEN
-    RAISE EXCEPTION 'Hanya admin yang dapat menolak pengajuan perpanjangan.';
-  END IF;
-
-  SELECT * INTO v_request
-  FROM public.clinic_extension_requests cer
-  WHERE cer.id = p_request_id
-  FOR UPDATE;
-
-  IF v_request.id IS NULL THEN
-    RAISE EXCEPTION 'Pengajuan perpanjangan tidak ditemukan.';
-  END IF;
-
-  IF v_request.status <> 'PENDING' THEN
-    RAISE EXCEPTION 'Hanya pengajuan berstatus PENDING yang dapat ditolak.';
-  END IF;
-
-  UPDATE public.clinic_extension_requests
-  SET status = 'REJECTED',
-      approved_at = NULL,
-      approved_by = NULL,
-      added_days = NULL
-  WHERE id = v_request.id;
-
-  RETURN QUERY
-  SELECT v_request.id, v_request.clinic_id, v_rejected_at;
-END;
-$$;
+    AS $$ DECLARE v_request public.clinic_extension_requests%ROWTYPE; v_rejected_at timestamptz := timezone('utc', now()); BEGIN IF NOT public.is_admin_at_least('ADMIN') THEN RAISE EXCEPTION 'Hanya admin yang dapat menolak pengajuan perpanjangan.'; END IF; SELECT * INTO v_request FROM public.clinic_extension_requests cer WHERE cer.id = p_request_id FOR UPDATE; IF v_request.id IS NULL THEN RAISE EXCEPTION 'Pengajuan perpanjangan tidak ditemukan.'; END IF; IF v_request.status <> 'PENDING' THEN RAISE EXCEPTION 'Hanya pengajuan berstatus PENDING yang dapat ditolak.'; END IF; UPDATE public.clinic_extension_requests SET status = 'REJECTED', approved_at = NULL, approved_by = NULL, added_days = NULL WHERE id = v_request.id; RETURN QUERY SELECT v_request.id, v_request.clinic_id, v_rejected_at; END; $$;
 
 
 ALTER FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") OWNER TO "postgres";
@@ -4595,15 +3787,15 @@ CREATE POLICY "patient_clinic_consents_clinic_ops_all" ON "public"."patient_clin
 ALTER TABLE "public"."patient_consents" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "patient_consents_insert" ON "public"."patient_consents" FOR INSERT TO "authenticated" WITH CHECK (true);
+CREATE POLICY "patient_consents_insert" ON "public"."patient_consents" FOR INSERT TO "authenticated" WITH CHECK ("public"."has_patient_access"("patient_id"));
 
 
 
-CREATE POLICY "patient_consents_select" ON "public"."patient_consents" FOR SELECT TO "authenticated" USING (true);
+CREATE POLICY "patient_consents_select" ON "public"."patient_consents" FOR SELECT TO "authenticated" USING ("public"."has_patient_access"("patient_id"));
 
 
 
-CREATE POLICY "patient_consents_update" ON "public"."patient_consents" FOR UPDATE TO "authenticated" USING (true) WITH CHECK (true);
+CREATE POLICY "patient_consents_update" ON "public"."patient_consents" FOR UPDATE TO "authenticated" USING ("public"."has_patient_access"("patient_id")) WITH CHECK ("public"."has_patient_access"("patient_id"));
 
 
 

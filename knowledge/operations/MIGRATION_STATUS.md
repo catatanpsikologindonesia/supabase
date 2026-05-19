@@ -34,3 +34,4 @@ The migration script currently:
 ## Historical Status Lines Present In File History
 
 The current code appends plain bullet lines to this file after each successful migration run. This document describes the active process and current squashed result rather than reconstructing older entries from prior doc text.
+- 2026-05-20 20260520015345: Applied fix-patient-consents-rls
