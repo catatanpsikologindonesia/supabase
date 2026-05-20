@@ -36,6 +36,7 @@ It owns:
 - treat backend changes as shared contracts for user portal, admin portal, and landing page
 - route outbound email through `_shared/mail_dispatcher.ts` and the GAS dispatcher
 - keep knowledge documents in English
+- all `.md` files in this repository must be written in English without exception
 
 ## Current Make Targets
 

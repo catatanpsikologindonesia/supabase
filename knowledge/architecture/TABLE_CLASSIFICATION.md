@@ -8,119 +8,119 @@
 
 ## Definitions
 
-**Master table** — data yang tidak bisa diubah dari user portal. Hanya admin portal yang bisa write, atau tidak ada portal yang bisa write (infra). Bisa dibaca dari kedua portal.
+**Master table** - data that cannot be modified from the user portal. Only the admin portal can write to it, or no portal can write to it at all in infra-owned cases. It can be read from both portals.
 
-**User table** — data yang di-CRUD sepenuhnya dari user portal oleh klinik / staf / praktisi. Admin tidak punya UI untuk mengelolanya.
+**User table** - data fully created, read, updated, and deleted from the user portal by clinics, staff, or practitioners. Admin does not have UI to manage it directly.
 
-**Infra table** — table operasional sistem. Tidak di-CRUD langsung dari portal manapun.
+**Infra table** - system-operational table. It is not directly created, read, updated, or deleted from any portal.
 
 ---
 
 ## Master Tables
 
 ### Reference Data
-Admin STAFF+ write. Dibaca semua (authenticated + anon untuk address).
+Admin STAFF+ write. Readable by all relevant consumers, with anon access for address flows where applicable.
 
-| Table | Keterangan |
+| Table | Description |
 |---|---|
-| `education` | Tingkat pendidikan |
-| `marital_status` | Status perkawinan |
-| `occupation` | Pekerjaan |
-| `religion` | Agama |
+| `education` | Education level reference |
+| `marital_status` | Marital status reference |
+| `occupation` | Occupation reference |
+| `religion` | Religion reference |
 
 ### Address Hierarchy
-Read-only untuk semua, termasuk anon.
+Read-only for all consumers, including anon.
 
-| Table | Keterangan |
+| Table | Description |
 |---|---|
-| `address_province` | Provinsi |
-| `address_city` | Kota/kabupaten |
-| `address_district` | Kecamatan |
-| `address_subdistrict` | Kelurahan/desa |
-| `address_postal_code` | Kode pos |
+| `address_province` | Province |
+| `address_city` | City/regency |
+| `address_district` | District |
+| `address_subdistrict` | Subdistrict/village |
+| `address_postal_code` | Postal code |
 
 ### B2B & Agreement
-Admin-only write. Klinik hanya read atau update terbatas.
+Admin-only write. Clinics are read-only or have tightly limited update behavior depending on the table.
 
-| Table | Keterangan |
+| Table | Description |
 |---|---|
-| `b2b_agreement_templates` | Template perjanjian B2B — admin only write; anon bisa read `is_active = true` |
-| `b2b_invitations` | Undangan tanda tangan — admin only write; anon bisa update pending→signed saat flow signing |
-| `consent_templates` | Template informed consent pasien — admin only write; semua authenticated bisa read |
+| `b2b_agreement_templates` | B2B agreement template - admin-only write; anon can read rows where `is_active = true` |
+| `b2b_invitations` | Signing invitation - admin-only write; anon can update pending to signed during the signing flow |
+| `consent_templates` | Patient informed-consent template - admin-only write; all authenticated users can read |
 
 ### Admin Internal
 Internal LBSD only.
 
-| Table | Keterangan |
+| Table | Description |
 |---|---|
-| `admin_profiles` | Profil staff LBSD |
-| `demo_requests` | Permintaan demo — anon insert, admin read/manage |
+| `admin_profiles` | LBSD staff profile |
+| `demo_requests` | Demo request - anon inserts, admin reads and manages |
 
 ---
 
 ## User Tables
 
-### Klinik
+### Clinic
 
-| Table | Keterangan |
+| Table | Description |
 |---|---|
-| `clinics` | Data klinik — owner bisa update |
-| `clinic_memberships` | Keanggotaan staf klinik — owner manage |
-| `clinic_extension_requests` | Permintaan perpanjangan (**hybrid**: owner insert, admin approve/reject) |
-| `b2b_agreements` | Perjanjian B2B yang ditandatangani (**hybrid**: owner insert saat signing, admin buat invitasi) |
+| `clinics` | Clinic record - owner can update |
+| `clinic_memberships` | Clinic staff membership - owner manages |
+| `clinic_extension_requests` | Extension request (**hybrid**: owner inserts, admin approves or rejects) |
+| `b2b_agreements` | Signed B2B agreement (**hybrid**: owner inserts during signing, admin creates invitation) |
 
-### Pasien / Klien
+### Patient / Client
 
-| Table | Keterangan |
+| Table | Description |
 |---|---|
-| `patients` | Row utama pasien |
-| `patient_personal_data` | Data identitas pasien |
-| `patient_family_data` | Data keluarga pasien |
-| `patient_signatures` | Tanda tangan pasien — SELECT via ops; INSERT hanya via service_role/edge function |
-| `clinic_patients` | Link pasien ke klinik |
-| `patient_invitations` | Undangan registrasi pasien |
+| `patients` | Core patient row |
+| `patient_personal_data` | Patient identity data |
+| `patient_family_data` | Patient family data |
+| `patient_signatures` | Patient signature - SELECT via ops; INSERT only via service_role or edge function |
+| `clinic_patients` | Patient-to-clinic link |
+| `patient_invitations` | Patient registration invitation |
 
-### Consent / Persetujuan
+### Consent
 
-| Table | Keterangan |
+| Table | Description |
 |---|---|
-| `patient_consents` | Persetujuan tindakan per pasien — scoped via `has_patient_access(patient_id)` |
-| `patient_clinic_consents` | Consent pasien ke klinik — scoped via `has_ops_access(clinic_id)` |
+| `patient_consents` | Patient treatment consent - scoped via `has_patient_access(patient_id)` |
+| `patient_clinic_consents` | Patient-to-clinic consent - scoped via `has_ops_access(clinic_id)` |
 
-### Session / Terapi
+### Session / Therapy
 
-| Table | Keterangan |
+| Table | Description |
 |---|---|
-| `appointments` | Jadwal sesi — ops klinik manage |
-| `patient_visits` | Kunjungan pasien — ops klinik manage |
-| `therapy_sessions` | Sesi terapi — **praktisi only** (`has_practitioner_access`) |
-| `cognitive_assessments` | Asesmen kognitif per sesi — ops klinik manage |
-| `developmental_history` | Riwayat perkembangan pasien — ops klinik manage |
+| `appointments` | Session schedule - clinic ops manage |
+| `patient_visits` | Patient visit - clinic ops manage |
+| `therapy_sessions` | Therapy session - **practitioner only** (`has_practitioner_access`) |
+| `cognitive_assessments` | Cognitive assessment per session - clinic ops manage |
+| `developmental_history` | Patient developmental history - clinic ops manage |
 
 ### Referral
 
-| Table | Keterangan |
+| Table | Description |
 |---|---|
-| `referrals_and_feedback` | Referral dan feedback — **praktisi only** (`has_practitioner_access`) |
+| `referrals_and_feedback` | Referral and feedback - **practitioner only** (`has_practitioner_access`) |
 
 ---
 
 ## Infra Tables
 
-| Table | Keterangan |
+| Table | Description |
 |---|---|
-| `users` | Row auth user — read own only; insert via edge function saat registrasi |
-| `otp_verifications` | OTP reset password — service_role only via edge function |
-| `edge_rate_limit_events` | Rate limiting — service_role only |
+| `users` | Auth user row - read own only; insert via edge function during registration |
+| `otp_verifications` | Password-reset OTP records - service_role only via edge function |
+| `edge_rate_limit_events` | Rate limiting - service_role only |
 
 ---
 
 ## Notes
 
-- Semua master table bisa **dibaca** dari user portal (untuk populate dropdown, referensi, dll).
-- User portal **tidak bisa write** ke master tables — RLS di database akan reject.
-- `clinic_extension_requests` dan `b2b_agreements` adalah **hybrid**: insert dari user portal, approve/complete dari admin portal.
-- `b2b_invitations` — admin create, tapi anon bisa update pending→signed saat proses tanda tangan sebelum klinik punya akun.
-- `therapy_sessions` dan `referrals_and_feedback` — user table tapi dengan **akses lebih ketat**: hanya praktisi, bukan semua ops klinik.
-- `patient_signatures` — tidak punya INSERT policy; insert harus lewat service_role atau edge function.
-- `patient_consents` — RLS sudah diperbaiki di `20260520_fix-patient-consents-rls.sql` untuk menggunakan `has_patient_access(patient_id)` instead of `USING (true)`.
+- All master tables can be **read** from the user portal for dropdowns, references, and other lookup behavior.
+- The user portal **cannot write** to master tables; database RLS rejects those writes.
+- `clinic_extension_requests` and `b2b_agreements` are **hybrid** tables: inserts come from the user portal, while approval or completion happens from the admin portal.
+- `b2b_invitations` is admin-created, but anon users can update pending to signed during the signing flow before the clinic has its own account.
+- `therapy_sessions` and `referrals_and_feedback` are user tables with **stricter access**: practitioners only, not all clinic ops staff.
+- `patient_signatures` has no INSERT policy; inserts must go through service_role or an edge function.
+- `patient_consents` RLS was corrected in `20260520_fix-patient-consents-rls.sql` to use `has_patient_access(patient_id)` instead of `USING (true)`.

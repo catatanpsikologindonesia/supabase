@@ -8,6 +8,7 @@ Backend-specific protocol for `Supabase/CatatanPsikolog`.
 2. Treat backend changes as shared contracts for both portals and related landing-page integrations.
 3. Update `knowledge/CURRENT_STATE.md` and `knowledge/operations/MIGRATION_STATUS.md` when backend capabilities or migration state change.
 4. Preserve snapshot artifacts used by restore and parity workflows.
+5. All `.md` files in this repository must be written in English without exception.
 
 ## Current Operational Reality
 

@@ -16,6 +16,7 @@ Quick reference for agents working in `Supabase/CatatanPsikolog`.
 - use `make knowledge-language-check` after knowledge updates
 - run `make guard-knowledge-sync` before push decisions or install the push hook with `make install-hooks`
 - use `bash scripts/apply_migration.sh "name" "SQL"` for schema changes
+- all `.md` files in this repository must be written in English without exception
 
 ## Current Repo Facts
 
