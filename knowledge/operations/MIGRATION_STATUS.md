@@ -4,7 +4,7 @@
 
 The repository currently keeps one squashed migration file:
 
-- `20260518234046_rebuild-from-schema.sql`
+- `20260520231500_cleanup_remaining_warnings.sql`
 
 This file is the active schema baseline under `supabase/migrations/`.
 
@@ -35,3 +35,7 @@ The migration script currently:
 
 The current code appends plain bullet lines to this file after each successful migration run. This document describes the active process and current squashed result rather than reconstructing older entries from prior doc text.
 - 2026-05-20 20260520015345: Applied fix-patient-consents-rls
+- 2026-05-20 20260520222619: Applied cleanup_user_role_enum
+- 2026-05-20 20260520224754: Applied fix_rls_and_indexes
+- 2026-05-20 20260520225900: Applied fix_security_functions (manual via supabase db push)
+- 2026-05-20 20260520231500: Applied cleanup_remaining_warnings (manual via supabase db push)

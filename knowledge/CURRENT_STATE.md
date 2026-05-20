@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-05-19
+Last updated: 2026-05-20
 
 ## Repository Role
 
@@ -74,11 +74,12 @@ Current `_shared/` files in code:
 
 ## Migration State
 
-The repository currently uses a single squashed migration baseline:
+The repository currently uses two migration files:
 
-- `supabase/migrations/20260518234046_rebuild-from-schema.sql`
+- `supabase/migrations/20260520231500_cleanup_remaining_warnings.sql` — squashed baseline
+- `supabase/migrations/20260520120000_revoke_anon_sensitive_functions.sql` — anon security cleanup
 
-That file contains the active tables, enums, RPCs, triggers, RLS enablement, and policies.
+These files contain the active tables, enums, RPCs, triggers, RLS enablement, and policies.
 
 ## Current Public Schema Families
 
@@ -154,6 +155,24 @@ Committed database snapshot artifacts currently present:
 - `db_extensions.txt`
 - `extensions_export.sql`
 - `cron_jobs_export.sql`
+
+## Notable Schema Changes
+
+- **2026-05-20**: Removed unused `admin` and `psychologist` values from `user_role` enum. Values `admin` and `psychologist` were never insertable due to `users_role_supported_chk` CHECK constraint. Enum now only contains `clinic_staff` and `patient`.
+- **2026-05-20**: Fixed `demo_requests` INSERT RLS policy (`WITH CHECK (true)` → `WITH CHECK (false)`) — production flow inserts via edge function using `service_role`, so anon/authenticated direct REST inserts are now blocked.
+- **2026-05-20**: Added 5 missing indexes on FK columns for query performance:
+  - `patient_signatures(patient_id)`
+  - `patient_invitations(invited_by_membership_id)`
+  - `patient_invitations(practitioner_membership_id)`
+  - `b2b_agreements(clinic_id)`
+  - `clinics(owner_user_id)`
+- **2026-05-20**: Fixed `get_clinics_with_pending_extension()` — added `is_admin_at_least('STAFF')` guard (was missing entirely, data leak). Converted from SQL to plpgsql. REVOKEd EXECUTE FROM anon.
+- **2026-05-20**: Fixed `submit_patient_registration()` — lookup psychologist from `clinic_memberships.is_practitioner` instead of `users.role in ('admin','psychologist')` (which were removed from enum, function was broken).
+- **2026-05-20**: REVOKEd EXECUTE FROM anon for 8 admin/internal functions: `get_clinics_with_pending_extension`, `create_clinic_with_owner` (3 overloads), `admin_list_clinics`, `admin_get_clinic_detail`, `admin_add_clinic_member`, `approve_clinic_extension_request`, `reject_clinic_extension_request`.
+- **2026-05-20**: REVOKEd SELECT FROM anon for 26 sensitive tables (all non-reference). GraphQL schema no longer exposes clinic/patient table names to public. Only reference tables (address, religion, education, occupation, marital_status) remain visible to anon.
+- **2026-05-20**: Added 13 more missing indexes on FK columns (B2B, patient personal data, patient family data).
+- **2026-05-20**: REVOKEd EXECUTE FROM anon for 3 SECURITY DEFINER write functions: `add_clinic_member_by_email`, `create_patient_invitation_with_schedule`, `save_therapy_session_entry`.
+- **2026-05-20**: REVOKEd EXECUTE FROM anon for 15 additional SECURITY DEFINER functions (admin ops, patient registration, internal helpers). Total anon-exposed functions reduced from 25 to 10. Supabase linter warnings reduced from 106 to 85 (21 actionable, rest inherent/intentional).
 
 ## Key Active Rules
 

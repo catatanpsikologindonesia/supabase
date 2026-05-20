@@ -138,10 +138,8 @@ ALTER TYPE "public"."practitioner_profession" OWNER TO "postgres";
 
 
 CREATE TYPE "public"."user_role" AS ENUM (
-    'admin',
-    'psychologist',
-    'patient',
-    'clinic_staff'
+    'clinic_staff',
+    'patient'
 );
 
 
@@ -815,9 +813,25 @@ ALTER FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_ide
 
 
 CREATE OR REPLACE FUNCTION "public"."get_clinics_with_pending_extension"() RETURNS TABLE("id" "uuid", "name" "text", "slug" character varying, "is_active" boolean, "owner_user_id" "uuid", "created_at" timestamp with time zone, "updated_at" timestamp with time zone, "expired_date" timestamp with time zone, "is_agreement_signed" boolean, "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text")
-    LANGUAGE "sql" STABLE SECURITY DEFINER
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO 'public', 'pg_catalog'
-    AS $$ SELECT DISTINCT c.id, c.name, c.slug, c.is_active, c.owner_user_id, c.created_at, c.updated_at, c.expired_date, c.is_agreement_signed, c.permit_number, c.owner_ktp_number, c.phone_number, c.address_line, c.rt_rw, c.province_name, c.city_name, c.district_name, c.subdistrict_name, c.postal_code FROM public.clinics c INNER JOIN public.clinic_extension_requests cer ON cer.clinic_id = c.id AND cer.status = 'PENDING' ORDER BY c.created_at DESC; $$;
+    AS $$
+begin
+  if not is_admin_at_least('STAFF') then
+    raise exception 'PERMISSION_DENIED';
+  end if;
+  return query
+  SELECT DISTINCT c.id, c.name, c.slug, c.is_active, c.owner_user_id,
+    c.created_at, c.updated_at, c.expired_date, c.is_agreement_signed,
+    c.permit_number, c.owner_ktp_number, c.phone_number, c.address_line,
+    c.rt_rw, c.province_name, c.city_name, c.district_name, c.subdistrict_name,
+    c.postal_code
+  FROM public.clinics c
+  INNER JOIN public.clinic_extension_requests cer
+    ON cer.clinic_id = c.id AND cer.status = 'PENDING'
+  ORDER BY c.created_at DESC;
+end;
+$$;
 
 
 ALTER FUNCTION "public"."get_clinics_with_pending_extension"() OWNER TO "postgres";
@@ -1240,18 +1254,19 @@ begin
     );
   end if;
 
-  select id
+  select cm.user_id
   into psychologist_id
-  from public.users
-  where role in ('admin', 'psychologist')
-  order by created_at asc
+  from public.clinic_memberships cm
+  where cm.clinic_id = invitation_row.clinic_id
+    and cm.is_practitioner = true
+  order by cm.created_at asc
   limit 1;
 
   if psychologist_id is null then
     return jsonb_build_object(
       'status', 'error',
       'code', 'NO_PSYCHOLOGIST',
-      'message', 'Tidak ada user psikolog/admin aktif untuk membuat jadwal awal.'
+      'message', 'Tidak ada psikolog aktif di klinik ini untuk membuat jadwal awal.'
     );
   end if;
 
@@ -2984,6 +2999,30 @@ CREATE UNIQUE INDEX "idx_admin_profiles_email_lower" ON "public"."admin_profiles
 
 
 
+CREATE INDEX "idx_b2b_agreements_clinic_id" ON "public"."b2b_agreements" USING "btree" ("clinic_id");
+
+
+
+CREATE INDEX "idx_b2b_agreements_template_id" ON "public"."b2b_agreements" USING "btree" ("template_id");
+
+
+
+CREATE INDEX "idx_b2b_invitations_clinic_id" ON "public"."b2b_invitations" USING "btree" ("clinic_id");
+
+
+
+CREATE INDEX "idx_b2b_invitations_created_by" ON "public"."b2b_invitations" USING "btree" ("created_by");
+
+
+
+CREATE INDEX "idx_b2b_invitations_template_id" ON "public"."b2b_invitations" USING "btree" ("template_id");
+
+
+
+CREATE INDEX "idx_clinics_owner_user_id" ON "public"."clinics" USING "btree" ("owner_user_id");
+
+
+
 CREATE INDEX "idx_otp_verifications_email_created_at" ON "public"."otp_verifications" USING "btree" ("email", "created_at" DESC);
 
 
@@ -2993,6 +3032,50 @@ CREATE INDEX "idx_patient_consents_patient_id" ON "public"."patient_consents" US
 
 
 CREATE INDEX "idx_patient_consents_visit_id" ON "public"."patient_consents" USING "btree" ("visit_id");
+
+
+
+CREATE INDEX "idx_patient_family_data_father_education" ON "public"."patient_family_data" USING "btree" ("father_education_id");
+
+
+
+CREATE INDEX "idx_patient_family_data_father_occupation" ON "public"."patient_family_data" USING "btree" ("father_occupation_id");
+
+
+
+CREATE INDEX "idx_patient_family_data_marital_status" ON "public"."patient_family_data" USING "btree" ("marital_status_id");
+
+
+
+CREATE INDEX "idx_patient_family_data_mother_education" ON "public"."patient_family_data" USING "btree" ("mother_education_id");
+
+
+
+CREATE INDEX "idx_patient_family_data_mother_occupation" ON "public"."patient_family_data" USING "btree" ("mother_occupation_id");
+
+
+
+CREATE INDEX "idx_patient_invitations_invited_by" ON "public"."patient_invitations" USING "btree" ("invited_by_membership_id");
+
+
+
+CREATE INDEX "idx_patient_invitations_practitioner" ON "public"."patient_invitations" USING "btree" ("practitioner_membership_id");
+
+
+
+CREATE INDEX "idx_patient_personal_data_education_id" ON "public"."patient_personal_data" USING "btree" ("education_id");
+
+
+
+CREATE INDEX "idx_patient_personal_data_occupation_id" ON "public"."patient_personal_data" USING "btree" ("occupation_id");
+
+
+
+CREATE INDEX "idx_patient_personal_data_religion_id" ON "public"."patient_personal_data" USING "btree" ("religion_id");
+
+
+
+CREATE INDEX "idx_patient_signatures_patient_id" ON "public"."patient_signatures" USING "btree" ("patient_id");
 
 
 
@@ -3732,7 +3815,7 @@ CREATE POLICY "education_select_all" ON "public"."education" FOR SELECT TO "auth
 
 
 
-CREATE POLICY "insert_demo_request" ON "public"."demo_requests" FOR INSERT TO "authenticated", "anon" WITH CHECK (true);
+CREATE POLICY "insert_demo_request" ON "public"."demo_requests" FOR INSERT TO "authenticated", "anon" WITH CHECK (false);
 
 
 
@@ -3946,49 +4029,41 @@ GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" 
 
 
 
-GRANT ALL ON FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean, "assign_practitioner" boolean, "member_profession" "public"."practitioner_profession", "actor_user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean, "assign_practitioner" boolean, "member_profession" "public"."practitioner_profession", "actor_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean, "assign_practitioner" boolean, "member_profession" "public"."practitioner_profession", "actor_user_id" "uuid") TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."admin_add_clinic_member"("p_clinic_id" "uuid", "p_user_id" "uuid", "p_full_name" "text", "p_email" "text", "p_is_staff" boolean, "p_is_practitioner" boolean, "p_profession" "public"."practitioner_profession") TO "anon";
 GRANT ALL ON FUNCTION "public"."admin_add_clinic_member"("p_clinic_id" "uuid", "p_user_id" "uuid", "p_full_name" "text", "p_email" "text", "p_is_staff" boolean, "p_is_practitioner" boolean, "p_profession" "public"."practitioner_profession") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."admin_add_clinic_member"("p_clinic_id" "uuid", "p_user_id" "uuid", "p_full_name" "text", "p_email" "text", "p_is_staff" boolean, "p_is_practitioner" boolean, "p_profession" "public"."practitioner_profession") TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."admin_get_clinic_detail"("p_clinic_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."admin_get_clinic_detail"("p_clinic_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."admin_get_clinic_detail"("p_clinic_id" "uuid") TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."admin_list_clinics"() TO "anon";
 GRANT ALL ON FUNCTION "public"."admin_list_clinics"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."admin_list_clinics"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) TO "anon";
 GRANT ALL ON FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "expired_date" timestamp with time zone) TO "anon";
 GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "expired_date" timestamp with time zone) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "expired_date" timestamp with time zone) TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "full_address" "text", "expired_date" timestamp with time zone) TO "anon";
 GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "full_address" "text", "expired_date" timestamp with time zone) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "full_address" "text", "expired_date" timestamp with time zone) TO "service_role";
 
@@ -4000,7 +4075,6 @@ GRANT ALL ON FUNCTION "public"."create_patient_from_auth_user"("auth_email" "tex
 
 
 
-GRANT ALL ON FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text", "patient_phone" "text", "contact_type" "text", "session_date" "date", "session_time" time without time zone, "duration_minutes" integer, "session_timezone" "text", "invitation_ttl_hours" integer) TO "anon";
 GRANT ALL ON FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text", "patient_phone" "text", "contact_type" "text", "session_date" "date", "session_time" time without time zone, "duration_minutes" integer, "session_timezone" "text", "invitation_ttl_hours" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text", "patient_phone" "text", "contact_type" "text", "session_date" "date", "session_time" time without time zone, "duration_minutes" integer, "session_timezone" "text", "invitation_ttl_hours" integer) TO "service_role";
 
@@ -4012,7 +4086,6 @@ GRANT ALL ON FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text",
 
 
 
-GRANT ALL ON FUNCTION "public"."get_clinics_with_pending_extension"() TO "anon";
 GRANT ALL ON FUNCTION "public"."get_clinics_with_pending_extension"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_clinics_with_pending_extension"() TO "service_role";
 
@@ -4078,7 +4151,6 @@ GRANT ALL ON FUNCTION "public"."is_registered_profile_email"("p_email" "text") T
 
 
 
-GRANT ALL ON FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") TO "service_role";
 
@@ -4090,7 +4162,6 @@ GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") TO "service_role";
 
@@ -4156,85 +4227,85 @@ GRANT ALL ON TABLE "public"."address_subdistrict" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."admin_profiles" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."admin_profiles" TO "anon";
 GRANT ALL ON TABLE "public"."admin_profiles" TO "authenticated";
 GRANT ALL ON TABLE "public"."admin_profiles" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."appointments" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."appointments" TO "anon";
 GRANT ALL ON TABLE "public"."appointments" TO "authenticated";
 GRANT ALL ON TABLE "public"."appointments" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."b2b_agreement_templates" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."b2b_agreement_templates" TO "anon";
 GRANT ALL ON TABLE "public"."b2b_agreement_templates" TO "authenticated";
 GRANT ALL ON TABLE "public"."b2b_agreement_templates" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."b2b_agreements" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."b2b_agreements" TO "anon";
 GRANT ALL ON TABLE "public"."b2b_agreements" TO "authenticated";
 GRANT ALL ON TABLE "public"."b2b_agreements" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."b2b_invitations" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."b2b_invitations" TO "anon";
 GRANT ALL ON TABLE "public"."b2b_invitations" TO "authenticated";
 GRANT ALL ON TABLE "public"."b2b_invitations" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."clinic_extension_requests" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."clinic_extension_requests" TO "anon";
 GRANT ALL ON TABLE "public"."clinic_extension_requests" TO "authenticated";
 GRANT ALL ON TABLE "public"."clinic_extension_requests" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."clinic_memberships" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."clinic_memberships" TO "anon";
 GRANT ALL ON TABLE "public"."clinic_memberships" TO "authenticated";
 GRANT ALL ON TABLE "public"."clinic_memberships" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."clinic_patients" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."clinic_patients" TO "anon";
 GRANT ALL ON TABLE "public"."clinic_patients" TO "authenticated";
 GRANT ALL ON TABLE "public"."clinic_patients" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."clinics" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."clinics" TO "anon";
 GRANT ALL ON TABLE "public"."clinics" TO "authenticated";
 GRANT ALL ON TABLE "public"."clinics" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."cognitive_assessments" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."cognitive_assessments" TO "anon";
 GRANT ALL ON TABLE "public"."cognitive_assessments" TO "authenticated";
 GRANT ALL ON TABLE "public"."cognitive_assessments" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."consent_templates" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."consent_templates" TO "anon";
 GRANT ALL ON TABLE "public"."consent_templates" TO "authenticated";
 GRANT ALL ON TABLE "public"."consent_templates" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."demo_requests" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."demo_requests" TO "anon";
 GRANT ALL ON TABLE "public"."demo_requests" TO "authenticated";
 GRANT ALL ON TABLE "public"."demo_requests" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."developmental_history" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."developmental_history" TO "anon";
 GRANT ALL ON TABLE "public"."developmental_history" TO "authenticated";
 GRANT ALL ON TABLE "public"."developmental_history" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."edge_rate_limit_events" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."edge_rate_limit_events" TO "anon";
 GRANT ALL ON TABLE "public"."edge_rate_limit_events" TO "authenticated";
 GRANT ALL ON TABLE "public"."edge_rate_limit_events" TO "service_role";
 
@@ -4258,61 +4329,61 @@ GRANT ALL ON TABLE "public"."occupation" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."otp_verifications" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."otp_verifications" TO "anon";
 GRANT ALL ON TABLE "public"."otp_verifications" TO "authenticated";
 GRANT ALL ON TABLE "public"."otp_verifications" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_clinic_consents" TO "anon";
 GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "authenticated";
 GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."patient_consents" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_consents" TO "anon";
 GRANT ALL ON TABLE "public"."patient_consents" TO "authenticated";
 GRANT ALL ON TABLE "public"."patient_consents" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."patient_family_data" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_family_data" TO "anon";
 GRANT ALL ON TABLE "public"."patient_family_data" TO "authenticated";
 GRANT ALL ON TABLE "public"."patient_family_data" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."patient_invitations" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_invitations" TO "anon";
 GRANT ALL ON TABLE "public"."patient_invitations" TO "authenticated";
 GRANT ALL ON TABLE "public"."patient_invitations" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."patient_personal_data" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_personal_data" TO "anon";
 GRANT ALL ON TABLE "public"."patient_personal_data" TO "authenticated";
 GRANT ALL ON TABLE "public"."patient_personal_data" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."patient_signatures" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_signatures" TO "anon";
 GRANT ALL ON TABLE "public"."patient_signatures" TO "authenticated";
 GRANT ALL ON TABLE "public"."patient_signatures" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."patient_visits" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_visits" TO "anon";
 GRANT ALL ON TABLE "public"."patient_visits" TO "authenticated";
 GRANT ALL ON TABLE "public"."patient_visits" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."patients" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patients" TO "anon";
 GRANT ALL ON TABLE "public"."patients" TO "authenticated";
 GRANT ALL ON TABLE "public"."patients" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."referrals_and_feedback" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."referrals_and_feedback" TO "anon";
 GRANT ALL ON TABLE "public"."referrals_and_feedback" TO "authenticated";
 GRANT ALL ON TABLE "public"."referrals_and_feedback" TO "service_role";
 
@@ -4324,13 +4395,13 @@ GRANT ALL ON TABLE "public"."religion" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."therapy_sessions" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."therapy_sessions" TO "anon";
 GRANT ALL ON TABLE "public"."therapy_sessions" TO "authenticated";
 GRANT ALL ON TABLE "public"."therapy_sessions" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."users" TO "anon";
+GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."users" TO "anon";
 GRANT ALL ON TABLE "public"."users" TO "authenticated";
 GRANT ALL ON TABLE "public"."users" TO "service_role";
 
