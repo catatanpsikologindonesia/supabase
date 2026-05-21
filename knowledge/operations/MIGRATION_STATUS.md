@@ -46,3 +46,7 @@ The current code appends plain bullet lines to this file after each successful m
 - 2026-05-21 20260521205832: Applied clinic_asset_storage_bucket
 - 2026-05-21 20260521205928: Applied rpc_portal_get_clinic_profile
 - 2026-05-21 20260521210149: Applied rpc_portal_update_clinic_asset_paths
+- 2026-05-22 20260522021351: Applied rpc_normalized_wrappers
+- 2026-05-22 20260522021459: Applied rpc_normalized_portal_wrappers
+- 2026-05-22 20260522022555: Applied drop_deprecated_rpc_prefix_functions
+- 2026-05-22 20260522023331: Applied rehydrate_normalized_rpc_functions
