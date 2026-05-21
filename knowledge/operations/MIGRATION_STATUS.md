@@ -22,7 +22,7 @@ The migration script currently:
 
 - creates a pre-migration local DB backup
 - writes the SQL migration file
-- mirrors the migration into `knowledge/supabase_migrations/`
+- records migration status in this file; the old `knowledge/supabase_migrations/` mirror directory is no longer used after the squash flow
 - repairs orphaned local migration history when needed
 - applies the migration with `supabase db push --local`
 - appends a status line to this file
