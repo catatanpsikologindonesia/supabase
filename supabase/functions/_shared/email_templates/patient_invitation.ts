@@ -123,7 +123,7 @@ export function renderPatientInvitationEmailTemplate(
             </tr>
             <tr>
               <td style="padding:12px 18px; background:#f1f5f7; border-top:1px solid #e2e8eb; text-align:center; color:#64748b; font-size:12px; line-height:1.5;">
-                &copy; PT Lintas Buana Sistem Digital - Catatan Psikolog. All Rights Reserved.
+                &copy; ${new Date().getFullYear()} PT Lintas Buana Sistem Digital. Catatan Psikolog. Hak cipta dilindungi.
               </td>
             </tr>
           </table>
@@ -227,7 +227,7 @@ export function renderPatientInvitationEmailTemplate(
             </tr>
             <tr>
               <td style="padding:12px 18px; background:#f1f5f7; border-top:1px solid #e2e8eb; text-align:center; color:#64748b; font-size:12px; line-height:1.5;">
-                &copy; PT Lintas Buana Sistem Digital - Catatan Psikolog. All Rights Reserved.
+                &copy; ${new Date().getFullYear()} PT Lintas Buana Sistem Digital. Catatan Psikolog. Hak cipta dilindungi.
               </td>
             </tr>
           </table>

@@ -155,7 +155,7 @@ export function renderDemoAdminEmailTemplate(input: DemoRequestEmailInput): Rend
             </tr>
             <tr>
               <td style="padding:14px 20px; background:#f1f1f8; border-top:1px solid #d4d4ec; text-align:center; color:#64748b; font-size:12px;">
-                &copy; PT Lintas Buana Sistem Digital - Catatan Psikolog. All Rights Reserved.
+                &copy; ${new Date().getFullYear()} PT Lintas Buana Sistem Digital. Catatan Psikolog. Hak cipta dilindungi.
               </td>
             </tr>
           </table>
@@ -271,7 +271,7 @@ export function renderDemoUserEmailTemplate(input: DemoRequestEmailInput): Rende
             </tr>
             <tr>
               <td style="padding:12px 18px; background:#f1f1f8; border-top:1px solid #d4d4ec; text-align:center; color:#64748b; font-size:12px; line-height:1.5;">
-                &copy; PT Lintas Buana Sistem Digital - Catatan Psikolog. All Rights Reserved.
+                &copy; ${new Date().getFullYear()} PT Lintas Buana Sistem Digital. Catatan Psikolog. Hak cipta dilindungi.
               </td>
             </tr>
           </table>

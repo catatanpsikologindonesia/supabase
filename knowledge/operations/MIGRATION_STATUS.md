@@ -42,3 +42,7 @@ The current code appends plain bullet lines to this file after each successful m
 - 2026-05-21 20260521124811: Applied security_hardening_rpc_migration
 - 2026-05-21 20260521194855: Applied get_b2b_update_reminder
 - 2026-05-21 20260521195302: Applied get_b2b_update_reminder
+- 2026-05-21 20260521205610: Applied add_clinic_asset_paths
+- 2026-05-21 20260521205832: Applied clinic_asset_storage_bucket
+- 2026-05-21 20260521205928: Applied rpc_portal_get_clinic_profile
+- 2026-05-21 20260521210149: Applied rpc_portal_update_clinic_asset_paths

@@ -55,7 +55,7 @@ ${row('Kode Pengajuan', `<strong>${e(v.requestId)}</strong>`)}${row('Waktu Penga
 <a href="${escapeHtml(waLink(v.whatsapp))}" style="display:inline-block;padding:12px 18px;font-size:14px;font-weight:700;color:#fff;text-decoration:none;border-radius:10px;">Hubungi via WhatsApp</a>
 </td></tr></table></td></tr>
 <tr><td style="padding:14px 20px;background:#f1f1f8;border-top:1px solid ${BRAND_TABLE_BORDER};text-align:center;color:#64748b;font-size:12px;">
-&copy; PT Lintas Buana Sistem Digital - Catatan Psikolog. All Rights Reserved.</td></tr>
+&copy; ${new Date().getFullYear()} PT Lintas Buana Sistem Digital. Catatan Psikolog. Hak cipta dilindungi.</td></tr>
 </table></td></tr></table></body></html>`,
   };
 }
@@ -94,7 +94,7 @@ function buildUserEmail(v: EmailVars): { subject: string; html: string } {
 <p style="margin:0;font-size:14px;color:#1f2937;">${escapeHtml(DEMO_EMAIL_BRAND_NAME)}<br /><a href="https://www.catatanpsikolog.id" style="color:#5a5a99;text-decoration:none;">www.catatanpsikolog.id</a></p>
 </td></tr>
 <tr><td style="padding:12px 18px;background:#f1f1f8;border-top:1px solid ${BRAND_TABLE_BORDER};text-align:center;color:#64748b;font-size:12px;">
-&copy; PT Lintas Buana Sistem Digital - Catatan Psikolog. All Rights Reserved.</td></tr>
+&copy; ${new Date().getFullYear()} PT Lintas Buana Sistem Digital. Catatan Psikolog. Hak cipta dilindungi.</td></tr>
 </table></td></tr></table></body></html>`,
   };
 }

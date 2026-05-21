@@ -76,9 +76,9 @@ Current `_shared/` files in code:
 
 The repository currently uses one squashed migration file:
 
-- `supabase/migrations/20260521195302_get_b2b_update_reminder.sql` — squashed baseline plus B2B update reminder RPC
+- `supabase/migrations/20260521210149_rpc_portal_update_clinic_asset_paths.sql` — squashed baseline plus B2B reminder and clinic profile asset RPCs
 
-This file contains the active tables, enums, RPCs, triggers, RLS enablement, policies, and `public.get_b2b_update_reminder(uuid)`.
+This file contains the active tables, enums, RPCs, triggers, RLS enablement, policies, `public.get_b2b_update_reminder(uuid)`, `public.rpc_portal_get_clinic_profile(uuid)`, and `public.rpc_portal_update_clinic_asset_paths(uuid, text, text, text)`.
 
 ## Current Public Schema Families
 
@@ -174,6 +174,7 @@ Committed database snapshot artifacts currently present:
 - **2026-05-20**: REVOKEd EXECUTE FROM anon for 15 additional SECURITY DEFINER functions (admin ops, patient registration, internal helpers). Total anon-exposed functions reduced from 25 to 10. Supabase linter warnings reduced from 106 to 85 (21 actionable, rest inherent/intentional).
 - **2026-05-21**: Added frontend RPC migration contracts for the admin and user portals. Active frontend database reads/writes now go through RPC contracts; direct `supabase.from()` database table access has been removed from both active frontend codebases. Storage bucket access still uses `supabase.storage.from()`.
 - **2026-05-21**: Added `public.get_b2b_update_reminder(uuid)` for the user portal PKS update banner. The RPC compares `b2b_agreement_templates.updated_at` with the clinic's latest `b2b_agreements.signed_at` and returns a seven-day reminder window.
+- **2026-05-21**: Added clinic profile asset support: `clinics.profile_picture_path`, `clinics.stamp_path`, `clinics.signature_path`, private `clinic_profile_picture` storage bucket, member-scoped storage policies, `rpc_portal_get_clinic_profile(uuid)`, and `rpc_portal_update_clinic_asset_paths(uuid, text, text, text)`.
 
 ## Key Active Rules
 

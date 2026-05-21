@@ -1400,6 +1400,15 @@ END; $$;
 ALTER FUNCTION "public"."rpc_portal_dashboard"("p_clinic_id" "uuid", "p_start" timestamp with time zone, "p_end" timestamp with time zone, "p_mode" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."rpc_portal_get_clinic_profile"("p_clinic_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$ SELECT jsonb_build_object('id', c.id, 'name', c.name, 'slug', c.slug, 'is_active', c.is_active, 'expired_date', c.expired_date, 'permit_number', c.permit_number, 'owner_ktp_number', c.owner_ktp_number, 'phone_number', c.phone_number, 'address_line', c.address_line, 'rt_rw', c.rt_rw, 'province_name', c.province_name, 'city_name', c.city_name, 'district_name', c.district_name, 'subdistrict_name', c.subdistrict_name, 'postal_code', c.postal_code, 'full_address', c.full_address, 'profile_picture_path', c.profile_picture_path, 'stamp_path', c.stamp_path, 'signature_path', c.signature_path, 'updated_at', c.updated_at, 'owner_name', (SELECT cm.full_name FROM public.clinic_memberships cm WHERE cm.clinic_id = p_clinic_id AND cm.is_owner = true AND cm.is_active = true ORDER BY cm.created_at ASC LIMIT 1), 'owner_email', (SELECT cm.email FROM public.clinic_memberships cm WHERE cm.clinic_id = p_clinic_id AND cm.is_owner = true AND cm.is_active = true ORDER BY cm.created_at ASC LIMIT 1)) FROM public.clinics c WHERE c.id = p_clinic_id AND public.has_active_membership(p_clinic_id); $$;
+
+
+ALTER FUNCTION "public"."rpc_portal_get_clinic_profile"("p_clinic_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."rpc_portal_patient_workspace"("p_clinic_id" "uuid", "p_patient_id" "uuid", "p_appointment_id" "uuid" DEFAULT NULL::"uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'pg_catalog'
@@ -1459,6 +1468,15 @@ END; $$;
 
 
 ALTER FUNCTION "public"."rpc_portal_submit_clinic_agreement"("p_clinic_id" "uuid", "p_template_id" "uuid", "p_signed_by_name" "text", "p_signature_image_path" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."rpc_portal_update_clinic_asset_paths"("p_clinic_id" "uuid", "p_profile_picture_path" "text" DEFAULT NULL::"text", "p_stamp_path" "text" DEFAULT NULL::"text", "p_signature_path" "text" DEFAULT NULL::"text") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$ BEGIN IF NOT public.has_active_membership(p_clinic_id) THEN RAISE EXCEPTION 'Clinic access required' USING ERRCODE = '42501'; END IF; UPDATE public.clinics SET profile_picture_path = COALESCE(p_profile_picture_path, profile_picture_path), stamp_path = COALESCE(p_stamp_path, stamp_path), signature_path = COALESCE(p_signature_path, signature_path), updated_at = now() WHERE id = p_clinic_id; END; $$;
+
+
+ALTER FUNCTION "public"."rpc_portal_update_clinic_asset_paths"("p_clinic_id" "uuid", "p_profile_picture_path" "text", "p_stamp_path" "text", "p_signature_path" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."rpc_update_patient_consent_signature"("p_id" "uuid", "p_signature_path" "text") RETURNS "void"
@@ -2655,7 +2673,10 @@ CREATE TABLE IF NOT EXISTS "public"."clinics" (
     "district_name" "text",
     "subdistrict_name" "text",
     "postal_code" "text",
-    "full_address" "text"
+    "full_address" "text",
+    "profile_picture_path" "text",
+    "stamp_path" "text",
+    "signature_path" "text"
 );
 
 
@@ -4733,6 +4754,13 @@ GRANT ALL ON FUNCTION "public"."rpc_portal_dashboard"("p_clinic_id" "uuid", "p_s
 
 
 
+REVOKE ALL ON FUNCTION "public"."rpc_portal_get_clinic_profile"("p_clinic_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."rpc_portal_get_clinic_profile"("p_clinic_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."rpc_portal_get_clinic_profile"("p_clinic_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."rpc_portal_get_clinic_profile"("p_clinic_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."rpc_portal_patient_workspace"("p_clinic_id" "uuid", "p_patient_id" "uuid", "p_appointment_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."rpc_portal_patient_workspace"("p_clinic_id" "uuid", "p_patient_id" "uuid", "p_appointment_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."rpc_portal_patient_workspace"("p_clinic_id" "uuid", "p_patient_id" "uuid", "p_appointment_id" "uuid") TO "service_role";
@@ -4748,6 +4776,13 @@ GRANT ALL ON FUNCTION "public"."rpc_portal_patients"("p_clinic_id" "uuid") TO "s
 GRANT ALL ON FUNCTION "public"."rpc_portal_submit_clinic_agreement"("p_clinic_id" "uuid", "p_template_id" "uuid", "p_signed_by_name" "text", "p_signature_image_path" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."rpc_portal_submit_clinic_agreement"("p_clinic_id" "uuid", "p_template_id" "uuid", "p_signed_by_name" "text", "p_signature_image_path" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."rpc_portal_submit_clinic_agreement"("p_clinic_id" "uuid", "p_template_id" "uuid", "p_signed_by_name" "text", "p_signature_image_path" "text") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."rpc_portal_update_clinic_asset_paths"("p_clinic_id" "uuid", "p_profile_picture_path" "text", "p_stamp_path" "text", "p_signature_path" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."rpc_portal_update_clinic_asset_paths"("p_clinic_id" "uuid", "p_profile_picture_path" "text", "p_stamp_path" "text", "p_signature_path" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."rpc_portal_update_clinic_asset_paths"("p_clinic_id" "uuid", "p_profile_picture_path" "text", "p_stamp_path" "text", "p_signature_path" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."rpc_portal_update_clinic_asset_paths"("p_clinic_id" "uuid", "p_profile_picture_path" "text", "p_stamp_path" "text", "p_signature_path" "text") TO "service_role";
 
 
 
