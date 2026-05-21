@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-05-20
+Last updated: 2026-05-21
 
 ## Repository Role
 
@@ -74,12 +74,11 @@ Current `_shared/` files in code:
 
 ## Migration State
 
-The repository currently uses two migration files:
+The repository currently uses one squashed migration file:
 
-- `supabase/migrations/20260520231500_cleanup_remaining_warnings.sql` — squashed baseline
-- `supabase/migrations/20260520120000_revoke_anon_sensitive_functions.sql` — anon security cleanup
+- `supabase/migrations/20260521195302_get_b2b_update_reminder.sql` — squashed baseline plus B2B update reminder RPC
 
-These files contain the active tables, enums, RPCs, triggers, RLS enablement, and policies.
+This file contains the active tables, enums, RPCs, triggers, RLS enablement, policies, and `public.get_b2b_update_reminder(uuid)`.
 
 ## Current Public Schema Families
 
@@ -174,6 +173,7 @@ Committed database snapshot artifacts currently present:
 - **2026-05-20**: REVOKEd EXECUTE FROM anon for 3 SECURITY DEFINER write functions: `add_clinic_member_by_email`, `create_patient_invitation_with_schedule`, `save_therapy_session_entry`.
 - **2026-05-20**: REVOKEd EXECUTE FROM anon for 15 additional SECURITY DEFINER functions (admin ops, patient registration, internal helpers). Total anon-exposed functions reduced from 25 to 10. Supabase linter warnings reduced from 106 to 85 (21 actionable, rest inherent/intentional).
 - **2026-05-21**: Added frontend RPC migration contracts for the admin and user portals. Active frontend database reads/writes now go through RPC contracts; direct `supabase.from()` database table access has been removed from both active frontend codebases. Storage bucket access still uses `supabase.storage.from()`.
+- **2026-05-21**: Added `public.get_b2b_update_reminder(uuid)` for the user portal PKS update banner. The RPC compares `b2b_agreement_templates.updated_at` with the clinic's latest `b2b_agreements.signed_at` and returns a seven-day reminder window.
 
 ## Key Active Rules
 

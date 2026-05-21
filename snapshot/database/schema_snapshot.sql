@@ -812,6 +812,15 @@ $$;
 ALTER FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_b2b_update_reminder"("p_clinic_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$ SELECT jsonb_build_object('should_show', COALESCE(t.updated_at > COALESCE(a.signed_at::timestamptz, '-infinity'::timestamptz) AND t.updated_at > now() - interval '7 days', false), 'message', 'Dokumen PKS telah diperbarui. Silakan tandatangani ulang di halaman Profil Klinik.') FROM public.b2b_agreement_templates t LEFT JOIN public.b2b_agreements a ON a.clinic_id = p_clinic_id AND a.id = (SELECT id FROM public.b2b_agreements WHERE clinic_id = p_clinic_id ORDER BY signed_at DESC LIMIT 1) WHERE t.is_active = true LIMIT 1; $$;
+
+
+ALTER FUNCTION "public"."get_b2b_update_reminder"("p_clinic_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_clinics_with_pending_extension"() RETURNS TABLE("id" "uuid", "name" "text", "slug" character varying, "is_active" boolean, "owner_user_id" "uuid", "created_at" timestamp with time zone, "updated_at" timestamp with time zone, "expired_date" timestamp with time zone, "is_agreement_signed" boolean, "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text")
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO 'public', 'pg_catalog'
@@ -4495,6 +4504,13 @@ GRANT ALL ON FUNCTION "public"."create_patient_invitation_with_schedule"("target
 REVOKE ALL ON FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."get_b2b_update_reminder"("p_clinic_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."get_b2b_update_reminder"("p_clinic_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_b2b_update_reminder"("p_clinic_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_b2b_update_reminder"("p_clinic_id" "uuid") TO "service_role";
 
 
 

@@ -40,3 +40,5 @@ The current code appends plain bullet lines to this file after each successful m
 - 2026-05-20 20260520225900: Applied fix_security_functions (manual via supabase db push)
 - 2026-05-20 20260520231500: Applied cleanup_remaining_warnings (manual via supabase db push)
 - 2026-05-21 20260521124811: Applied security_hardening_rpc_migration
+- 2026-05-21 20260521194855: Applied get_b2b_update_reminder
+- 2026-05-21 20260521195302: Applied get_b2b_update_reminder
