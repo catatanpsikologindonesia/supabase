@@ -173,6 +173,7 @@ Committed database snapshot artifacts currently present:
 - **2026-05-20**: Added 13 more missing indexes on FK columns (B2B, patient personal data, patient family data).
 - **2026-05-20**: REVOKEd EXECUTE FROM anon for 3 SECURITY DEFINER write functions: `add_clinic_member_by_email`, `create_patient_invitation_with_schedule`, `save_therapy_session_entry`.
 - **2026-05-20**: REVOKEd EXECUTE FROM anon for 15 additional SECURITY DEFINER functions (admin ops, patient registration, internal helpers). Total anon-exposed functions reduced from 25 to 10. Supabase linter warnings reduced from 106 to 85 (21 actionable, rest inherent/intentional).
+- **2026-05-21**: Added frontend RPC migration contracts for the admin and user portals. Active frontend database reads/writes now go through RPC contracts; direct `supabase.from()` database table access has been removed from both active frontend codebases. Storage bucket access still uses `supabase.storage.from()`.
 
 ## Key Active Rules
 
