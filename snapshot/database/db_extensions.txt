@@ -1,4 +1,5 @@
 pg_cron
+pg_graphql
 pg_stat_statements
 pgcrypto
 plpgsql

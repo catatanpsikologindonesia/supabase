@@ -1,9 +1,16 @@
+--
+-- PostgreSQL database dump
+--
 
+\restrict aMMlBMC53v9yMKMdTOTJuhCghM11bFigEJKAxV1GIQEBVgqlPzW5MI4TF0hetsV
 
+-- Dumped from database version 17.6
+-- Dumped by pg_dump version 18.3
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -12,47 +19,287 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+--
+-- Name: auth; Type: SCHEMA; Schema: -; Owner: -
+--
 
-CREATE SCHEMA IF NOT EXISTS "public";
-
-
-ALTER SCHEMA "public" OWNER TO "pg_database_owner";
-
-
-COMMENT ON SCHEMA "public" IS 'standard public schema';
+CREATE SCHEMA auth;
 
 
+--
+-- Name: pg_cron; Type: EXTENSION; Schema: -; Owner: -
+--
 
-CREATE TYPE "public"."adhd_indication" AS ENUM (
+CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+
+
+--
+-- Name: EXTENSION pg_cron; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pg_cron IS 'Job scheduler for PostgreSQL';
+
+
+--
+-- Name: extensions; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA extensions;
+
+
+--
+-- Name: graphql; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA graphql;
+
+
+--
+-- Name: graphql_public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA graphql_public;
+
+
+--
+-- Name: pgbouncer; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA pgbouncer;
+
+
+--
+-- Name: realtime; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA realtime;
+
+
+--
+-- Name: storage; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA storage;
+
+
+--
+-- Name: supabase_migrations; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA supabase_migrations;
+
+
+--
+-- Name: vault; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA vault;
+
+
+--
+-- Name: pg_graphql; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pg_graphql WITH SCHEMA graphql;
+
+
+--
+-- Name: EXTENSION pg_graphql; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pg_graphql IS 'pg_graphql: GraphQL support';
+
+
+--
+-- Name: pg_stat_statements; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA extensions;
+
+
+--
+-- Name: EXTENSION pg_stat_statements; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pg_stat_statements IS 'track planning and execution statistics of all SQL statements executed';
+
+
+--
+-- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
+
+--
+-- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
+
+
+--
+-- Name: supabase_vault; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS supabase_vault WITH SCHEMA vault;
+
+
+--
+-- Name: EXTENSION supabase_vault; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION supabase_vault IS 'Supabase Vault Extension';
+
+
+--
+-- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
+
+
+--
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
+
+
+--
+-- Name: aal_level; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.aal_level AS ENUM (
+    'aal1',
+    'aal2',
+    'aal3'
+);
+
+
+--
+-- Name: code_challenge_method; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.code_challenge_method AS ENUM (
+    's256',
+    'plain'
+);
+
+
+--
+-- Name: factor_status; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.factor_status AS ENUM (
+    'unverified',
+    'verified'
+);
+
+
+--
+-- Name: factor_type; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.factor_type AS ENUM (
+    'totp',
+    'webauthn',
+    'phone'
+);
+
+
+--
+-- Name: oauth_authorization_status; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.oauth_authorization_status AS ENUM (
+    'pending',
+    'approved',
+    'denied',
+    'expired'
+);
+
+
+--
+-- Name: oauth_client_type; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.oauth_client_type AS ENUM (
+    'public',
+    'confidential'
+);
+
+
+--
+-- Name: oauth_registration_type; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.oauth_registration_type AS ENUM (
+    'dynamic',
+    'manual'
+);
+
+
+--
+-- Name: oauth_response_type; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.oauth_response_type AS ENUM (
+    'code'
+);
+
+
+--
+-- Name: one_time_token_type; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.one_time_token_type AS ENUM (
+    'confirmation_token',
+    'reauthentication_token',
+    'recovery_token',
+    'email_change_token_new',
+    'email_change_token_current',
+    'phone_change_token'
+);
+
+
+--
+-- Name: adhd_indication; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.adhd_indication AS ENUM (
     'possible_adhd',
     'not_adhd'
 );
 
 
-ALTER TYPE "public"."adhd_indication" OWNER TO "postgres";
+--
+-- Name: admin_level_enum; Type: TYPE; Schema: public; Owner: -
+--
 
-
-CREATE TYPE "public"."admin_level_enum" AS ENUM (
+CREATE TYPE public.admin_level_enum AS ENUM (
     'STAFF',
     'ADMIN',
     'SUPER_ADMIN'
 );
 
 
-ALTER TYPE "public"."admin_level_enum" OWNER TO "postgres";
+--
+-- Name: appointment_status; Type: TYPE; Schema: public; Owner: -
+--
 
-
-CREATE TYPE "public"."appointment_status" AS ENUM (
+CREATE TYPE public.appointment_status AS ENUM (
     'scheduled',
     'completed',
     'cancelled'
 );
 
 
-ALTER TYPE "public"."appointment_status" OWNER TO "postgres";
+--
+-- Name: autism_indication; Type: TYPE; Schema: public; Owner: -
+--
 
-
-CREATE TYPE "public"."autism_indication" AS ENUM (
+CREATE TYPE public.autism_indication AS ENUM (
     'high_risk',
     'low_risk',
     'other_disorder',
@@ -60,40 +307,44 @@ CREATE TYPE "public"."autism_indication" AS ENUM (
 );
 
 
-ALTER TYPE "public"."autism_indication" OWNER TO "postgres";
+--
+-- Name: birth_process; Type: TYPE; Schema: public; Owner: -
+--
 
-
-CREATE TYPE "public"."birth_process" AS ENUM (
+CREATE TYPE public.birth_process AS ENUM (
     'normal',
     'sc',
     'assisted'
 );
 
 
-ALTER TYPE "public"."birth_process" OWNER TO "postgres";
+--
+-- Name: clinic_extension_request_status_enum; Type: TYPE; Schema: public; Owner: -
+--
 
-
-CREATE TYPE "public"."clinic_extension_request_status_enum" AS ENUM (
+CREATE TYPE public.clinic_extension_request_status_enum AS ENUM (
     'PENDING',
     'APPROVED',
     'REJECTED'
 );
 
 
-ALTER TYPE "public"."clinic_extension_request_status_enum" OWNER TO "postgres";
+--
+-- Name: consent_source; Type: TYPE; Schema: public; Owner: -
+--
 
-
-CREATE TYPE "public"."consent_source" AS ENUM (
+CREATE TYPE public.consent_source AS ENUM (
     'registration_wizard',
     'invite_consent_page',
     'backfill'
 );
 
 
-ALTER TYPE "public"."consent_source" OWNER TO "postgres";
+--
+-- Name: demo_request_status_enum; Type: TYPE; Schema: public; Owner: -
+--
 
-
-CREATE TYPE "public"."demo_request_status_enum" AS ENUM (
+CREATE TYPE public.demo_request_status_enum AS ENUM (
     'pending',
     'contacted',
     'completed',
@@ -101,20 +352,22 @@ CREATE TYPE "public"."demo_request_status_enum" AS ENUM (
 );
 
 
-ALTER TYPE "public"."demo_request_status_enum" OWNER TO "postgres";
+--
+-- Name: patient_invitation_flow; Type: TYPE; Schema: public; Owner: -
+--
 
-
-CREATE TYPE "public"."patient_invitation_flow" AS ENUM (
+CREATE TYPE public.patient_invitation_flow AS ENUM (
     'registration_required',
     'consent_required',
     'info_only'
 );
 
 
-ALTER TYPE "public"."patient_invitation_flow" OWNER TO "postgres";
+--
+-- Name: patient_invitation_used_reason; Type: TYPE; Schema: public; Owner: -
+--
 
-
-CREATE TYPE "public"."patient_invitation_used_reason" AS ENUM (
+CREATE TYPE public.patient_invitation_used_reason AS ENUM (
     'registration_completed',
     'consent_accepted',
     'info_only_notified',
@@ -124,29 +377,34 @@ CREATE TYPE "public"."patient_invitation_used_reason" AS ENUM (
 );
 
 
-ALTER TYPE "public"."patient_invitation_used_reason" OWNER TO "postgres";
+--
+-- Name: practitioner_profession; Type: TYPE; Schema: public; Owner: -
+--
 
-
-CREATE TYPE "public"."practitioner_profession" AS ENUM (
+CREATE TYPE public.practitioner_profession AS ENUM (
     'psychologist',
     'counselor',
     'other'
 );
 
 
-ALTER TYPE "public"."practitioner_profession" OWNER TO "postgres";
+--
+-- Name: user_role; Type: TYPE; Schema: public; Owner: -
+--
 
-
-CREATE TYPE "public"."user_role" AS ENUM (
-    'clinic_staff',
-    'patient'
+CREATE TYPE public.user_role AS ENUM (
+    'admin',
+    'psychologist',
+    'patient',
+    'clinic_staff'
 );
 
 
-ALTER TYPE "public"."user_role" OWNER TO "postgres";
+--
+-- Name: visit_status; Type: TYPE; Schema: public; Owner: -
+--
 
-
-CREATE TYPE "public"."visit_status" AS ENUM (
+CREATE TYPE public.visit_status AS ENUM (
     'scheduled',
     'in_progress',
     'completed',
@@ -154,30 +412,509 @@ CREATE TYPE "public"."visit_status" AS ENUM (
 );
 
 
-ALTER TYPE "public"."visit_status" OWNER TO "postgres";
+--
+-- Name: action; Type: TYPE; Schema: realtime; Owner: -
+--
+
+CREATE TYPE realtime.action AS ENUM (
+    'INSERT',
+    'UPDATE',
+    'DELETE',
+    'TRUNCATE',
+    'ERROR'
+);
 
 
-CREATE OR REPLACE FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text" DEFAULT NULL::"text", "consent_user_agent" "text" DEFAULT NULL::"text") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+--
+-- Name: equality_op; Type: TYPE; Schema: realtime; Owner: -
+--
+
+CREATE TYPE realtime.equality_op AS ENUM (
+    'eq',
+    'neq',
+    'lt',
+    'lte',
+    'gt',
+    'gte',
+    'in'
+);
+
+
+--
+-- Name: user_defined_filter; Type: TYPE; Schema: realtime; Owner: -
+--
+
+CREATE TYPE realtime.user_defined_filter AS (
+	column_name text,
+	op realtime.equality_op,
+	value text
+);
+
+
+--
+-- Name: wal_column; Type: TYPE; Schema: realtime; Owner: -
+--
+
+CREATE TYPE realtime.wal_column AS (
+	name text,
+	type_name text,
+	type_oid oid,
+	value jsonb,
+	is_pkey boolean,
+	is_selectable boolean
+);
+
+
+--
+-- Name: wal_rls; Type: TYPE; Schema: realtime; Owner: -
+--
+
+CREATE TYPE realtime.wal_rls AS (
+	wal jsonb,
+	is_rls_enabled boolean,
+	subscription_ids uuid[],
+	errors text[]
+);
+
+
+--
+-- Name: buckettype; Type: TYPE; Schema: storage; Owner: -
+--
+
+CREATE TYPE storage.buckettype AS ENUM (
+    'STANDARD',
+    'ANALYTICS',
+    'VECTOR'
+);
+
+
+--
+-- Name: email(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.email() RETURNS text
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.email', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email')
+  )::text
+$$;
+
+
+--
+-- Name: FUNCTION email(); Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON FUNCTION auth.email() IS 'Deprecated. Use auth.jwt() -> ''email'' instead.';
+
+
+--
+-- Name: jwt(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.jwt() RETURNS jsonb
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+    coalesce(
+        nullif(current_setting('request.jwt.claim', true), ''),
+        nullif(current_setting('request.jwt.claims', true), '')
+    )::jsonb
+$$;
+
+
+--
+-- Name: role(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.role() RETURNS text
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')
+  )::text
+$$;
+
+
+--
+-- Name: FUNCTION role(); Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON FUNCTION auth.role() IS 'Deprecated. Use auth.jwt() -> ''role'' instead.';
+
+
+--
+-- Name: uid(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.uid() RETURNS uuid
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+  )::uuid
+$$;
+
+
+--
+-- Name: FUNCTION uid(); Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON FUNCTION auth.uid() IS 'Deprecated. Use auth.jwt() -> ''sub'' instead.';
+
+
+--
+-- Name: grant_pg_cron_access(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.grant_pg_cron_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF EXISTS (
+    SELECT
+    FROM pg_event_trigger_ddl_commands() AS ev
+    JOIN pg_extension AS ext
+    ON ev.objid = ext.oid
+    WHERE ext.extname = 'pg_cron'
+  )
+  THEN
+    grant usage on schema cron to postgres with grant option;
+
+    alter default privileges in schema cron grant all on tables to postgres with grant option;
+    alter default privileges in schema cron grant all on functions to postgres with grant option;
+    alter default privileges in schema cron grant all on sequences to postgres with grant option;
+
+    alter default privileges for user supabase_admin in schema cron grant all
+        on sequences to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on tables to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on functions to postgres with grant option;
+
+    grant all privileges on all tables in schema cron to postgres with grant option;
+    revoke all on table cron.job from postgres;
+    grant select on table cron.job to postgres with grant option;
+  END IF;
+END;
+$$;
+
+
+--
+-- Name: FUNCTION grant_pg_cron_access(); Type: COMMENT; Schema: extensions; Owner: -
+--
+
+COMMENT ON FUNCTION extensions.grant_pg_cron_access() IS 'Grants access to pg_cron';
+
+
+--
+-- Name: grant_pg_graphql_access(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.grant_pg_graphql_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+    func_is_graphql_resolve bool;
+BEGIN
+    func_is_graphql_resolve = (
+        SELECT n.proname = 'resolve'
+        FROM pg_event_trigger_ddl_commands() AS ev
+        LEFT JOIN pg_catalog.pg_proc AS n
+        ON ev.objid = n.oid
+    );
+
+    IF func_is_graphql_resolve
+    THEN
+        -- Update public wrapper to pass all arguments through to the pg_graphql resolve func
+        DROP FUNCTION IF EXISTS graphql_public.graphql;
+        create or replace function graphql_public.graphql(
+            "operationName" text default null,
+            query text default null,
+            variables jsonb default null,
+            extensions jsonb default null
+        )
+            returns jsonb
+            language sql
+        as $$
+            select graphql.resolve(
+                query := query,
+                variables := coalesce(variables, '{}'),
+                "operationName" := "operationName",
+                extensions := extensions
+            );
+        $$;
+
+        -- This hook executes when `graphql.resolve` is created. That is not necessarily the last
+        -- function in the extension so we need to grant permissions on existing entities AND
+        -- update default permissions to any others that are created after `graphql.resolve`
+        grant usage on schema graphql to postgres, anon, authenticated, service_role;
+        grant select on all tables in schema graphql to postgres, anon, authenticated, service_role;
+        grant execute on all functions in schema graphql to postgres, anon, authenticated, service_role;
+        grant all on all sequences in schema graphql to postgres, anon, authenticated, service_role;
+        alter default privileges in schema graphql grant all on tables to postgres, anon, authenticated, service_role;
+        alter default privileges in schema graphql grant all on functions to postgres, anon, authenticated, service_role;
+        alter default privileges in schema graphql grant all on sequences to postgres, anon, authenticated, service_role;
+
+        -- Allow postgres role to allow granting usage on graphql and graphql_public schemas to custom roles
+        grant usage on schema graphql_public to postgres with grant option;
+        grant usage on schema graphql to postgres with grant option;
+    END IF;
+
+END;
+$_$;
+
+
+--
+-- Name: FUNCTION grant_pg_graphql_access(); Type: COMMENT; Schema: extensions; Owner: -
+--
+
+COMMENT ON FUNCTION extensions.grant_pg_graphql_access() IS 'Grants access to pg_graphql';
+
+
+--
+-- Name: grant_pg_net_access(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.grant_pg_net_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_event_trigger_ddl_commands() AS ev
+    JOIN pg_extension AS ext
+    ON ev.objid = ext.oid
+    WHERE ext.extname = 'pg_net'
+  )
+  THEN
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_roles
+      WHERE rolname = 'supabase_functions_admin'
+    )
+    THEN
+      CREATE USER supabase_functions_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
+    END IF;
+
+    GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+
+    IF EXISTS (
+      SELECT FROM pg_extension
+      WHERE extname = 'pg_net'
+      -- all versions in use on existing projects as of 2025-02-20
+      -- version 0.12.0 onwards don't need these applied
+      AND extversion IN ('0.2', '0.6', '0.7', '0.7.1', '0.8', '0.10.0', '0.11.0')
+    ) THEN
+      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+
+      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+
+      REVOKE ALL ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+      REVOKE ALL ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+
+      GRANT EXECUTE ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+      GRANT EXECUTE ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+    END IF;
+  END IF;
+END;
+$$;
+
+
+--
+-- Name: FUNCTION grant_pg_net_access(); Type: COMMENT; Schema: extensions; Owner: -
+--
+
+COMMENT ON FUNCTION extensions.grant_pg_net_access() IS 'Grants access to pg_net';
+
+
+--
+-- Name: pgrst_ddl_watch(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.pgrst_ddl_watch() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  cmd record;
+BEGIN
+  FOR cmd IN SELECT * FROM pg_event_trigger_ddl_commands()
+  LOOP
+    IF cmd.command_tag IN (
+      'CREATE SCHEMA', 'ALTER SCHEMA'
+    , 'CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO', 'ALTER TABLE'
+    , 'CREATE FOREIGN TABLE', 'ALTER FOREIGN TABLE'
+    , 'CREATE VIEW', 'ALTER VIEW'
+    , 'CREATE MATERIALIZED VIEW', 'ALTER MATERIALIZED VIEW'
+    , 'CREATE FUNCTION', 'ALTER FUNCTION'
+    , 'CREATE TRIGGER'
+    , 'CREATE TYPE', 'ALTER TYPE'
+    , 'CREATE RULE'
+    , 'COMMENT'
+    )
+    -- don't notify in case of CREATE TEMP table or other objects created on pg_temp
+    AND cmd.schema_name is distinct from 'pg_temp'
+    THEN
+      NOTIFY pgrst, 'reload schema';
+    END IF;
+  END LOOP;
+END; $$;
+
+
+--
+-- Name: pgrst_drop_watch(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.pgrst_drop_watch() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  obj record;
+BEGIN
+  FOR obj IN SELECT * FROM pg_event_trigger_dropped_objects()
+  LOOP
+    IF obj.object_type IN (
+      'schema'
+    , 'table'
+    , 'foreign table'
+    , 'view'
+    , 'materialized view'
+    , 'function'
+    , 'trigger'
+    , 'type'
+    , 'rule'
+    )
+    AND obj.is_temporary IS false -- no pg_temp objects
+    THEN
+      NOTIFY pgrst, 'reload schema';
+    END IF;
+  END LOOP;
+END; $$;
+
+
+--
+-- Name: set_graphql_placeholder(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.set_graphql_placeholder() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $_$
+    DECLARE
+    graphql_is_dropped bool;
+    BEGIN
+    graphql_is_dropped = (
+        SELECT ev.schema_name = 'graphql_public'
+        FROM pg_event_trigger_dropped_objects() AS ev
+        WHERE ev.schema_name = 'graphql_public'
+    );
+
+    IF graphql_is_dropped
+    THEN
+        create or replace function graphql_public.graphql(
+            "operationName" text default null,
+            query text default null,
+            variables jsonb default null,
+            extensions jsonb default null
+        )
+            returns jsonb
+            language plpgsql
+        as $$
+            DECLARE
+                server_version float;
+            BEGIN
+                server_version = (SELECT (SPLIT_PART((select version()), ' ', 2))::float);
+
+                IF server_version >= 14 THEN
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql extension is not enabled.'
+                            )
+                        )
+                    );
+                ELSE
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql is only available on projects running Postgres 14 onwards.'
+                            )
+                        )
+                    );
+                END IF;
+            END;
+        $$;
+    END IF;
+
+    END;
+$_$;
+
+
+--
+-- Name: FUNCTION set_graphql_placeholder(); Type: COMMENT; Schema: extensions; Owner: -
+--
+
+COMMENT ON FUNCTION extensions.set_graphql_placeholder() IS 'Reintroduces placeholder function for graphql_public.graphql';
+
+
+--
+-- Name: get_auth(text); Type: FUNCTION; Schema: pgbouncer; Owner: -
+--
+
+CREATE FUNCTION pgbouncer.get_auth(p_usename text) RETURNS TABLE(username text, password text)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $_$
+  BEGIN
+      RAISE DEBUG 'PgBouncer auth request: %', p_usename;
+
+      RETURN QUERY
+      SELECT
+          rolname::text,
+          CASE WHEN rolvaliduntil < now()
+              THEN null
+              ELSE rolpassword::text
+          END
+      FROM pg_authid
+      WHERE rolname=$1 and rolcanlogin;
+  END;
+  $_$;
+
+
+--
+-- Name: accept_patient_consent_by_token(text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.accept_patient_consent_by_token(invite_token text, consent_ip text DEFAULT NULL::text, consent_user_agent text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$ declare invitation_row public.patient_invitations%rowtype; clinic_patient_id_value uuid; practitioner_membership_id_value uuid; appointment_id_value uuid; visit_id_value uuid; session_start_at_value timestamptz; session_end_at_value timestamptz; consent_text_value text := 'Saya menyetujui berbagi data medis saya dengan klinik tujuan untuk keperluan layanan psikologi.'; begin if invite_token is null or btrim(invite_token) = '' then return jsonb_build_object('status', 'error', 'code', 'INVALID_TOKEN', 'message', 'Token undangan tidak valid.'); end if; select * into invitation_row from public.patient_invitations pi where pi.token = invite_token limit 1 for update; if not found then return jsonb_build_object('status', 'error', 'code', 'INVITATION_NOT_FOUND', 'message', 'Undangan tidak ditemukan.'); end if; if invitation_row.flow <> 'consent_required'::public.patient_invitation_flow then return jsonb_build_object('status', 'error', 'code', 'INVALID_FLOW', 'message', 'Undangan ini tidak menggunakan flow persetujuan data.'); end if; if coalesce(invitation_row.is_used, false) then if invitation_row.used_reason = 'superseded'::public.patient_invitation_used_reason then return jsonb_build_object('status', 'error', 'code', 'INVITATION_SUPERSEDED', 'message', 'Link undangan ini sudah diganti dengan undangan terbaru.'); end if; return jsonb_build_object('status', 'error', 'code', 'INVITATION_USED', 'message', 'Link undangan sudah digunakan.'); end if; if invitation_row.expires_at < now() then return jsonb_build_object('status', 'error', 'code', 'INVITATION_EXPIRED', 'message', 'Link undangan sudah kedaluwarsa.'); end if; if invitation_row.target_patient_id is null then return jsonb_build_object('status', 'error', 'code', 'PATIENT_NOT_FOUND', 'message', 'Data pasien untuk undangan ini belum tersedia.'); end if; if invitation_row.clinic_id is null then return jsonb_build_object('status', 'error', 'code', 'INVITATION_CLINIC_REQUIRED', 'message', 'Undangan belum terhubung ke klinik.'); end if; practitioner_membership_id_value := invitation_row.practitioner_membership_id; if practitioner_membership_id_value is null or not exists (select 1 from public.clinic_memberships cm where cm.id = practitioner_membership_id_value and cm.is_active = true and cm.is_practitioner = true) then select cm.id into practitioner_membership_id_value from public.clinic_memberships cm where cm.clinic_id = invitation_row.clinic_id and cm.is_active = true and cm.is_practitioner = true order by cm.is_owner desc, cm.created_at asc limit 1; end if; if practitioner_membership_id_value is null then return jsonb_build_object('status', 'error', 'code', 'NO_PRACTITIONER', 'message', 'Tidak ada practitioner aktif pada klinik ini.'); end if; if not exists (select 1 from public.patient_clinic_consents pcc where pcc.clinic_id = invitation_row.clinic_id and pcc.patient_id = invitation_row.target_patient_id and pcc.revoked_at is null) then insert into public.patient_clinic_consents (clinic_id, patient_id, invitation_id, consent_version, consent_text, source, accepted_at, accepted_ip, accepted_user_agent, created_at, updated_at) values (invitation_row.clinic_id, invitation_row.target_patient_id, invitation_row.id, 'v1', consent_text_value, 'invite_consent_page'::public.consent_source, now(), nullif(consent_ip, ''), nullif(consent_user_agent, ''), now(), now()); end if; insert into public.clinic_patients (clinic_id, patient_id, mrn, is_active) values (invitation_row.clinic_id, invitation_row.target_patient_id, coalesce((select p.mrn from public.patients p where p.id = invitation_row.target_patient_id), 'MRN-' || to_char(now(), 'YYYYMMDD') || '-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6))), true) on conflict (clinic_id, patient_id) do update set is_active = true, updated_at = now() returning id into clinic_patient_id_value; appointment_id_value := invitation_row.appointment_id; if appointment_id_value is null then session_start_at_value := coalesce(invitation_row.session_start_at, date_trunc('day', now()) + interval '1 day' + interval '9 hours'); session_end_at_value := coalesce(invitation_row.session_end_at, session_start_at_value + interval '45 minutes'); insert into public.appointments (clinic_id, clinic_patient_id, patient_id, practitioner_membership_id, start_time, end_time, status, notes) values (invitation_row.clinic_id, clinic_patient_id_value, invitation_row.target_patient_id, practitioner_membership_id_value, session_start_at_value, session_end_at_value, 'scheduled', 'Auto-created after consent acceptance') returning id into appointment_id_value; end if; select pv.id into visit_id_value from public.patient_visits pv where pv.appointment_id = appointment_id_value limit 1; if visit_id_value is null then insert into public.patient_visits (clinic_id, clinic_patient_id, patient_id, appointment_id, status) values (invitation_row.clinic_id, clinic_patient_id_value, invitation_row.target_patient_id, appointment_id_value, 'scheduled') returning id into visit_id_value; end if; update public.patient_invitations set is_used = true, used_at = now(), used_reason = 'consent_accepted'::public.patient_invitation_used_reason, appointment_id = appointment_id_value, practitioner_membership_id = practitioner_membership_id_value where id = invitation_row.id; return jsonb_build_object('status', 'success', 'message', 'Persetujuan data berhasil. Jadwal sesi sudah dikonfirmasi.', 'patientId', invitation_row.target_patient_id, 'clinicId', invitation_row.clinic_id, 'appointmentId', appointment_id_value, 'visitId', visit_id_value); exception when others then return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal memproses persetujuan: ' || sqlerrm); end; $$;
 
 
-ALTER FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") OWNER TO "postgres";
+--
+-- Name: accept_patient_consent_by_token(text, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "signature_id" "uuid", "consent_ip" "text" DEFAULT NULL::"text", "consent_user_agent" "text" DEFAULT NULL::"text") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.accept_patient_consent_by_token(invite_token text, signature_id uuid, consent_ip text DEFAULT NULL::text, consent_user_agent text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$ declare invitation_row public.patient_invitations%rowtype; clinic_patient_id_value uuid; practitioner_membership_id_value uuid; appointment_id_value uuid; visit_id_value uuid; session_start_at_value timestamptz; session_end_at_value timestamptz; consent_text_value text := 'Saya menyetujui berbagi data medis saya dengan klinik tujuan untuk keperluan layanan psikologi.'; begin if invite_token is null or btrim(invite_token) = '' then return jsonb_build_object('status', 'error', 'code', 'INVALID_TOKEN', 'message', 'Token undangan tidak valid.'); end if; if signature_id is null then return jsonb_build_object('status', 'error', 'code', 'SIGNATURE_REQUIRED', 'message', 'Tanda tangan digital wajib diisi.'); end if; select * into invitation_row from public.patient_invitations pi where pi.token = invite_token limit 1 for update; if not found then return jsonb_build_object('status', 'error', 'code', 'INVITATION_NOT_FOUND', 'message', 'Undangan tidak ditemukan.'); end if; if invitation_row.flow <> 'consent_required'::public.patient_invitation_flow then return jsonb_build_object('status', 'error', 'code', 'INVALID_FLOW', 'message', 'Undangan ini tidak menggunakan flow persetujuan data.'); end if; if coalesce(invitation_row.is_used, false) then if invitation_row.used_reason = 'superseded'::public.patient_invitation_used_reason then return jsonb_build_object('status', 'error', 'code', 'INVITATION_SUPERSEDED', 'message', 'Link undangan ini sudah diganti dengan undangan terbaru.'); end if; return jsonb_build_object('status', 'error', 'code', 'INVITATION_USED', 'message', 'Link undangan sudah digunakan.'); end if; if invitation_row.expires_at < now() then return jsonb_build_object('status', 'error', 'code', 'INVITATION_EXPIRED', 'message', 'Link undangan sudah kedaluwarsa.'); end if; if invitation_row.target_patient_id is null then return jsonb_build_object('status', 'error', 'code', 'PATIENT_NOT_FOUND', 'message', 'Data pasien untuk undangan ini belum tersedia.'); end if; if invitation_row.clinic_id is null then return jsonb_build_object('status', 'error', 'code', 'INVITATION_CLINIC_REQUIRED', 'message', 'Undangan belum terhubung ke klinik.'); end if; if not exists (select 1 from public.patient_signatures ps where ps.id = signature_id and ps.patient_id = invitation_row.target_patient_id) then return jsonb_build_object('status', 'error', 'code', 'SIGNATURE_INVALID', 'message', 'Tanda tangan digital tidak valid untuk pasien ini.'); end if; practitioner_membership_id_value := invitation_row.practitioner_membership_id; if practitioner_membership_id_value is null or not exists (select 1 from public.clinic_memberships cm where cm.id = practitioner_membership_id_value and cm.is_active = true and cm.is_practitioner = true) then select cm.id into practitioner_membership_id_value from public.clinic_memberships cm where cm.clinic_id = invitation_row.clinic_id and cm.is_active = true and cm.is_practitioner = true order by cm.is_owner desc, cm.created_at asc limit 1; end if; if practitioner_membership_id_value is null then return jsonb_build_object('status', 'error', 'code', 'NO_PRACTITIONER', 'message', 'Tidak ada practitioner aktif pada klinik ini.'); end if; if not exists (select 1 from public.patient_clinic_consents pcc where pcc.clinic_id = invitation_row.clinic_id and pcc.patient_id = invitation_row.target_patient_id and pcc.revoked_at is null) then insert into public.patient_clinic_consents (clinic_id, patient_id, invitation_id, consent_version, consent_text, source, accepted_at, accepted_ip, accepted_user_agent, signature_id, created_at, updated_at) values (invitation_row.clinic_id, invitation_row.target_patient_id, invitation_row.id, 'v1', consent_text_value, 'invite_consent_page'::public.consent_source, now(), nullif(consent_ip, ''), nullif(consent_user_agent, ''), signature_id, now(), now()); end if; insert into public.clinic_patients (clinic_id, patient_id, mrn, is_active) values (invitation_row.clinic_id, invitation_row.target_patient_id, coalesce((select p.mrn from public.patients p where p.id = invitation_row.target_patient_id), 'MRN-' || to_char(now(), 'YYYYMMDD') || '-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6))), true) on conflict (clinic_id, patient_id) do update set is_active = true, updated_at = now() returning id into clinic_patient_id_value; appointment_id_value := invitation_row.appointment_id; if appointment_id_value is null then session_start_at_value := coalesce(invitation_row.session_start_at, date_trunc('day', now()) + interval '1 day' + interval '9 hours'); session_end_at_value := coalesce(invitation_row.session_end_at, session_start_at_value + interval '45 minutes'); insert into public.appointments (clinic_id, clinic_patient_id, patient_id, practitioner_membership_id, start_time, end_time, status, notes) values (invitation_row.clinic_id, clinic_patient_id_value, invitation_row.target_patient_id, practitioner_membership_id_value, session_start_at_value, session_end_at_value, 'scheduled', 'Auto-created after consent acceptance') returning id into appointment_id_value; end if; select pv.id into visit_id_value from public.patient_visits pv where pv.appointment_id = appointment_id_value limit 1; if visit_id_value is null then insert into public.patient_visits (clinic_id, clinic_patient_id, patient_id, appointment_id, status) values (invitation_row.clinic_id, clinic_patient_id_value, invitation_row.target_patient_id, appointment_id_value, 'scheduled') returning id into visit_id_value; end if; update public.patient_invitations set is_used = true, used_at = now(), used_reason = 'consent_accepted'::public.patient_invitation_used_reason, appointment_id = appointment_id_value, practitioner_membership_id = practitioner_membership_id_value where id = invitation_row.id; return jsonb_build_object('status', 'success', 'message', 'Persetujuan data berhasil. Jadwal sesi sudah dikonfirmasi.', 'patientId', invitation_row.target_patient_id, 'clinicId', invitation_row.clinic_id, 'appointmentId', appointment_id_value, 'visitId', visit_id_value); exception when others then return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal memproses persetujuan: ' || sqlerrm); end; $$;
 
 
-ALTER FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "signature_id" "uuid", "consent_ip" "text", "consent_user_agent" "text") OWNER TO "postgres";
+--
+-- Name: add_clinic_member_by_email(uuid, text, boolean, boolean, public.practitioner_profession, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean DEFAULT true, "assign_practitioner" boolean DEFAULT false, "member_profession" "public"."practitioner_profession" DEFAULT NULL::"public"."practitioner_profession", "actor_user_id" "uuid" DEFAULT "auth"."uid"()) RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.add_clinic_member_by_email(target_clinic_id uuid, member_email text, assign_staff boolean DEFAULT true, assign_practitioner boolean DEFAULT false, member_profession public.practitioner_profession DEFAULT NULL::public.practitioner_profession, actor_user_id uuid DEFAULT auth.uid()) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 declare
   normalized_email text;
@@ -294,48 +1031,53 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean, "assign_practitioner" boolean, "member_profession" "public"."practitioner_profession", "actor_user_id" "uuid") OWNER TO "postgres";
+--
+-- Name: admin_add_clinic_member(uuid, uuid, text, text, boolean, boolean, public.practitioner_profession); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."admin_add_clinic_member"("p_clinic_id" "uuid", "p_user_id" "uuid", "p_full_name" "text", "p_email" "text", "p_is_staff" boolean DEFAULT false, "p_is_practitioner" boolean DEFAULT false, "p_profession" "public"."practitioner_profession" DEFAULT NULL::"public"."practitioner_profession") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.admin_add_clinic_member(p_clinic_id uuid, p_user_id uuid, p_full_name text, p_email text, p_is_staff boolean DEFAULT false, p_is_practitioner boolean DEFAULT false, p_profession public.practitioner_profession DEFAULT NULL::public.practitioner_profession) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$ DECLARE v_membership_id uuid; v_profession public.practitioner_profession; BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RETURN jsonb_build_object('status', 'error', 'code', 'FORBIDDEN', 'message', 'Caller is not an LBSD admin.'); END IF; IF NOT EXISTS (SELECT 1 FROM public.clinics WHERE id = p_clinic_id) THEN RETURN jsonb_build_object('status', 'error', 'code', 'CLINIC_NOT_FOUND', 'message', 'Clinic does not exist.'); END IF; v_profession := CASE WHEN p_is_practitioner THEN COALESCE(p_profession, 'psychologist'::public.practitioner_profession) ELSE NULL END; INSERT INTO public.users (id, role) VALUES (p_user_id, 'clinic_staff'::public.user_role) ON CONFLICT (id) DO UPDATE SET role = 'clinic_staff'::public.user_role, updated_at = now(); INSERT INTO public.clinic_memberships (clinic_id, user_id, is_owner, is_staff, is_practitioner, profession, full_name, email, is_active) VALUES (p_clinic_id, p_user_id, false, p_is_staff, p_is_practitioner, v_profession, p_full_name, p_email, true) ON CONFLICT (clinic_id, user_id) DO UPDATE SET is_staff = EXCLUDED.is_staff, is_practitioner = EXCLUDED.is_practitioner, profession = EXCLUDED.profession, full_name = EXCLUDED.full_name, email = EXCLUDED.email, is_active = true, updated_at = now() RETURNING id INTO v_membership_id; RETURN jsonb_build_object('status', 'success', 'message', 'Member added successfully.', 'membershipId', v_membership_id, 'userId', p_user_id); EXCEPTION WHEN others THEN RETURN jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Failed to add member: ' || SQLERRM); END; $$;
 
 
-ALTER FUNCTION "public"."admin_add_clinic_member"("p_clinic_id" "uuid", "p_user_id" "uuid", "p_full_name" "text", "p_email" "text", "p_is_staff" boolean, "p_is_practitioner" boolean, "p_profession" "public"."practitioner_profession") OWNER TO "postgres";
+--
+-- Name: admin_get_clinic_detail(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."admin_get_clinic_detail"("p_clinic_id" "uuid") RETURNS "jsonb"
-    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.admin_get_clinic_detail(p_clinic_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$ DECLARE v_result jsonb; BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RETURN jsonb_build_object('status','error','code','FORBIDDEN','message','Caller is not an LBSD admin.'); END IF; SELECT jsonb_build_object('clinic_id', c.id, 'clinic_name', c.name, 'clinic_slug', c.slug, 'is_active', c.is_active, 'owner_user_id', c.owner_user_id, 'created_at', c.created_at, 'memberships', COALESCE((SELECT jsonb_agg(jsonb_build_object('membership_id', cm.id, 'user_id', cm.user_id, 'full_name', COALESCE(cm.full_name, SPLIT_PART(au.email, '@', 1)), 'email', COALESCE(cm.email, LOWER(au.email)), 'phone', cm.phone, 'is_owner', cm.is_owner, 'is_staff', cm.is_staff, 'is_practitioner', cm.is_practitioner, 'profession', cm.profession, 'is_active', cm.is_active, 'created_at', cm.created_at) ORDER BY cm.is_owner DESC, cm.created_at ASC) FROM public.clinic_memberships cm LEFT JOIN auth.users au ON au.id = cm.user_id WHERE cm.clinic_id = c.id), '[]'::jsonb)) INTO v_result FROM public.clinics c WHERE c.id = p_clinic_id; IF v_result IS NULL THEN RETURN jsonb_build_object('status','error','code','NOT_FOUND','message','Clinic not found.'); END IF; RETURN v_result; END; $$;
 
 
-ALTER FUNCTION "public"."admin_get_clinic_detail"("p_clinic_id" "uuid") OWNER TO "postgres";
+--
+-- Name: admin_list_clinics(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."admin_list_clinics"() RETURNS TABLE("clinic_id" "uuid", "clinic_name" "text", "clinic_slug" "text", "is_active" boolean, "owner_name" "text", "owner_email" "text", "total_memberships" bigint, "active_memberships" bigint, "created_at" timestamp with time zone)
-    LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.admin_list_clinics() RETURNS TABLE(clinic_id uuid, clinic_name text, clinic_slug text, is_active boolean, owner_name text, owner_email text, total_memberships bigint, active_memberships bigint, created_at timestamp with time zone)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$ SELECT c.id, c.name, c.slug::text, c.is_active, COALESCE(cm_owner.full_name, au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name', SPLIT_PART(au.email, '@', 1)) AS owner_name, COALESCE(cm_owner.email, LOWER(au.email)) AS owner_email, COUNT(cm.id) AS total_memberships, COUNT(cm.id) FILTER (WHERE cm.is_active = true) AS active_memberships, c.created_at FROM public.clinics c LEFT JOIN LATERAL (SELECT cm2.user_id, cm2.full_name, cm2.email FROM public.clinic_memberships cm2 WHERE cm2.clinic_id = c.id AND cm2.is_owner = true AND cm2.is_active = true ORDER BY cm2.created_at ASC LIMIT 1) cm_owner ON true LEFT JOIN auth.users au ON au.id = cm_owner.user_id LEFT JOIN public.clinic_memberships cm ON cm.clinic_id = c.id WHERE public.is_admin_at_least('STAFF') GROUP BY c.id, c.name, c.slug, c.is_active, c.created_at, cm_owner.full_name, cm_owner.email, au.raw_user_meta_data, au.email ORDER BY c.created_at DESC; $$;
 
 
-ALTER FUNCTION "public"."admin_list_clinics"() OWNER TO "postgres";
+--
+-- Name: approve_clinic_extension_request(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) RETURNS TABLE("request_id" "uuid", "clinic_id" "uuid", "approved_at" timestamp with time zone, "new_expired_date" timestamp with time zone)
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
+CREATE FUNCTION public.approve_clinic_extension_request(p_request_id uuid, p_added_days integer) RETURNS TABLE(request_id uuid, clinic_id uuid, approved_at timestamp with time zone, new_expired_date timestamp with time zone)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_catalog'
     AS $$ DECLARE v_request public.clinic_extension_requests%ROWTYPE; v_current_expired_date timestamptz; v_approved_at timestamptz := timezone('utc', now()); v_new_expired_date timestamptz; BEGIN IF NOT public.is_admin_at_least('ADMIN') THEN RAISE EXCEPTION 'Hanya admin yang dapat menyetujui pengajuan perpanjangan.'; END IF; IF coalesce(p_added_days, 0) <= 0 THEN RAISE EXCEPTION 'Durasi perpanjangan harus lebih dari 0 hari.'; END IF; SELECT * INTO v_request FROM public.clinic_extension_requests cer WHERE cer.id = p_request_id FOR UPDATE; IF v_request.id IS NULL THEN RAISE EXCEPTION 'Pengajuan perpanjangan tidak ditemukan.'; END IF; IF v_request.status <> 'PENDING' THEN RAISE EXCEPTION 'Hanya pengajuan berstatus PENDING yang dapat disetujui.'; END IF; SELECT c.expired_date INTO v_current_expired_date FROM public.clinics c WHERE c.id = v_request.clinic_id FOR UPDATE; v_new_expired_date := (CASE WHEN v_current_expired_date IS NULL OR v_current_expired_date < v_approved_at THEN v_approved_at ELSE v_current_expired_date END) + make_interval(days => p_added_days); UPDATE public.clinic_extension_requests SET status = 'APPROVED', approved_at = v_approved_at, approved_by = auth.uid(), added_days = p_added_days WHERE id = v_request.id; UPDATE public.clinics SET expired_date = v_new_expired_date, updated_at = timezone('utc', now()) WHERE id = v_request.clinic_id; RETURN QUERY SELECT v_request.id, v_request.clinic_id, v_approved_at, v_new_expired_date; END; $$;
 
 
-ALTER FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) OWNER TO "postgres";
+--
+-- Name: create_clinic_with_owner(text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text" DEFAULT NULL::"text", "owner_user_id" "uuid" DEFAULT "auth"."uid"()) RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.create_clinic_with_owner(clinic_name text, clinic_slug text DEFAULT NULL::text, owner_user_id uuid DEFAULT auth.uid()) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 declare
   normalized_name text;
@@ -441,47 +1183,38 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") OWNER TO "postgres";
+--
+-- Name: create_clinic_with_owner(text, text, uuid, text, text, text, text, text, text, text, text, text, text, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text" DEFAULT NULL::"text", "owner_user_id" "uuid" DEFAULT "auth"."uid"(), "permit_number" "text" DEFAULT NULL::"text", "owner_ktp_number" "text" DEFAULT NULL::"text", "phone_number" "text" DEFAULT NULL::"text", "address_line" "text" DEFAULT NULL::"text", "rt_rw" "text" DEFAULT NULL::"text", "province_name" "text" DEFAULT NULL::"text", "city_name" "text" DEFAULT NULL::"text", "district_name" "text" DEFAULT NULL::"text", "subdistrict_name" "text" DEFAULT NULL::"text", "postal_code" "text" DEFAULT NULL::"text", "expired_date" timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.create_clinic_with_owner(clinic_name text, clinic_slug text DEFAULT NULL::text, owner_user_id uuid DEFAULT auth.uid(), permit_number text DEFAULT NULL::text, owner_ktp_number text DEFAULT NULL::text, phone_number text DEFAULT NULL::text, address_line text DEFAULT NULL::text, rt_rw text DEFAULT NULL::text, province_name text DEFAULT NULL::text, city_name text DEFAULT NULL::text, district_name text DEFAULT NULL::text, subdistrict_name text DEFAULT NULL::text, postal_code text DEFAULT NULL::text, expired_date timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$ declare normalized_name text; base_slug text; final_slug text; suffix int := 0; created_clinic_id uuid; existing_clinic_id uuid; owner_membership_id uuid; begin if owner_user_id is null then return jsonb_build_object('status', 'error', 'code', 'AUTH_REQUIRED', 'message', 'Akun login tidak ditemukan.'); end if; normalized_name := nullif(btrim(clinic_name), ''); if normalized_name is null then return jsonb_build_object('status', 'error', 'code', 'INVALID_CLINIC_NAME', 'message', 'Nama klinik wajib diisi.'); end if; base_slug := nullif(regexp_replace(lower(coalesce(clinic_slug, normalized_name)), '[^a-z0-9]+', '-', 'g'), ''); base_slug := trim(both '-' from coalesce(base_slug, 'clinic')); if base_slug = '' then base_slug := 'clinic'; end if; final_slug := base_slug; while exists (select 1 from public.clinics c where c.slug = final_slug) loop suffix := suffix + 1; final_slug := base_slug || '-' || suffix::text; end loop; insert into public.users (id, role) values (owner_user_id, 'clinic_staff'::public.user_role) on conflict (id) do update set role = 'clinic_staff'::public.user_role, updated_at = now(); select cm.clinic_id, cm.id into existing_clinic_id, owner_membership_id from public.clinic_memberships cm where cm.user_id = owner_user_id and cm.is_owner = true and cm.is_active = true order by cm.created_at asc limit 1; if existing_clinic_id is not null then update public.clinics c set permit_number = coalesce(nullif(btrim(create_clinic_with_owner.permit_number), ''), c.permit_number), owner_ktp_number = coalesce(nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''), c.owner_ktp_number), phone_number = coalesce(nullif(btrim(create_clinic_with_owner.phone_number), ''), c.phone_number), address_line = coalesce(nullif(btrim(create_clinic_with_owner.address_line), ''), c.address_line), rt_rw = coalesce(nullif(btrim(create_clinic_with_owner.rt_rw), ''), c.rt_rw), province_name = coalesce(nullif(btrim(create_clinic_with_owner.province_name), ''), c.province_name), city_name = coalesce(nullif(btrim(create_clinic_with_owner.city_name), ''), c.city_name), district_name = coalesce(nullif(btrim(create_clinic_with_owner.district_name), ''), c.district_name), subdistrict_name = coalesce(nullif(btrim(create_clinic_with_owner.subdistrict_name), ''), c.subdistrict_name), postal_code = coalesce(nullif(btrim(create_clinic_with_owner.postal_code), ''), c.postal_code), expired_date = coalesce(create_clinic_with_owner.expired_date, c.expired_date), updated_at = now() where c.id = existing_clinic_id; return jsonb_build_object('status', 'success', 'message', 'Owner sudah memiliki klinik aktif.', 'clinicId', existing_clinic_id, 'membershipId', owner_membership_id); end if; insert into public.clinics (name, slug, owner_user_id, expired_date, permit_number, owner_ktp_number, phone_number, address_line, rt_rw, province_name, city_name, district_name, subdistrict_name, postal_code) values (normalized_name, final_slug, owner_user_id, create_clinic_with_owner.expired_date, nullif(btrim(create_clinic_with_owner.permit_number), ''), nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''), nullif(btrim(create_clinic_with_owner.phone_number), ''), nullif(btrim(create_clinic_with_owner.address_line), ''), nullif(btrim(create_clinic_with_owner.rt_rw), ''), nullif(btrim(create_clinic_with_owner.province_name), ''), nullif(btrim(create_clinic_with_owner.city_name), ''), nullif(btrim(create_clinic_with_owner.district_name), ''), nullif(btrim(create_clinic_with_owner.subdistrict_name), ''), nullif(btrim(create_clinic_with_owner.postal_code), '')) returning id into created_clinic_id; insert into public.clinic_memberships (clinic_id, user_id, is_owner, is_staff, is_practitioner, profession, is_active) values (created_clinic_id, owner_user_id, true, true, true, 'psychologist'::public.practitioner_profession, true) returning id into owner_membership_id; return jsonb_build_object('status', 'success', 'message', 'Klinik berhasil dibuat.', 'clinicId', created_clinic_id, 'membershipId', owner_membership_id); exception when others then return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal membuat klinik: ' || sqlerrm); end; $$;
 
 
-ALTER FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "expired_date" timestamp with time zone) OWNER TO "postgres";
+--
+-- Name: create_clinic_with_owner(text, text, uuid, text, text, text, text, text, text, text, text, text, text, text, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text" DEFAULT NULL::"text", "owner_user_id" "uuid" DEFAULT "auth"."uid"(), "permit_number" "text" DEFAULT NULL::"text", "owner_ktp_number" "text" DEFAULT NULL::"text", "phone_number" "text" DEFAULT NULL::"text", "address_line" "text" DEFAULT NULL::"text", "rt_rw" "text" DEFAULT NULL::"text", "province_name" "text" DEFAULT NULL::"text", "city_name" "text" DEFAULT NULL::"text", "district_name" "text" DEFAULT NULL::"text", "subdistrict_name" "text" DEFAULT NULL::"text", "postal_code" "text" DEFAULT NULL::"text", "full_address" "text" DEFAULT NULL::"text", "expired_date" timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.create_clinic_with_owner(clinic_name text, clinic_slug text DEFAULT NULL::text, owner_user_id uuid DEFAULT auth.uid(), permit_number text DEFAULT NULL::text, owner_ktp_number text DEFAULT NULL::text, phone_number text DEFAULT NULL::text, address_line text DEFAULT NULL::text, rt_rw text DEFAULT NULL::text, province_name text DEFAULT NULL::text, city_name text DEFAULT NULL::text, district_name text DEFAULT NULL::text, subdistrict_name text DEFAULT NULL::text, postal_code text DEFAULT NULL::text, full_address text DEFAULT NULL::text, expired_date timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$ declare normalized_name text; base_slug text; final_slug text; suffix int := 0; created_clinic_id uuid; existing_clinic_id uuid; owner_membership_id uuid; begin if owner_user_id is null then return jsonb_build_object('status', 'error', 'code', 'AUTH_REQUIRED', 'message', 'Akun login tidak ditemukan.'); end if; normalized_name := nullif(btrim(clinic_name), ''); if normalized_name is null then return jsonb_build_object('status', 'error', 'code', 'INVALID_CLINIC_NAME', 'message', 'Nama klinik wajib diisi.'); end if; base_slug := nullif(regexp_replace(lower(coalesce(clinic_slug, normalized_name)), '[^a-z0-9]+', '-', 'g'), ''); base_slug := trim(both '-' from coalesce(base_slug, 'clinic')); if base_slug = '' then base_slug := 'clinic'; end if; final_slug := base_slug; while exists (select 1 from public.clinics c where c.slug = final_slug) loop suffix := suffix + 1; final_slug := base_slug || '-' || suffix::text; end loop; insert into public.users (id, role) values (owner_user_id, 'clinic_staff'::public.user_role) on conflict (id) do update set role = 'clinic_staff'::public.user_role, updated_at = now(); select cm.clinic_id, cm.id into existing_clinic_id, owner_membership_id from public.clinic_memberships cm where cm.user_id = owner_user_id and cm.is_owner = true and cm.is_active = true order by cm.created_at asc limit 1; if existing_clinic_id is not null then update public.clinics c set permit_number = coalesce(nullif(btrim(create_clinic_with_owner.permit_number), ''), c.permit_number), owner_ktp_number = coalesce(nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''), c.owner_ktp_number), phone_number = coalesce(nullif(btrim(create_clinic_with_owner.phone_number), ''), c.phone_number), address_line = coalesce(nullif(btrim(create_clinic_with_owner.address_line), ''), c.address_line), rt_rw = coalesce(nullif(btrim(create_clinic_with_owner.rt_rw), ''), c.rt_rw), province_name = coalesce(nullif(btrim(create_clinic_with_owner.province_name), ''), c.province_name), city_name = coalesce(nullif(btrim(create_clinic_with_owner.city_name), ''), c.city_name), district_name = coalesce(nullif(btrim(create_clinic_with_owner.district_name), ''), c.district_name), subdistrict_name = coalesce(nullif(btrim(create_clinic_with_owner.subdistrict_name), ''), c.subdistrict_name), postal_code = coalesce(nullif(btrim(create_clinic_with_owner.postal_code), ''), c.postal_code), full_address = coalesce(nullif(btrim(create_clinic_with_owner.full_address), ''), c.full_address), expired_date = coalesce(create_clinic_with_owner.expired_date, c.expired_date), updated_at = now() where c.id = existing_clinic_id; return jsonb_build_object('status', 'success', 'message', 'Owner sudah memiliki klinik aktif.', 'clinicId', existing_clinic_id, 'membershipId', owner_membership_id); end if; insert into public.clinics (name, slug, owner_user_id, expired_date, permit_number, owner_ktp_number, phone_number, address_line, rt_rw, province_name, city_name, district_name, subdistrict_name, postal_code, full_address) values (normalized_name, final_slug, owner_user_id, create_clinic_with_owner.expired_date, nullif(btrim(create_clinic_with_owner.permit_number), ''), nullif(btrim(create_clinic_with_owner.owner_ktp_number), ''), nullif(btrim(create_clinic_with_owner.phone_number), ''), nullif(btrim(create_clinic_with_owner.address_line), ''), nullif(btrim(create_clinic_with_owner.rt_rw), ''), nullif(btrim(create_clinic_with_owner.province_name), ''), nullif(btrim(create_clinic_with_owner.city_name), ''), nullif(btrim(create_clinic_with_owner.district_name), ''), nullif(btrim(create_clinic_with_owner.subdistrict_name), ''), nullif(btrim(create_clinic_with_owner.postal_code), ''), nullif(btrim(create_clinic_with_owner.full_address), '')) returning id into created_clinic_id; insert into public.clinic_memberships (clinic_id, user_id, is_owner, is_staff, is_practitioner, profession, is_active) values (created_clinic_id, owner_user_id, true, true, true, 'psychologist'::public.practitioner_profession, true) returning id into owner_membership_id; return jsonb_build_object('status', 'success', 'message', 'Klinik berhasil dibuat.', 'clinicId', created_clinic_id, 'membershipId', owner_membership_id); exception when others then return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal membuat klinik: ' || sqlerrm); end; $$;
 
 
-ALTER FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "full_address" "text", "expired_date" timestamp with time zone) OWNER TO "postgres";
+--
+-- Name: create_patient_from_auth_user(text, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."create_patient_consent"("p_visit_id" "uuid", "p_patient_id" "uuid", "p_consent_type" "text", "p_signed_by_name" "text", "p_notes" "text") RETURNS "uuid"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-DECLARE new_id uuid;
-BEGIN IF NOT public.has_patient_access(p_patient_id) THEN RAISE EXCEPTION 'Patient access required' USING ERRCODE = '42501'; END IF; INSERT INTO public.patient_consents(visit_id, patient_id, consent_type, signed_by_name, notes) VALUES (p_visit_id, p_patient_id, p_consent_type, p_signed_by_name, p_notes) RETURNING id INTO new_id; RETURN new_id; END; $$;
-
-
-ALTER FUNCTION "public"."create_patient_consent"("p_visit_id" "uuid", "p_patient_id" "uuid", "p_consent_type" "text", "p_signed_by_name" "text", "p_notes" "text") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."create_patient_from_auth_user"("auth_email" "text", "auth_user_id" "uuid", "invite_token" "text", "auth_phone" "text" DEFAULT NULL::"text") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.create_patient_from_auth_user(auth_email text, auth_user_id uuid, invite_token text, auth_phone text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 declare
   invitation_row public.patient_invitations%rowtype;
   auth_user_email text;
   auth_user_phone text;
-  auth_user_full_name text;
   patient_id_value uuid;
   mrn_value text;
 begin
@@ -522,9 +1255,7 @@ begin
   end if;
 
   if invitation_row.contact_type = 'phone' then
-    select au.phone,
-           coalesce(au.raw_user_meta_data ->> 'full_name', split_part(coalesce(au.phone, auth_phone, invitation_row.phone, 'Pasien'), '@', 1))
-    into auth_user_phone, auth_user_full_name
+    select au.phone into auth_user_phone
     from auth.users au where au.id = auth_user_id limit 1;
 
     if auth_user_phone is null then
@@ -535,9 +1266,7 @@ begin
       return jsonb_build_object('status', 'error', 'code', 'AUTH_EMAIL_REQUIRED', 'message', 'Email akun login pasien tidak ditemukan.');
     end if;
 
-    select au.email,
-           coalesce(au.raw_user_meta_data ->> 'full_name', split_part(coalesce(au.email, auth_email, invitation_row.email, 'Pasien'), '@', 1))
-    into auth_user_email, auth_user_full_name
+    select au.email into auth_user_email
     from auth.users au where au.id = auth_user_id limit 1;
 
     if auth_user_email is null then
@@ -566,16 +1295,8 @@ begin
     select 'MRN-' || to_char(now(), 'YYYYMMDD') || '-' || lpad((floor(random() * 9000) + 1000)::text, 4, '0')
     into mrn_value;
 
-    insert into public.patients (user_id, mrn, full_name, email, phone, created_at, updated_at)
-    values (
-      auth_user_id,
-      mrn_value,
-      coalesce(nullif(auth_user_full_name, ''), 'Pasien Tanpa Nama'),
-      coalesce(invitation_row.email, auth_user_email),
-      coalesce(invitation_row.phone, auth_user_phone, auth_phone),
-      now(),
-      now()
-    )
+    insert into public.patients (user_id, mrn, created_at)
+    values (auth_user_id, mrn_value, now())
     returning id into patient_id_value;
   end if;
 
@@ -588,12 +1309,13 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."create_patient_from_auth_user"("auth_email" "text", "auth_user_id" "uuid", "invite_token" "text", "auth_phone" "text") OWNER TO "postgres";
+--
+-- Name: create_patient_invitation_with_schedule(uuid, uuid, text, text, text, date, time without time zone, integer, text, integer); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text" DEFAULT NULL::"text", "patient_phone" "text" DEFAULT NULL::"text", "contact_type" "text" DEFAULT 'email'::"text", "session_date" "date" DEFAULT NULL::"date", "session_time" time without time zone DEFAULT NULL::time without time zone, "duration_minutes" integer DEFAULT 45, "session_timezone" "text" DEFAULT 'Asia/Jakarta'::"text", "invitation_ttl_hours" integer DEFAULT 72) RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.create_patient_invitation_with_schedule(target_clinic_id uuid, invited_by_membership_id uuid, patient_email text DEFAULT NULL::text, patient_phone text DEFAULT NULL::text, contact_type text DEFAULT 'email'::text, session_date date DEFAULT NULL::date, session_time time without time zone DEFAULT NULL::time without time zone, duration_minutes integer DEFAULT 45, session_timezone text DEFAULT 'Asia/Jakarta'::text, invitation_ttl_hours integer DEFAULT 72) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 declare
   normalized_email text;
@@ -773,32 +1495,13 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text", "patient_phone" "text", "contact_type" "text", "session_date" "date", "session_time" time without time zone, "duration_minutes" integer, "session_timezone" "text", "invitation_ttl_hours" integer) OWNER TO "postgres";
+--
+-- Name: edge_check_rate_limit(text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."delete_admin_b2b_template"("p_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RAISE EXCEPTION 'Admin access required' USING ERRCODE = '42501'; END IF; DELETE FROM public.b2b_agreement_templates WHERE id = p_id; END; $$;
-
-
-ALTER FUNCTION "public"."delete_admin_b2b_template"("p_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."delete_admin_consent_template"("p_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RAISE EXCEPTION 'Admin access required' USING ERRCODE = '42501'; END IF; DELETE FROM public.consent_templates WHERE id = p_id; END; $$;
-
-
-ALTER FUNCTION "public"."delete_admin_consent_template"("p_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) RETURNS TABLE("allowed" boolean, "current_count" integer, "retry_after_seconds" integer)
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.edge_check_rate_limit(p_function_name text, p_identifier text, p_window_seconds integer, p_limit integer) RETURNS TABLE(allowed boolean, current_count integer, retry_after_seconds integer)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 DECLARE
   v_now timestamptz := now();
@@ -840,109 +1543,23 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) OWNER TO "postgres";
+--
+-- Name: get_clinics_with_pending_extension(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_clinics_with_pending_extension() RETURNS TABLE(id uuid, name text, slug character varying, is_active boolean, owner_user_id uuid, created_at timestamp with time zone, updated_at timestamp with time zone, expired_date timestamp with time zone, is_agreement_signed boolean, permit_number text, owner_ktp_number text, phone_number text, address_line text, rt_rw text, province_name text, city_name text, district_name text, subdistrict_name text, postal_code text)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_catalog'
+    AS $$ SELECT DISTINCT c.id, c.name, c.slug, c.is_active, c.owner_user_id, c.created_at, c.updated_at, c.expired_date, c.is_agreement_signed, c.permit_number, c.owner_ktp_number, c.phone_number, c.address_line, c.rt_rw, c.province_name, c.city_name, c.district_name, c.subdistrict_name, c.postal_code FROM public.clinics c INNER JOIN public.clinic_extension_requests cer ON cer.clinic_id = c.id AND cer.status = 'PENDING' ORDER BY c.created_at DESC; $$;
 
 
-CREATE OR REPLACE FUNCTION "public"."get_active_consent_template"() RETURNS "jsonb"
-    LANGUAGE "sql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$ SELECT to_jsonb(t) FROM (SELECT id, title, body FROM public.consent_templates WHERE is_active = true LIMIT 1) t; $$;
+--
+-- Name: get_invitation_by_token(text); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-ALTER FUNCTION "public"."get_active_consent_template"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_admin_clinic_edit"("p_clinic_id" "uuid") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RAISE EXCEPTION 'Admin access required' USING ERRCODE = '42501'; END IF; RETURN (SELECT to_jsonb(c) FROM public.clinics c WHERE c.id = p_clinic_id); END; $$;
-
-
-ALTER FUNCTION "public"."get_admin_clinic_edit"("p_clinic_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_admin_dashboard"() RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-DECLARE
-  now_ts timestamptz := now();
-  soon_ts timestamptz := now() + interval '30 days';
-BEGIN
-  IF NOT public.is_admin_at_least('STAFF') THEN
-    RAISE EXCEPTION 'Admin access required' USING ERRCODE = '42501';
-  END IF;
-  RETURN jsonb_build_object(
-    'pendingDemoRequests', (SELECT count(*) FROM public.demo_requests WHERE status = 'pending'),
-    'activeClinicsCount', (SELECT count(*) FROM public.clinics WHERE is_active = true),
-    'expiringClinicsCount', (SELECT count(*) FROM public.clinics WHERE expired_date < soon_ts AND expired_date > now_ts),
-    'pendingExtensionRequests', COALESCE((
-      SELECT jsonb_agg(jsonb_build_object('id', cer.id, 'clinic_id', cer.clinic_id, 'requested_at', cer.requested_at, 'clinics', jsonb_build_object('name', c.name)) ORDER BY cer.requested_at DESC)
-      FROM public.clinic_extension_requests cer
-      LEFT JOIN public.clinics c ON c.id = cer.clinic_id
-      WHERE cer.status = 'PENDING'
-    ), '[]'::jsonb)
-  );
-END;
-$$;
-
-
-ALTER FUNCTION "public"."get_admin_dashboard"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_admin_profile"() RETURNS TABLE("id" "uuid", "full_name" "text", "email" "text", "phone" "text", "admin_level" "public"."admin_level_enum", "is_active" boolean)
-    LANGUAGE "sql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-  SELECT ap.id, ap.full_name, ap.email, ap.phone, ap.admin_level, ap.is_active
-  FROM public.admin_profiles ap
-  WHERE ap.id = auth.uid()
-    AND ap.is_active = true
-  LIMIT 1;
-$$;
-
-
-ALTER FUNCTION "public"."get_admin_profile"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_b2b_update_reminder"("p_clinic_id" "uuid") RETURNS "jsonb"
-    LANGUAGE "sql" SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$ SELECT jsonb_build_object('should_show', COALESCE(t.updated_at > COALESCE(a.signed_at::timestamptz, '-infinity'::timestamptz) AND t.updated_at > now() - interval '7 days', false), 'message', 'Dokumen PKS telah diperbarui. Silakan tandatangani ulang di halaman Profil Klinik.') FROM public.b2b_agreement_templates t LEFT JOIN public.b2b_agreements a ON a.clinic_id = p_clinic_id AND a.id = (SELECT id FROM public.b2b_agreements WHERE clinic_id = p_clinic_id ORDER BY signed_at DESC LIMIT 1) WHERE t.is_active = true LIMIT 1; $$;
-
-
-ALTER FUNCTION "public"."get_b2b_update_reminder"("p_clinic_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_clinics_with_pending_extension"() RETURNS TABLE("id" "uuid", "name" "text", "slug" character varying, "is_active" boolean, "owner_user_id" "uuid", "created_at" timestamp with time zone, "updated_at" timestamp with time zone, "expired_date" timestamp with time zone, "is_agreement_signed" boolean, "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text")
-    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-begin
-  if not is_admin_at_least('STAFF') then
-    raise exception 'PERMISSION_DENIED';
-  end if;
-  return query
-  SELECT DISTINCT c.id, c.name, c.slug, c.is_active, c.owner_user_id,
-    c.created_at, c.updated_at, c.expired_date, c.is_agreement_signed,
-    c.permit_number, c.owner_ktp_number, c.phone_number, c.address_line,
-    c.rt_rw, c.province_name, c.city_name, c.district_name, c.subdistrict_name,
-    c.postal_code
-  FROM public.clinics c
-  INNER JOIN public.clinic_extension_requests cer
-    ON cer.clinic_id = c.id AND cer.status = 'PENDING'
-  ORDER BY c.created_at DESC;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."get_clinics_with_pending_extension"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_invitation_by_token"("invite_token" "text") RETURNS TABLE("email" "text", "phone" "text", "contact_type" "text", "expires_at" timestamp with time zone, "is_used" boolean, "clinic_id" "uuid", "clinic_name" "text", "flow" "public"."patient_invitation_flow", "used_reason" "public"."patient_invitation_used_reason", "session_start_at" timestamp with time zone, "session_end_at" timestamp with time zone, "session_timezone" "text", "target_patient_id" "uuid")
-    LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.get_invitation_by_token(invite_token text) RETURNS TABLE(email text, phone text, contact_type text, expires_at timestamp with time zone, is_used boolean, clinic_id uuid, clinic_name text, flow public.patient_invitation_flow, used_reason public.patient_invitation_used_reason, session_start_at timestamp with time zone, session_end_at timestamp with time zone, session_timezone text, target_patient_id uuid)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
   select
     pi.email, pi.phone, pi.contact_type,
@@ -958,142 +1575,13 @@ CREATE OR REPLACE FUNCTION "public"."get_invitation_by_token"("invite_token" "te
 $$;
 
 
-ALTER FUNCTION "public"."get_invitation_by_token"("invite_token" "text") OWNER TO "postgres";
+--
+-- Name: handle_new_auth_user(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."get_portal_clinic_agreement"("p_clinic_id" "uuid") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN
-  IF NOT public.has_active_membership(p_clinic_id) THEN RAISE EXCEPTION 'Clinic access required' USING ERRCODE = '42501'; END IF;
-  RETURN jsonb_build_object('clinic', (SELECT to_jsonb(c) FROM (SELECT id, name, expired_date, is_agreement_signed FROM public.clinics WHERE id = p_clinic_id) c), 'activeTemplate', (SELECT to_jsonb(t) FROM (SELECT id, title, content FROM public.b2b_agreement_templates WHERE is_active = true LIMIT 1) t), 'latestAgreement', (SELECT to_jsonb(a) FROM (SELECT id, template_id, signed_by_name, signed_at, signature_image_path FROM public.b2b_agreements WHERE clinic_id = p_clinic_id ORDER BY signed_at DESC LIMIT 1) a), 'latestExtensionRequest', (SELECT to_jsonb(e) FROM (SELECT id, status, requested_at, approved_at, added_days FROM public.clinic_extension_requests WHERE clinic_id = p_clinic_id ORDER BY requested_at DESC LIMIT 1) e));
-END; $$;
-
-
-ALTER FUNCTION "public"."get_portal_clinic_agreement"("p_clinic_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_portal_clinic_profile"("p_clinic_id" "uuid") RETURNS "jsonb"
-    LANGUAGE "sql" SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$ SELECT jsonb_build_object('id', c.id, 'name', c.name, 'slug', c.slug, 'is_active', c.is_active, 'expired_date', c.expired_date, 'permit_number', c.permit_number, 'owner_ktp_number', c.owner_ktp_number, 'phone_number', c.phone_number, 'address_line', c.address_line, 'rt_rw', c.rt_rw, 'province_name', c.province_name, 'city_name', c.city_name, 'district_name', c.district_name, 'subdistrict_name', c.subdistrict_name, 'postal_code', c.postal_code, 'full_address', c.full_address, 'profile_picture_path', c.profile_picture_path, 'stamp_path', c.stamp_path, 'signature_path', c.signature_path, 'updated_at', c.updated_at, 'owner_name', (SELECT cm.full_name FROM public.clinic_memberships cm WHERE cm.clinic_id = p_clinic_id AND cm.is_owner = true AND cm.is_active = true ORDER BY cm.created_at ASC LIMIT 1), 'owner_email', (SELECT cm.email FROM public.clinic_memberships cm WHERE cm.clinic_id = p_clinic_id AND cm.is_owner = true AND cm.is_active = true ORDER BY cm.created_at ASC LIMIT 1)) FROM public.clinics c WHERE c.id = p_clinic_id AND public.has_active_membership(p_clinic_id); $$;
-
-
-ALTER FUNCTION "public"."get_portal_clinic_profile"("p_clinic_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_portal_dashboard"("p_clinic_id" "uuid", "p_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_mode" "text" DEFAULT 'dashboard'::"text") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-DECLARE rows_json jsonb;
-BEGIN
-  IF NOT public.has_active_membership(p_clinic_id) THEN RAISE EXCEPTION 'Clinic access required' USING ERRCODE = '42501'; END IF;
-  SELECT COALESCE(jsonb_agg(jsonb_build_object('id', a.id, 'patient_id', a.patient_id, 'start_time', a.start_time, 'end_time', a.end_time, 'status', a.status, 'patient', jsonb_build_object('id', p.id, 'full_name', p.full_name, 'phone', p.phone)) ORDER BY a.start_time ASC), '[]'::jsonb)
-  INTO rows_json FROM public.appointments a LEFT JOIN public.patients p ON p.id = a.patient_id
-  WHERE a.clinic_id = p_clinic_id AND (p_start IS NULL OR a.start_time >= p_start) AND (p_end IS NULL OR a.start_time <= p_end) LIMIT 100;
-  RETURN rows_json;
-END; $$;
-
-
-ALTER FUNCTION "public"."get_portal_dashboard"("p_clinic_id" "uuid", "p_start" timestamp with time zone, "p_end" timestamp with time zone, "p_mode" "text") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_portal_patient_workspace"("p_clinic_id" "uuid", "p_patient_id" "uuid", "p_appointment_id" "uuid" DEFAULT NULL::"uuid") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-DECLARE cp record; pat record; visit_ids uuid[]; latest_visit uuid; can_practitioner boolean := public.has_practitioner_access(p_clinic_id);
-BEGIN
-  IF NOT public.has_active_membership(p_clinic_id) THEN RAISE EXCEPTION 'Clinic access required' USING ERRCODE = '42501'; END IF;
-  SELECT id, patient_id, mrn INTO cp FROM public.clinic_patients WHERE clinic_id = p_clinic_id AND patient_id = p_patient_id LIMIT 1;
-  IF cp.id IS NULL THEN RETURN jsonb_build_object('notFound', true); END IF;
-  SELECT id, full_name, email, phone INTO pat FROM public.patients WHERE id = cp.patient_id;
-  SELECT array_agg(id ORDER BY created_at DESC), (array_agg(id ORDER BY created_at DESC))[1] INTO visit_ids, latest_visit FROM (SELECT id, created_at FROM public.patient_visits WHERE clinic_id = p_clinic_id AND patient_id = pat.id ORDER BY created_at DESC LIMIT 30) v;
-  RETURN jsonb_build_object(
-    'notFound', false, 'canPractitioner', can_practitioner,
-    'patient', jsonb_build_object('id', pat.id, 'mrn', cp.mrn, 'fullName', pat.full_name, 'email', pat.email, 'phone', pat.phone),
-    'visitId', latest_visit,
-    'personalData', (SELECT to_jsonb(x) FROM public.patient_personal_data x WHERE clinic_id = p_clinic_id AND patient_id = pat.id LIMIT 1),
-    'familyData', (SELECT to_jsonb(x) FROM public.patient_family_data x WHERE clinic_id = p_clinic_id AND patient_id = pat.id LIMIT 1),
-    'developmentalHistory', (SELECT to_jsonb(x) FROM public.developmental_history x WHERE clinic_id = p_clinic_id AND visit_id = latest_visit LIMIT 1),
-    'cognitiveAssessment', (SELECT to_jsonb(x) FROM public.cognitive_assessments x WHERE clinic_id = p_clinic_id AND visit_id = latest_visit LIMIT 1),
-    'recentVisits', COALESCE((SELECT jsonb_agg(jsonb_build_object('id', id, 'created_at', created_at) ORDER BY created_at DESC) FROM public.patient_visits WHERE clinic_id = p_clinic_id AND patient_id = pat.id LIMIT 30), '[]'::jsonb),
-    'recentTherapySessions', CASE WHEN can_practitioner THEN COALESCE((SELECT jsonb_agg(to_jsonb(s) ORDER BY session_date DESC, session_time DESC) FROM (SELECT id, session_date, session_time, activity_type, subject, clinical_notes FROM public.therapy_sessions WHERE clinic_id = p_clinic_id AND visit_id = ANY(COALESCE(visit_ids, ARRAY[]::uuid[])) ORDER BY session_date DESC, session_time DESC LIMIT 20) s), '[]'::jsonb) ELSE '[]'::jsonb END,
-    'recentReferrals', CASE WHEN can_practitioner THEN COALESCE((SELECT jsonb_agg(to_jsonb(r) ORDER BY created_at DESC) FROM (SELECT id, destination, notes, expires_at, created_at FROM public.referrals_and_feedback WHERE clinic_id = p_clinic_id AND patient_id = pat.id AND visit_id = ANY(COALESCE(visit_ids, ARRAY[]::uuid[])) ORDER BY created_at DESC LIMIT 20) r), '[]'::jsonb) ELSE '[]'::jsonb END,
-    'recentAppointments', COALESCE((SELECT jsonb_agg(to_jsonb(a) ORDER BY start_time DESC) FROM (SELECT id, start_time, end_time, status, notes FROM public.appointments WHERE clinic_id = p_clinic_id AND patient_id = pat.id ORDER BY start_time DESC LIMIT 30) a), '[]'::jsonb),
-    'prefillAppointment', (SELECT to_jsonb(a) FROM (SELECT start_time FROM public.appointments WHERE id = p_appointment_id AND clinic_id = p_clinic_id AND patient_id = pat.id LIMIT 1) a)
-  );
-END; $$;
-
-
-ALTER FUNCTION "public"."get_portal_patient_workspace"("p_clinic_id" "uuid", "p_patient_id" "uuid", "p_appointment_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_portal_session"() RETURNS TABLE("profile_role" "public"."user_role", "membership_id" "uuid", "clinic_id" "uuid", "is_owner" boolean, "is_staff" boolean, "is_practitioner" boolean, "profession" "public"."practitioner_profession", "is_active" boolean, "clinic" "jsonb")
-    LANGUAGE "sql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-  SELECT
-    u.role AS profile_role,
-    cm.id AS membership_id,
-    cm.clinic_id,
-    cm.is_owner,
-    cm.is_staff,
-    cm.is_practitioner,
-    cm.profession,
-    cm.is_active,
-    jsonb_build_object(
-      'id', c.id,
-      'name', c.name,
-      'slug', c.slug,
-      'is_active', c.is_active,
-      'expired_date', c.expired_date,
-      'is_agreement_signed', c.is_agreement_signed
-    ) AS clinic
-  FROM public.users u
-  LEFT JOIN public.clinic_memberships cm
-    ON cm.user_id = u.id
-   AND cm.is_active = true
-  LEFT JOIN public.clinics c
-    ON c.id = cm.clinic_id
-  WHERE u.id = auth.uid()
-    AND u.role = 'clinic_staff'::public.user_role
-  ORDER BY cm.is_owner DESC NULLS LAST, cm.created_at ASC NULLS LAST;
-$$;
-
-
-ALTER FUNCTION "public"."get_portal_session"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_reference_data"("table_name" "text") RETURNS TABLE("id" "uuid", "name" "text", "order_index" integer)
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN
-  CASE table_name
-    WHEN 'religion' THEN
-      RETURN QUERY SELECT r.id, r.name, r.order_index FROM public.religion r ORDER BY r.order_index ASC, r.name ASC;
-    WHEN 'education' THEN
-      RETURN QUERY SELECT e.id, e.name, e.order_index FROM public.education e ORDER BY e.order_index ASC, e.name ASC;
-    WHEN 'occupation' THEN
-      RETURN QUERY SELECT o.id, o.name, o.order_index FROM public.occupation o ORDER BY o.order_index ASC, o.name ASC;
-    WHEN 'marital_status' THEN
-      RETURN QUERY SELECT ms.id, ms.name, ms.order_index FROM public.marital_status ms ORDER BY ms.order_index ASC, ms.name ASC;
-    ELSE
-      RAISE EXCEPTION 'Unsupported reference table: %', table_name USING ERRCODE = '22023';
-  END CASE;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."get_reference_data"("table_name" "text") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."handle_new_auth_user"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.handle_new_auth_user() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 declare
   incoming_role text;
@@ -1112,12 +1600,13 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."handle_new_auth_user"() OWNER TO "postgres";
+--
+-- Name: has_active_membership(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."has_active_membership"("target_clinic_id" "uuid") RETURNS boolean
-    LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.has_active_membership(target_clinic_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
   select exists (
     select 1
@@ -1129,12 +1618,13 @@ CREATE OR REPLACE FUNCTION "public"."has_active_membership"("target_clinic_id" "
 $$;
 
 
-ALTER FUNCTION "public"."has_active_membership"("target_clinic_id" "uuid") OWNER TO "postgres";
+--
+-- Name: has_ops_access(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."has_ops_access"("target_clinic_id" "uuid") RETURNS boolean
-    LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.has_ops_access(target_clinic_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
   select exists (
     select 1
@@ -1147,12 +1637,13 @@ CREATE OR REPLACE FUNCTION "public"."has_ops_access"("target_clinic_id" "uuid") 
 $$;
 
 
-ALTER FUNCTION "public"."has_ops_access"("target_clinic_id" "uuid") OWNER TO "postgres";
+--
+-- Name: has_owner_access(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."has_owner_access"("target_clinic_id" "uuid") RETURNS boolean
-    LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.has_owner_access(target_clinic_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
   select exists (
     select 1
@@ -1165,12 +1656,13 @@ CREATE OR REPLACE FUNCTION "public"."has_owner_access"("target_clinic_id" "uuid"
 $$;
 
 
-ALTER FUNCTION "public"."has_owner_access"("target_clinic_id" "uuid") OWNER TO "postgres";
+--
+-- Name: has_patient_access(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."has_patient_access"("target_patient_id" "uuid") RETURNS boolean
-    LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.has_patient_access(target_patient_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
   select exists (
     select 1
@@ -1184,12 +1676,13 @@ CREATE OR REPLACE FUNCTION "public"."has_patient_access"("target_patient_id" "uu
 $$;
 
 
-ALTER FUNCTION "public"."has_patient_access"("target_patient_id" "uuid") OWNER TO "postgres";
+--
+-- Name: has_practitioner_access(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."has_practitioner_access"("target_clinic_id" "uuid") RETURNS boolean
-    LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.has_practitioner_access(target_clinic_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
   select exists (
     select 1
@@ -1202,12 +1695,13 @@ CREATE OR REPLACE FUNCTION "public"."has_practitioner_access"("target_clinic_id"
 $$;
 
 
-ALTER FUNCTION "public"."has_practitioner_access"("target_clinic_id" "uuid") OWNER TO "postgres";
+--
+-- Name: is_admin_at_least(text); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."is_admin_at_least"("p_min_role" "text") RETURNS boolean
-    LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'public'
+CREATE FUNCTION public.is_admin_at_least(p_min_role text) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public'
     AS $$
   SELECT EXISTS (
     SELECT 1
@@ -1223,12 +1717,13 @@ CREATE OR REPLACE FUNCTION "public"."is_admin_at_least"("p_min_role" "text") RET
 $$;
 
 
-ALTER FUNCTION "public"."is_admin_at_least"("p_min_role" "text") OWNER TO "postgres";
+--
+-- Name: is_portal_staff(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."is_portal_staff"() RETURNS boolean
-    LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.is_portal_staff() RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
   select exists (
     select 1
@@ -1239,136 +1734,33 @@ CREATE OR REPLACE FUNCTION "public"."is_portal_staff"() RETURNS boolean
 $$;
 
 
-ALTER FUNCTION "public"."is_portal_staff"() OWNER TO "postgres";
+--
+-- Name: is_registered_profile_email(text); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."is_registered_profile_email"("p_email" "text") RETURNS boolean
-    LANGUAGE "sql" STABLE
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.is_registered_profile_email(p_email text) RETURNS boolean
+    LANGUAGE sql STABLE
+    SET search_path TO 'public'
     AS $$ select exists (select 1 from public.users u left join public.clinic_memberships cm on cm.user_id = u.id where lower(trim(coalesce(cm.email, ''))) = lower(trim(p_email)) and u.role = 'clinic_staff' limit 1); $$;
 
 
-ALTER FUNCTION "public"."is_registered_profile_email"("p_email" "text") OWNER TO "postgres";
+--
+-- Name: reject_clinic_extension_request(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."list_admin_clinic_followups"("p_clinic_id" "uuid") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RAISE EXCEPTION 'Admin access required' USING ERRCODE = '42501'; END IF; RETURN jsonb_build_object('invitations', COALESCE((SELECT jsonb_agg(to_jsonb(i) ORDER BY i.created_at DESC) FROM (SELECT * FROM public.b2b_invitations WHERE clinic_id = p_clinic_id ORDER BY created_at DESC LIMIT 5) i), '[]'::jsonb), 'pendingExtensionRequest', (SELECT to_jsonb(e) FROM (SELECT id, status, requested_at, approved_at, added_days FROM public.clinic_extension_requests WHERE clinic_id = p_clinic_id AND status = 'PENDING' ORDER BY requested_at DESC LIMIT 1) e)); END; $$;
-
-
-ALTER FUNCTION "public"."list_admin_clinic_followups"("p_clinic_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."list_admin_consent_templates"() RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RAISE EXCEPTION 'Admin access required' USING ERRCODE = '42501'; END IF; RETURN COALESCE((SELECT jsonb_agg(to_jsonb(ct) ORDER BY ct.created_at DESC) FROM public.consent_templates ct), '[]'::jsonb); END; $$;
-
-
-ALTER FUNCTION "public"."list_admin_consent_templates"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."list_admin_demo_requests"("p_status" "text") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RAISE EXCEPTION 'Admin access required' USING ERRCODE = '42501'; END IF; RETURN COALESCE((SELECT jsonb_agg(to_jsonb(d) ORDER BY d.created_at DESC) FROM public.demo_requests d WHERE d.email_delivery_status = p_status), '[]'::jsonb); END; $$;
-
-
-ALTER FUNCTION "public"."list_admin_demo_requests"("p_status" "text") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."list_admin_profiles"() RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN
-  IF NOT public.is_admin_at_least('STAFF') THEN RAISE EXCEPTION 'Admin access required' USING ERRCODE = '42501'; END IF;
-  RETURN COALESCE((SELECT jsonb_agg(to_jsonb(ap) - 'created_by' - 'updated_by' ORDER BY ap.created_at DESC) FROM public.admin_profiles ap), '[]'::jsonb);
-END;
-$$;
-
-
-ALTER FUNCTION "public"."list_admin_profiles"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."list_patient_consents"("p_visit_id" "uuid") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN RETURN COALESCE((SELECT jsonb_agg(to_jsonb(pc) ORDER BY pc.signed_at DESC) FROM public.patient_consents pc WHERE pc.visit_id = p_visit_id AND public.has_patient_access(pc.patient_id)), '[]'::jsonb); END; $$;
-
-
-ALTER FUNCTION "public"."list_patient_consents"("p_visit_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."list_portal_clinic_memberships"("p_clinic_id" "uuid") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN IF NOT public.has_active_membership(p_clinic_id) THEN RAISE EXCEPTION 'Clinic access required' USING ERRCODE = '42501'; END IF; RETURN COALESCE((SELECT jsonb_agg(to_jsonb(cm) ORDER BY cm.is_owner DESC, cm.created_at ASC) FROM (SELECT id, user_id, full_name, email, birth_date, ktp_number, gender, address, phone, sip_number, is_owner, is_staff, is_practitioner, profession, is_active, created_at FROM public.clinic_memberships WHERE clinic_id = p_clinic_id) cm), '[]'::jsonb); END; $$;
-
-
-ALTER FUNCTION "public"."list_portal_clinic_memberships"("p_clinic_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."list_portal_patients"("p_clinic_id" "uuid") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN
-  IF NOT public.has_active_membership(p_clinic_id) THEN RAISE EXCEPTION 'Clinic access required' USING ERRCODE = '42501'; END IF;
-  RETURN COALESCE((SELECT jsonb_agg(jsonb_build_object('id', cp.id, 'mrn', cp.mrn, 'created_at', cp.created_at, 'patient_id', cp.patient_id, 'patient', jsonb_build_object('id', p.id, 'full_name', p.full_name, 'email', p.email, 'phone', p.phone), 'personal_full_name', ppd.full_name) ORDER BY cp.created_at DESC) FROM public.clinic_patients cp LEFT JOIN public.patients p ON p.id = cp.patient_id LEFT JOIN public.patient_personal_data ppd ON ppd.clinic_id = cp.clinic_id AND ppd.patient_id = cp.patient_id WHERE cp.clinic_id = p_clinic_id LIMIT 100), '[]'::jsonb);
-END; $$;
-
-
-ALTER FUNCTION "public"."list_portal_patients"("p_clinic_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."mark_admin_demo_registered"("p_demo_request_id" "uuid", "p_clinic_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RAISE EXCEPTION 'Admin access required' USING ERRCODE = '42501'; END IF; UPDATE public.demo_requests SET registration_status = 'registered', registered_clinic_id = p_clinic_id, registered_at = now() WHERE id = p_demo_request_id; END; $$;
-
-
-ALTER FUNCTION "public"."mark_admin_demo_registered"("p_demo_request_id" "uuid", "p_clinic_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."mutate_reference_data"("table_name" "text", "row_id" "uuid", "row_name" "text", "row_order_index" integer, "op" "text") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $_$
-DECLARE sql text; target regclass;
-BEGIN
-  IF NOT public.is_admin_at_least('STAFF') THEN RAISE EXCEPTION 'Admin access required' USING ERRCODE = '42501'; END IF;
-  target := CASE table_name WHEN 'religion' THEN 'public.religion'::regclass WHEN 'education' THEN 'public.education'::regclass WHEN 'occupation' THEN 'public.occupation'::regclass WHEN 'marital_status' THEN 'public.marital_status'::regclass ELSE NULL END;
-  IF target IS NULL THEN RAISE EXCEPTION 'Unsupported reference table: %', table_name USING ERRCODE = '22023'; END IF;
-  IF op = 'delete' THEN EXECUTE format('DELETE FROM %s WHERE id = $1', target) USING row_id; RETURN; END IF;
-  IF row_id IS NULL THEN EXECUTE format('INSERT INTO %s(name, order_index, created_by, updated_by) VALUES ($1, $2, $3, $3)', target) USING row_name, row_order_index, auth.uid();
-  ELSE EXECUTE format('UPDATE %s SET name = $1, order_index = $2, updated_at = now(), updated_by = $3 WHERE id = $4', target) USING row_name, row_order_index, auth.uid(), row_id; END IF;
-END;
-$_$;
-
-
-ALTER FUNCTION "public"."mutate_reference_data"("table_name" "text", "row_id" "uuid", "row_name" "text", "row_order_index" integer, "op" "text") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") RETURNS TABLE("request_id" "uuid", "clinic_id" "uuid", "rejected_at" timestamp with time zone)
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
+CREATE FUNCTION public.reject_clinic_extension_request(p_request_id uuid) RETURNS TABLE(request_id uuid, clinic_id uuid, rejected_at timestamp with time zone)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_catalog'
     AS $$ DECLARE v_request public.clinic_extension_requests%ROWTYPE; v_rejected_at timestamptz := timezone('utc', now()); BEGIN IF NOT public.is_admin_at_least('ADMIN') THEN RAISE EXCEPTION 'Hanya admin yang dapat menolak pengajuan perpanjangan.'; END IF; SELECT * INTO v_request FROM public.clinic_extension_requests cer WHERE cer.id = p_request_id FOR UPDATE; IF v_request.id IS NULL THEN RAISE EXCEPTION 'Pengajuan perpanjangan tidak ditemukan.'; END IF; IF v_request.status <> 'PENDING' THEN RAISE EXCEPTION 'Hanya pengajuan berstatus PENDING yang dapat ditolak.'; END IF; UPDATE public.clinic_extension_requests SET status = 'REJECTED', approved_at = NULL, approved_by = NULL, added_days = NULL WHERE id = v_request.id; RETURN QUERY SELECT v_request.id, v_request.clinic_id, v_rejected_at; END; $$;
 
 
-ALTER FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") OWNER TO "postgres";
+--
+-- Name: rls_auto_enable(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."rls_auto_enable"() RETURNS "event_trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog'
+CREATE FUNCTION public.rls_auto_enable() RETURNS event_trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
     AS $$
 DECLARE
   cmd record;
@@ -1395,12 +1787,13 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."rls_auto_enable"() OWNER TO "postgres";
+--
+-- Name: save_therapy_session_entry(uuid, uuid, uuid, date, time without time zone, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text" DEFAULT NULL::"text", "input_clinical_notes" "text" DEFAULT NULL::"text") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.save_therapy_session_entry(target_clinic_id uuid, target_patient_id uuid, target_visit_id uuid, input_session_date date, input_session_time time without time zone, input_activity_type text, input_subject text DEFAULT NULL::text, input_clinical_notes text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 declare
   inserted_session_id uuid;
@@ -1495,26 +1888,13 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") OWNER TO "postgres";
+--
+-- Name: set_admin_profiles_audit_fields(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."set_admin_profile_active"("p_id" "uuid", "p_is_active" boolean) RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN
-  IF NOT public.is_admin_at_least('SUPER_ADMIN') THEN RAISE EXCEPTION 'Super admin access required' USING ERRCODE = '42501'; END IF;
-  UPDATE public.admin_profiles SET is_active = p_is_active, updated_at = now(), updated_by = auth.uid() WHERE id = p_id;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."set_admin_profile_active"("p_id" "uuid", "p_is_active" boolean) OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."set_admin_profiles_audit_fields"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.set_admin_profiles_audit_fields() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
@@ -1541,12 +1921,13 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."set_admin_profiles_audit_fields"() OWNER TO "postgres";
+--
+-- Name: submit_patient_registration(text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."submit_patient_registration"("invite_token" "text", "registration_payload" "jsonb") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.submit_patient_registration(invite_token text, registration_payload jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 declare
   invitation_row public.patient_invitations%rowtype;
@@ -1607,19 +1988,18 @@ begin
     );
   end if;
 
-  select cm.user_id
+  select id
   into psychologist_id
-  from public.clinic_memberships cm
-  where cm.clinic_id = invitation_row.clinic_id
-    and cm.is_practitioner = true
-  order by cm.created_at asc
+  from public.users
+  where role in ('admin', 'psychologist')
+  order by created_at asc
   limit 1;
 
   if psychologist_id is null then
     return jsonb_build_object(
       'status', 'error',
       'code', 'NO_PSYCHOLOGIST',
-      'message', 'Tidak ada psikolog aktif di klinik ini untuk membuat jadwal awal.'
+      'message', 'Tidak ada user psikolog/admin aktif untuk membuat jadwal awal.'
     );
   end if;
 
@@ -1831,29 +2211,13 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."submit_patient_registration"("invite_token" "text", "registration_payload" "jsonb") OWNER TO "postgres";
+--
+-- Name: sync_clinic_membership_profile_defaults(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."submit_portal_clinic_agreement"("p_clinic_id" "uuid", "p_template_id" "uuid", "p_signed_by_name" "text", "p_signature_image_path" "text") RETURNS "uuid"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-DECLARE agreement_id uuid; already_signed boolean;
-BEGIN
-  IF NOT public.has_owner_access(p_clinic_id) THEN RAISE EXCEPTION 'Owner access required' USING ERRCODE = '42501'; END IF;
-  SELECT is_agreement_signed INTO already_signed FROM public.clinics WHERE id = p_clinic_id;
-  INSERT INTO public.b2b_agreements(clinic_id, template_id, signed_by_name, signature_image_path) VALUES (p_clinic_id, p_template_id, p_signed_by_name, p_signature_image_path) RETURNING id INTO agreement_id;
-  IF already_signed THEN INSERT INTO public.clinic_extension_requests(clinic_id, b2b_agreement_id) VALUES (p_clinic_id, agreement_id); ELSE UPDATE public.clinics SET is_agreement_signed = true WHERE id = p_clinic_id; END IF;
-  RETURN agreement_id;
-END; $$;
-
-
-ALTER FUNCTION "public"."submit_portal_clinic_agreement"("p_clinic_id" "uuid", "p_template_id" "uuid", "p_signed_by_name" "text", "p_signature_image_path" "text") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."sync_clinic_membership_profile_defaults"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.sync_clinic_membership_profile_defaults() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 declare
   raw_meta jsonb;
@@ -1892,27 +2256,17 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."sync_clinic_membership_profile_defaults"() OWNER TO "postgres";
+--
+-- Name: update_patient_registration_by_user_id(text, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."update_patient_consent_signature"("p_id" "uuid", "p_signature_path" "text") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN UPDATE public.patient_consents pc SET signature_path = p_signature_path WHERE pc.id = p_id AND public.has_patient_access(pc.patient_id); END; $$;
-
-
-ALTER FUNCTION "public"."update_patient_consent_signature"("p_id" "uuid", "p_signature_path" "text") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."update_patient_registration_by_user_id"("invite_token" "text", "registration_payload" "jsonb", "target_user_id" "uuid") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.update_patient_registration_by_user_id(invite_token text, registration_payload jsonb, target_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 declare
   invitation_row public.patient_invitations%rowtype;
   auth_user_email text;
-  auth_user_phone text;
   patient_id_value uuid;
   clinic_patient_id_value uuid;
   practitioner_membership_id_value uuid;
@@ -1926,7 +2280,6 @@ declare
   consent_text_value text := 'Saya menyetujui berbagi data medis saya dengan klinik tujuan untuk keperluan layanan psikologi.';
   consent_ip_value text;
   consent_user_agent_value text;
-  signature_id_value uuid;
 begin
   if invite_token is null or btrim(invite_token) = '' then
     return jsonb_build_object('status', 'error', 'code', 'INVALID_TOKEN', 'message', 'Token registrasi tidak valid.');
@@ -1979,35 +2332,14 @@ begin
     return jsonb_build_object('status', 'error', 'code', 'CONSENT_REQUIRED', 'message', 'Persetujuan berbagi data wajib disetujui.');
   end if;
 
-  signature_id_value := nullif(registration_payload ->> 'signatureId', '')::uuid;
-  if signature_id_value is null then
-    return jsonb_build_object('status', 'error', 'code', 'SIGNATURE_REQUIRED', 'message', 'Tanda tangan digital wajib diisi.');
-  end if;
+  select au.email
+  into auth_user_email
+  from auth.users au
+  where au.id = target_user_id
+  limit 1;
 
-  if invitation_row.contact_type = 'phone' then
-    select au.phone
-    into auth_user_phone
-    from auth.users au
-    where au.id = target_user_id
-    limit 1;
-
-    if auth_user_phone is null or btrim(auth_user_phone) = '' then
-      return jsonb_build_object('status', 'error', 'code', 'AUTH_USER_NOT_FOUND', 'message', 'Nomor HP akun pasien tidak ditemukan.');
-    end if;
-
-    if regexp_replace(auth_user_phone, '\D', '', 'g') <> regexp_replace(coalesce(invitation_row.phone, ''), '\D', '', 'g') then
-      return jsonb_build_object('status', 'error', 'code', 'PHONE_MISMATCH', 'message', 'Nomor HP akun tidak cocok dengan nomor HP undangan.');
-    end if;
-  else
-    select au.email
-    into auth_user_email
-    from auth.users au
-    where au.id = target_user_id
-    limit 1;
-
-    if auth_user_email is null or lower(btrim(auth_user_email)) <> lower(btrim(coalesce(invitation_row.email, ''))) then
-      return jsonb_build_object('status', 'error', 'code', 'EMAIL_MISMATCH', 'message', 'Email akun tidak cocok dengan email undangan.');
-    end if;
+  if auth_user_email is null or lower(btrim(auth_user_email)) <> lower(btrim(invitation_row.email)) then
+    return jsonb_build_object('status', 'error', 'code', 'EMAIL_MISMATCH', 'message', 'Email akun tidak cocok dengan email undangan.');
   end if;
 
   select p.id
@@ -2018,14 +2350,6 @@ begin
 
   if patient_id_value is null then
     return jsonb_build_object('status', 'error', 'code', 'PATIENT_NOT_FOUND', 'message', 'Data pasien belum dibuat untuk akun ini.');
-  end if;
-
-  if not exists (
-    select 1 from public.patient_signatures ps
-    where ps.id = signature_id_value
-      and ps.patient_id = patient_id_value
-  ) then
-    return jsonb_build_object('status', 'error', 'code', 'SIGNATURE_INVALID', 'message', 'Tanda tangan digital tidak valid untuk pasien ini.');
   end if;
 
   practitioner_membership_id_value := invitation_row.practitioner_membership_id;
@@ -2071,7 +2395,6 @@ begin
       accepted_at,
       accepted_ip,
       accepted_user_agent,
-      signature_id,
       created_at,
       updated_at
     )
@@ -2085,7 +2408,6 @@ begin
       now(),
       consent_ip_value,
       consent_user_agent_value,
-      signature_id_value,
       now(),
       now()
     );
@@ -2110,111 +2432,200 @@ begin
   autism_indication_value := nullif(registration_payload ->> 'autismIndication', '')::public.autism_indication;
   adhd_indication_value := nullif(registration_payload ->> 'adhdIndication', '')::public.adhd_indication;
 
-  update public.patients p
+  update public.patients
   set full_name = registration_payload ->> 'fullName',
-      email = case when invitation_row.contact_type = 'email' then invitation_row.email else p.email end,
-      phone = coalesce(nullif(registration_payload ->> 'phone', ''), nullif(invitation_row.phone, ''), p.phone),
+      email = invitation_row.email,
+      phone = nullif(registration_payload ->> 'phone', ''),
       updated_at = now()
-  where p.id = patient_id_value;
+  where id = patient_id_value;
 
   insert into public.patient_personal_data (
-    clinic_id, patient_id, full_name, sex, birth_date, address, religion, education, occupation, hobby, referral_source,
-    religion_id, other_religion, education_id, other_education, occupation_id, other_occupation,
-    province_domain_id, city_domain_id, district_domain_id, subdistrict_domain_id, postal_code_domain_id, address_line, rt_rw
-  ) values (
-    invitation_row.clinic_id, patient_id_value, registration_payload ->> 'fullName', nullif(registration_payload ->> 'sex', ''), nullif(registration_payload ->> 'birthDate', '')::date,
-    coalesce(nullif(registration_payload ->> 'address', ''), nullif(registration_payload ->> 'addressLine', '')),
-    coalesce((select r.name from public.religion r where r.id = nullif(registration_payload ->> 'religionId', '')::uuid), nullif(registration_payload ->> 'otherReligion', ''), nullif(registration_payload ->> 'religion', '')),
-    coalesce((select e.name from public.education e where e.id = nullif(registration_payload ->> 'educationId', '')::uuid), nullif(registration_payload ->> 'otherEducation', ''), nullif(registration_payload ->> 'education', '')),
-    coalesce((select o.name from public.occupation o where o.id = nullif(registration_payload ->> 'occupationId', '')::uuid), nullif(registration_payload ->> 'otherOccupation', ''), nullif(registration_payload ->> 'occupation', '')),
-    nullif(registration_payload ->> 'hobby', ''), 'Self registration invitation',
-    nullif(registration_payload ->> 'religionId', '')::uuid, nullif(registration_payload ->> 'otherReligion', ''),
-    nullif(registration_payload ->> 'educationId', '')::uuid, nullif(registration_payload ->> 'otherEducation', ''),
-    nullif(registration_payload ->> 'occupationId', '')::uuid, nullif(registration_payload ->> 'otherOccupation', ''),
-    nullif(registration_payload ->> 'provinceDomainId', '')::bigint, nullif(registration_payload ->> 'cityDomainId', '')::bigint,
-    nullif(registration_payload ->> 'districtDomainId', '')::bigint, nullif(registration_payload ->> 'subdistrictDomainId', '')::bigint,
-    nullif(registration_payload ->> 'postalCodeDomainId', '')::bigint, nullif(registration_payload ->> 'addressLine', ''), nullif(registration_payload ->> 'rtRw', '')
+    clinic_id,
+    patient_id,
+    full_name,
+    sex,
+    birth_date,
+    address,
+    religion,
+    education,
+    occupation,
+    hobby,
+    referral_source
+  )
+  values (
+    invitation_row.clinic_id,
+    patient_id_value,
+    registration_payload ->> 'fullName',
+    nullif(registration_payload ->> 'sex', ''),
+    nullif(registration_payload ->> 'birthDate', '')::date,
+    nullif(registration_payload ->> 'address', ''),
+    nullif(registration_payload ->> 'religion', ''),
+    nullif(registration_payload ->> 'education', ''),
+    nullif(registration_payload ->> 'occupation', ''),
+    nullif(registration_payload ->> 'hobby', ''),
+    'Self registration invitation'
   )
   on conflict (clinic_id, patient_id) do update
-  set full_name = excluded.full_name, sex = excluded.sex, birth_date = excluded.birth_date, address = excluded.address,
-      religion = excluded.religion, education = excluded.education, occupation = excluded.occupation, hobby = excluded.hobby,
-      referral_source = excluded.referral_source, religion_id = excluded.religion_id, other_religion = excluded.other_religion,
-      education_id = excluded.education_id, other_education = excluded.other_education, occupation_id = excluded.occupation_id,
-      other_occupation = excluded.other_occupation, province_domain_id = excluded.province_domain_id, city_domain_id = excluded.city_domain_id,
-      district_domain_id = excluded.district_domain_id, subdistrict_domain_id = excluded.subdistrict_domain_id,
-      postal_code_domain_id = excluded.postal_code_domain_id, address_line = excluded.address_line, rt_rw = excluded.rt_rw,
+  set full_name = excluded.full_name,
+      sex = excluded.sex,
+      birth_date = excluded.birth_date,
+      address = excluded.address,
+      religion = excluded.religion,
+      education = excluded.education,
+      occupation = excluded.occupation,
+      hobby = excluded.hobby,
+      referral_source = excluded.referral_source,
       updated_at = now();
 
   insert into public.patient_family_data (
-    clinic_id, patient_id, guardian_name, guardian_relation, guardian_phone, guardian_address, father_name, father_age, father_education,
-    father_occupation, mother_name, mother_age, mother_education, mother_occupation, marital_status, number_of_children, monthly_income,
-    family_notes, guardian_province_domain_id, guardian_city_domain_id, guardian_district_domain_id, guardian_subdistrict_domain_id,
-    guardian_postal_code_domain_id, guardian_address_line, guardian_rt_rw, father_education_id, other_father_education,
-    father_occupation_id, other_father_occupation, mother_education_id, other_mother_education, mother_occupation_id,
-    other_mother_occupation, marital_status_id, other_marital_status
-  ) values (
-    invitation_row.clinic_id, patient_id_value, nullif(registration_payload ->> 'guardianName', ''), nullif(registration_payload ->> 'guardianRelation', ''),
-    nullif(registration_payload ->> 'guardianPhone', ''), coalesce(nullif(registration_payload ->> 'guardianAddress', ''), nullif(registration_payload ->> 'guardianAddressLine', '')),
-    nullif(registration_payload ->> 'fatherName', ''), nullif(registration_payload ->> 'fatherAge', '')::bigint,
-    coalesce((select e.name from public.education e where e.id = nullif(registration_payload ->> 'fatherEducationId', '')::uuid), nullif(registration_payload ->> 'otherFatherEducation', ''), nullif(registration_payload ->> 'fatherEducation', '')),
-    coalesce((select o.name from public.occupation o where o.id = nullif(registration_payload ->> 'fatherOccupationId', '')::uuid), nullif(registration_payload ->> 'otherFatherOccupation', ''), nullif(registration_payload ->> 'fatherOccupation', '')),
-    nullif(registration_payload ->> 'motherName', ''), nullif(registration_payload ->> 'motherAge', '')::bigint,
-    coalesce((select e.name from public.education e where e.id = nullif(registration_payload ->> 'motherEducationId', '')::uuid), nullif(registration_payload ->> 'otherMotherEducation', ''), nullif(registration_payload ->> 'motherEducation', '')),
-    coalesce((select o.name from public.occupation o where o.id = nullif(registration_payload ->> 'motherOccupationId', '')::uuid), nullif(registration_payload ->> 'otherMotherOccupation', ''), nullif(registration_payload ->> 'motherOccupation', '')),
-    coalesce((select ms.name from public.marital_status ms where ms.id = nullif(registration_payload ->> 'maritalStatusId', '')::uuid), nullif(registration_payload ->> 'otherMaritalStatus', ''), nullif(registration_payload ->> 'maritalStatus', '')),
-    nullif(registration_payload ->> 'numberOfChildren', '')::bigint, nullif(registration_payload ->> 'monthlyIncome', '')::numeric(12,2), nullif(registration_payload ->> 'familyNotes', ''),
-    nullif(registration_payload ->> 'guardianProvinceDomainId', '')::bigint, nullif(registration_payload ->> 'guardianCityDomainId', '')::bigint,
-    nullif(registration_payload ->> 'guardianDistrictDomainId', '')::bigint, nullif(registration_payload ->> 'guardianSubdistrictDomainId', '')::bigint,
-    nullif(registration_payload ->> 'guardianPostalCodeDomainId', '')::bigint, nullif(registration_payload ->> 'guardianAddressLine', ''), nullif(registration_payload ->> 'guardianRtRw', ''),
-    nullif(registration_payload ->> 'fatherEducationId', '')::uuid, nullif(registration_payload ->> 'otherFatherEducation', ''),
-    nullif(registration_payload ->> 'fatherOccupationId', '')::uuid, nullif(registration_payload ->> 'otherFatherOccupation', ''),
-    nullif(registration_payload ->> 'motherEducationId', '')::uuid, nullif(registration_payload ->> 'otherMotherEducation', ''),
-    nullif(registration_payload ->> 'motherOccupationId', '')::uuid, nullif(registration_payload ->> 'otherMotherOccupation', ''),
-    nullif(registration_payload ->> 'maritalStatusId', '')::uuid, nullif(registration_payload ->> 'otherMaritalStatus', '')
+    clinic_id,
+    patient_id,
+    guardian_name,
+    guardian_relation,
+    guardian_phone,
+    guardian_address,
+    father_name,
+    father_age,
+    father_education,
+    father_occupation,
+    mother_name,
+    mother_age,
+    mother_education,
+    mother_occupation,
+    marital_status,
+    number_of_children,
+    monthly_income,
+    family_notes
+  )
+  values (
+    invitation_row.clinic_id,
+    patient_id_value,
+    nullif(registration_payload ->> 'guardianName', ''),
+    nullif(registration_payload ->> 'guardianRelation', ''),
+    nullif(registration_payload ->> 'guardianPhone', ''),
+    nullif(registration_payload ->> 'guardianAddress', ''),
+    nullif(registration_payload ->> 'fatherName', ''),
+    nullif(registration_payload ->> 'fatherAge', '')::integer,
+    nullif(registration_payload ->> 'fatherEducation', ''),
+    nullif(registration_payload ->> 'fatherOccupation', ''),
+    nullif(registration_payload ->> 'motherName', ''),
+    nullif(registration_payload ->> 'motherAge', '')::integer,
+    nullif(registration_payload ->> 'motherEducation', ''),
+    nullif(registration_payload ->> 'motherOccupation', ''),
+    nullif(registration_payload ->> 'maritalStatus', ''),
+    nullif(registration_payload ->> 'numberOfChildren', '')::integer,
+    nullif(registration_payload ->> 'monthlyIncome', '')::numeric(12,2),
+    nullif(registration_payload ->> 'familyNotes', '')
   )
   on conflict (clinic_id, patient_id) do update
-  set guardian_name = excluded.guardian_name, guardian_relation = excluded.guardian_relation, guardian_phone = excluded.guardian_phone,
-      guardian_address = excluded.guardian_address, father_name = excluded.father_name, father_age = excluded.father_age,
-      father_education = excluded.father_education, father_occupation = excluded.father_occupation, mother_name = excluded.mother_name,
-      mother_age = excluded.mother_age, mother_education = excluded.mother_education, mother_occupation = excluded.mother_occupation,
-      marital_status = excluded.marital_status, number_of_children = excluded.number_of_children, monthly_income = excluded.monthly_income,
-      family_notes = excluded.family_notes, guardian_province_domain_id = excluded.guardian_province_domain_id,
-      guardian_city_domain_id = excluded.guardian_city_domain_id, guardian_district_domain_id = excluded.guardian_district_domain_id,
-      guardian_subdistrict_domain_id = excluded.guardian_subdistrict_domain_id, guardian_postal_code_domain_id = excluded.guardian_postal_code_domain_id,
-      guardian_address_line = excluded.guardian_address_line, guardian_rt_rw = excluded.guardian_rt_rw, father_education_id = excluded.father_education_id,
-      other_father_education = excluded.other_father_education, father_occupation_id = excluded.father_occupation_id,
-      other_father_occupation = excluded.other_father_occupation, mother_education_id = excluded.mother_education_id,
-      other_mother_education = excluded.other_mother_education, mother_occupation_id = excluded.mother_occupation_id,
-      other_mother_occupation = excluded.other_mother_occupation, marital_status_id = excluded.marital_status_id,
-      other_marital_status = excluded.other_marital_status, updated_at = now();
+  set guardian_name = excluded.guardian_name,
+      guardian_relation = excluded.guardian_relation,
+      guardian_phone = excluded.guardian_phone,
+      guardian_address = excluded.guardian_address,
+      father_name = excluded.father_name,
+      father_age = excluded.father_age,
+      father_education = excluded.father_education,
+      father_occupation = excluded.father_occupation,
+      mother_name = excluded.mother_name,
+      mother_age = excluded.mother_age,
+      mother_education = excluded.mother_education,
+      mother_occupation = excluded.mother_occupation,
+      marital_status = excluded.marital_status,
+      number_of_children = excluded.number_of_children,
+      monthly_income = excluded.monthly_income,
+      family_notes = excluded.family_notes,
+      updated_at = now();
 
   appointment_id_value := invitation_row.appointment_id;
-  if appointment_id_value is null then
-    appointment_start := coalesce(invitation_row.session_start_at, date_trunc('day', now()) + interval '1 day' + interval '9 hours');
-    appointment_end := coalesce(invitation_row.session_end_at, appointment_start + interval '45 minutes');
 
-    insert into public.appointments (clinic_id, clinic_patient_id, patient_id, practitioner_membership_id, start_time, end_time, status, notes)
-    values (invitation_row.clinic_id, clinic_patient_id_value, patient_id_value, practitioner_membership_id_value, appointment_start, appointment_end, 'scheduled', 'Auto-created from patient registration + consent')
+  if appointment_id_value is null then
+    appointment_start := coalesce(
+      invitation_row.session_start_at,
+      date_trunc('day', now()) + interval '1 day' + interval '9 hours'
+    );
+    appointment_end := coalesce(
+      invitation_row.session_end_at,
+      appointment_start + interval '45 minutes'
+    );
+
+    insert into public.appointments (
+      clinic_id,
+      clinic_patient_id,
+      patient_id,
+      practitioner_membership_id,
+      start_time,
+      end_time,
+      status,
+      notes
+    )
+    values (
+      invitation_row.clinic_id,
+      clinic_patient_id_value,
+      patient_id_value,
+      practitioner_membership_id_value,
+      appointment_start,
+      appointment_end,
+      'scheduled',
+      'Auto-created from patient registration + consent'
+    )
     returning id into appointment_id_value;
   end if;
 
-  select pv.id into visit_id_value from public.patient_visits pv where pv.appointment_id = appointment_id_value limit 1;
+  select pv.id
+  into visit_id_value
+  from public.patient_visits pv
+  where pv.appointment_id = appointment_id_value
+  limit 1;
+
   if visit_id_value is null then
-    insert into public.patient_visits (clinic_id, clinic_patient_id, patient_id, appointment_id, status)
-    values (invitation_row.clinic_id, clinic_patient_id_value, patient_id_value, appointment_id_value, 'scheduled')
+    insert into public.patient_visits (
+      clinic_id,
+      clinic_patient_id,
+      patient_id,
+      appointment_id,
+      status
+    )
+    values (
+      invitation_row.clinic_id,
+      clinic_patient_id_value,
+      patient_id_value,
+      appointment_id_value,
+      'scheduled'
+    )
     returning id into visit_id_value;
   end if;
 
   insert into public.developmental_history (
-    clinic_id, visit_id, mother_pregnancy_notes, birth_process, gestational_age_weeks, birth_weight_kg, birth_length_cm,
-    walking_age_months, speaking_age_months, hearing_function, speech_articulation, vision_function, child_medical_history, special_notes
-  ) values (
-    invitation_row.clinic_id, visit_id_value, nullif(registration_payload ->> 'motherPregnancyNotes', ''), birth_process_value,
-    nullif(registration_payload ->> 'gestationalAgeWeeks', '')::bigint, nullif(registration_payload ->> 'birthWeightKg', '')::numeric(5,2),
-    nullif(registration_payload ->> 'birthLengthCm', '')::numeric(5,2), nullif(registration_payload ->> 'walkingAgeMonths', '')::bigint,
-    nullif(registration_payload ->> 'speakingAgeMonths', '')::bigint, nullif(registration_payload ->> 'hearingFunction', ''),
-    nullif(registration_payload ->> 'speechArticulation', ''), nullif(registration_payload ->> 'visionFunction', ''),
-    nullif(registration_payload ->> 'childMedicalHistory', ''), nullif(registration_payload ->> 'specialNotes', '')
+    clinic_id,
+    visit_id,
+    mother_pregnancy_notes,
+    birth_process,
+    gestational_age_weeks,
+    birth_weight_kg,
+    birth_length_cm,
+    walking_age_months,
+    speaking_age_months,
+    hearing_function,
+    speech_articulation,
+    vision_function,
+    child_medical_history,
+    special_notes
+  )
+  values (
+    invitation_row.clinic_id,
+    visit_id_value,
+    nullif(registration_payload ->> 'motherPregnancyNotes', ''),
+    birth_process_value,
+    nullif(registration_payload ->> 'gestationalAgeWeeks', '')::integer,
+    nullif(registration_payload ->> 'birthWeightKg', '')::numeric(5,2),
+    nullif(registration_payload ->> 'birthLengthCm', '')::numeric(5,2),
+    nullif(registration_payload ->> 'walkingAgeMonths', '')::integer,
+    nullif(registration_payload ->> 'speakingAgeMonths', '')::integer,
+    nullif(registration_payload ->> 'hearingFunction', ''),
+    nullif(registration_payload ->> 'speechArticulation', ''),
+    nullif(registration_payload ->> 'visionFunction', ''),
+    nullif(registration_payload ->> 'childMedicalHistory', ''),
+    nullif(registration_payload ->> 'specialNotes', '')
   )
   on conflict (visit_id) do update
   set mother_pregnancy_notes = excluded.mother_pregnancy_notes,
@@ -2233,18 +2644,44 @@ begin
       updated_at = now();
 
   insert into public.cognitive_assessments (
-    clinic_id, visit_id, knows_letters, knows_colors, writes, counts, reads, reading_spelling, fluent_reading,
-    reversed_letters, autism_indication, adhd_indication, initial_conclusion, intervention_counseling_given,
-    intervention_areas, other_medical_action, referral_action, assessment_result
-  ) values (
-    invitation_row.clinic_id, visit_id_value, coalesce((registration_payload ->> 'knowsLetters')::boolean, false),
-    coalesce((registration_payload ->> 'knowsColors')::boolean, false), coalesce((registration_payload ->> 'writes')::boolean, false),
-    coalesce((registration_payload ->> 'counts')::boolean, false), coalesce((registration_payload ->> 'reads')::boolean, false),
-    coalesce((registration_payload ->> 'readingSpelling')::boolean, false), coalesce((registration_payload ->> 'fluentReading')::boolean, false),
-    coalesce((registration_payload ->> 'reversedLetters')::boolean, false), autism_indication_value, adhd_indication_value,
-    nullif(registration_payload ->> 'initialConclusion', ''), coalesce((registration_payload ->> 'interventionCounselingGiven')::boolean, false),
-    nullif(registration_payload ->> 'interventionAreas', ''), nullif(registration_payload ->> 'otherMedicalAction', ''),
-    nullif(registration_payload ->> 'referralAction', ''), nullif(registration_payload ->> 'assessmentResult', '')
+    clinic_id,
+    visit_id,
+    knows_letters,
+    knows_colors,
+    writes,
+    counts,
+    reads,
+    reading_spelling,
+    fluent_reading,
+    reversed_letters,
+    autism_indication,
+    adhd_indication,
+    initial_conclusion,
+    intervention_counseling_given,
+    intervention_areas,
+    other_medical_action,
+    referral_action,
+    assessment_result
+  )
+  values (
+    invitation_row.clinic_id,
+    visit_id_value,
+    coalesce((registration_payload ->> 'knowsLetters')::boolean, false),
+    coalesce((registration_payload ->> 'knowsColors')::boolean, false),
+    coalesce((registration_payload ->> 'writes')::boolean, false),
+    coalesce((registration_payload ->> 'counts')::boolean, false),
+    coalesce((registration_payload ->> 'reads')::boolean, false),
+    coalesce((registration_payload ->> 'readingSpelling')::boolean, false),
+    coalesce((registration_payload ->> 'fluentReading')::boolean, false),
+    coalesce((registration_payload ->> 'reversedLetters')::boolean, false),
+    autism_indication_value,
+    adhd_indication_value,
+    nullif(registration_payload ->> 'initialConclusion', ''),
+    coalesce((registration_payload ->> 'interventionCounselingGiven')::boolean, false),
+    nullif(registration_payload ->> 'interventionAreas', ''),
+    nullif(registration_payload ->> 'otherMedicalAction', ''),
+    nullif(registration_payload ->> 'referralAction', ''),
+    nullif(registration_payload ->> 'assessmentResult', '')
   )
   on conflict (visit_id) do update
   set knows_letters = excluded.knows_letters,
@@ -2275,7 +2712,15 @@ begin
       target_patient_id = coalesce(target_patient_id, patient_id_value)
   where id = invitation_row.id;
 
-  return jsonb_build_object('status', 'success', 'message', 'Registrasi berhasil. Jadwal sesi sudah dibuat sesuai undangan.', 'patientId', patient_id_value, 'clinicId', invitation_row.clinic_id, 'clinicPatientId', clinic_patient_id_value, 'appointmentId', appointment_id_value, 'visitId', visit_id_value);
+  return jsonb_build_object(
+    'status', 'success',
+    'message', 'Registrasi berhasil. Jadwal sesi sudah dibuat sesuai undangan.',
+    'patientId', patient_id_value,
+    'clinicId', invitation_row.clinic_id,
+    'clinicPatientId', clinic_patient_id_value,
+    'appointmentId', appointment_id_value,
+    'visitId', visit_id_value
+  );
 exception
   when others then
     return jsonb_build_object('status', 'error', 'code', 'SERVER_ERROR', 'message', 'Gagal memproses registrasi: ' || sqlerrm);
@@ -2283,62 +2728,13 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."update_patient_registration_by_user_id"("invite_token" "text", "registration_payload" "jsonb", "target_user_id" "uuid") OWNER TO "postgres";
+--
+-- Name: verify_referral_pin(uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."update_portal_clinic_asset_paths"("p_clinic_id" "uuid", "p_profile_picture_path" "text" DEFAULT NULL::"text", "p_stamp_path" "text" DEFAULT NULL::"text", "p_signature_path" "text" DEFAULT NULL::"text") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$ BEGIN IF NOT public.has_active_membership(p_clinic_id) THEN RAISE EXCEPTION 'Clinic access required' USING ERRCODE = '42501'; END IF; UPDATE public.clinics SET profile_picture_path = COALESCE(p_profile_picture_path, profile_picture_path), stamp_path = COALESCE(p_stamp_path, stamp_path), signature_path = COALESCE(p_signature_path, signature_path), updated_at = now() WHERE id = p_clinic_id; END; $$;
-
-
-ALTER FUNCTION "public"."update_portal_clinic_asset_paths"("p_clinic_id" "uuid", "p_profile_picture_path" "text", "p_stamp_path" "text", "p_signature_path" "text") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."upsert_admin_b2b_template"("p_id" "uuid", "p_title" "text", "p_content" "text", "p_is_active" boolean) RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN
-  IF NOT public.is_admin_at_least('STAFF') THEN RAISE EXCEPTION 'Admin access required' USING ERRCODE = '42501'; END IF;
-  IF p_is_active THEN UPDATE public.b2b_agreement_templates SET is_active = false WHERE is_active = true AND (p_id IS NULL OR id <> p_id); END IF;
-  IF p_id IS NULL THEN INSERT INTO public.b2b_agreement_templates(title, content, is_active) VALUES (p_title, p_content, p_is_active);
-  ELSE UPDATE public.b2b_agreement_templates SET title = p_title, content = p_content, is_active = p_is_active, updated_at = now() WHERE id = p_id; END IF;
-END; $$;
-
-
-ALTER FUNCTION "public"."upsert_admin_b2b_template"("p_id" "uuid", "p_title" "text", "p_content" "text", "p_is_active" boolean) OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."upsert_admin_consent_template"("p_id" "uuid", "p_title" "text", "p_body" "text", "p_is_active" boolean) RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN IF NOT public.is_admin_at_least('STAFF') THEN RAISE EXCEPTION 'Admin access required' USING ERRCODE = '42501'; END IF; IF p_is_active THEN UPDATE public.consent_templates SET is_active = false WHERE is_active = true AND (p_id IS NULL OR id <> p_id); END IF; IF p_id IS NULL THEN INSERT INTO public.consent_templates(title, body, is_active) VALUES (p_title, p_body, p_is_active); ELSE UPDATE public.consent_templates SET title = p_title, body = p_body, is_active = p_is_active, updated_at = now() WHERE id = p_id; END IF; END; $$;
-
-
-ALTER FUNCTION "public"."upsert_admin_consent_template"("p_id" "uuid", "p_title" "text", "p_body" "text", "p_is_active" boolean) OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."upsert_admin_profile"("p_id" "uuid", "p_full_name" "text", "p_email" "text", "p_phone" "text", "p_admin_level" "public"."admin_level_enum", "p_is_active" boolean) RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public', 'pg_catalog'
-    AS $$
-BEGIN
-  IF NOT public.is_admin_at_least('SUPER_ADMIN') THEN RAISE EXCEPTION 'Super admin access required' USING ERRCODE = '42501'; END IF;
-  INSERT INTO public.admin_profiles(id, full_name, email, phone, admin_level, is_active, created_by, updated_by)
-  VALUES (p_id, p_full_name, p_email, p_phone, p_admin_level, p_is_active, auth.uid(), auth.uid())
-  ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, email = EXCLUDED.email, phone = EXCLUDED.phone, admin_level = EXCLUDED.admin_level, is_active = EXCLUDED.is_active, updated_at = now(), updated_by = auth.uid();
-END;
-$$;
-
-
-ALTER FUNCTION "public"."upsert_admin_profile"("p_id" "uuid", "p_full_name" "text", "p_email" "text", "p_phone" "text", "p_admin_level" "public"."admin_level_enum", "p_is_active" boolean) OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."verify_referral_pin"("referral_id" "uuid", "input_pin" "text") RETURNS "jsonb"
-    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
+CREATE FUNCTION public.verify_referral_pin(referral_id uuid, input_pin text) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
     AS $$
 declare
   referral_row public.referrals_and_feedback%rowtype;
@@ -2444,2624 +2840,6393 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."verify_referral_pin"("referral_id" "uuid", "input_pin" "text") OWNER TO "postgres";
+--
+-- Name: apply_rls(jsonb, integer); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.apply_rls(wal jsonb, max_record_bytes integer DEFAULT (1024 * 1024)) RETURNS SETOF realtime.wal_rls
+    LANGUAGE plpgsql
+    AS $$
+declare
+-- Regclass of the table e.g. public.notes
+entity_ regclass = (quote_ident(wal ->> 'schema') || '.' || quote_ident(wal ->> 'table'))::regclass;
+
+-- I, U, D, T: insert, update ...
+action realtime.action = (
+    case wal ->> 'action'
+        when 'I' then 'INSERT'
+        when 'U' then 'UPDATE'
+        when 'D' then 'DELETE'
+        else 'ERROR'
+    end
+);
+
+-- Is row level security enabled for the table
+is_rls_enabled bool = relrowsecurity from pg_class where oid = entity_;
+
+subscriptions realtime.subscription[] = array_agg(subs)
+    from
+        realtime.subscription subs
+    where
+        subs.entity = entity_
+        -- Filter by action early - only get subscriptions interested in this action
+        -- action_filter column can be: '*' (all), 'INSERT', 'UPDATE', or 'DELETE'
+        and (subs.action_filter = '*' or subs.action_filter = action::text);
+
+-- Subscription vars
+roles regrole[] = array_agg(distinct us.claims_role::text)
+    from
+        unnest(subscriptions) us;
+
+working_role regrole;
+claimed_role regrole;
+claims jsonb;
+
+subscription_id uuid;
+subscription_has_access bool;
+visible_to_subscription_ids uuid[] = '{}';
+
+-- structured info for wal's columns
+columns realtime.wal_column[];
+-- previous identity values for update/delete
+old_columns realtime.wal_column[];
+
+error_record_exceeds_max_size boolean = octet_length(wal::text) > max_record_bytes;
+
+-- Primary jsonb output for record
+output jsonb;
+
+begin
+perform set_config('role', null, true);
+
+columns =
+    array_agg(
+        (
+            x->>'name',
+            x->>'type',
+            x->>'typeoid',
+            realtime.cast(
+                (x->'value') #>> '{}',
+                coalesce(
+                    (x->>'typeoid')::regtype, -- null when wal2json version <= 2.4
+                    (x->>'type')::regtype
+                )
+            ),
+            (pks ->> 'name') is not null,
+            true
+        )::realtime.wal_column
+    )
+    from
+        jsonb_array_elements(wal -> 'columns') x
+        left join jsonb_array_elements(wal -> 'pk') pks
+            on (x ->> 'name') = (pks ->> 'name');
+
+old_columns =
+    array_agg(
+        (
+            x->>'name',
+            x->>'type',
+            x->>'typeoid',
+            realtime.cast(
+                (x->'value') #>> '{}',
+                coalesce(
+                    (x->>'typeoid')::regtype, -- null when wal2json version <= 2.4
+                    (x->>'type')::regtype
+                )
+            ),
+            (pks ->> 'name') is not null,
+            true
+        )::realtime.wal_column
+    )
+    from
+        jsonb_array_elements(wal -> 'identity') x
+        left join jsonb_array_elements(wal -> 'pk') pks
+            on (x ->> 'name') = (pks ->> 'name');
+
+for working_role in select * from unnest(roles) loop
+
+    -- Update `is_selectable` for columns and old_columns
+    columns =
+        array_agg(
+            (
+                c.name,
+                c.type_name,
+                c.type_oid,
+                c.value,
+                c.is_pkey,
+                pg_catalog.has_column_privilege(working_role, entity_, c.name, 'SELECT')
+            )::realtime.wal_column
+        )
+        from
+            unnest(columns) c;
+
+    old_columns =
+            array_agg(
+                (
+                    c.name,
+                    c.type_name,
+                    c.type_oid,
+                    c.value,
+                    c.is_pkey,
+                    pg_catalog.has_column_privilege(working_role, entity_, c.name, 'SELECT')
+                )::realtime.wal_column
+            )
+            from
+                unnest(old_columns) c;
+
+    if action <> 'DELETE' and count(1) = 0 from unnest(columns) c where c.is_pkey then
+        return next (
+            jsonb_build_object(
+                'schema', wal ->> 'schema',
+                'table', wal ->> 'table',
+                'type', action
+            ),
+            is_rls_enabled,
+            -- subscriptions is already filtered by entity
+            (select array_agg(s.subscription_id) from unnest(subscriptions) as s where claims_role = working_role),
+            array['Error 400: Bad Request, no primary key']
+        )::realtime.wal_rls;
+
+    -- The claims role does not have SELECT permission to the primary key of entity
+    elsif action <> 'DELETE' and sum(c.is_selectable::int) <> count(1) from unnest(columns) c where c.is_pkey then
+        return next (
+            jsonb_build_object(
+                'schema', wal ->> 'schema',
+                'table', wal ->> 'table',
+                'type', action
+            ),
+            is_rls_enabled,
+            (select array_agg(s.subscription_id) from unnest(subscriptions) as s where claims_role = working_role),
+            array['Error 401: Unauthorized']
+        )::realtime.wal_rls;
+
+    else
+        output = jsonb_build_object(
+            'schema', wal ->> 'schema',
+            'table', wal ->> 'table',
+            'type', action,
+            'commit_timestamp', to_char(
+                ((wal ->> 'timestamp')::timestamptz at time zone 'utc'),
+                'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
+            ),
+            'columns', (
+                select
+                    jsonb_agg(
+                        jsonb_build_object(
+                            'name', pa.attname,
+                            'type', pt.typname
+                        )
+                        order by pa.attnum asc
+                    )
+                from
+                    pg_attribute pa
+                    join pg_type pt
+                        on pa.atttypid = pt.oid
+                where
+                    attrelid = entity_
+                    and attnum > 0
+                    and pg_catalog.has_column_privilege(working_role, entity_, pa.attname, 'SELECT')
+            )
+        )
+        -- Add "record" key for insert and update
+        || case
+            when action in ('INSERT', 'UPDATE') then
+                jsonb_build_object(
+                    'record',
+                    (
+                        select
+                            jsonb_object_agg(
+                                -- if unchanged toast, get column name and value from old record
+                                coalesce((c).name, (oc).name),
+                                case
+                                    when (c).name is null then (oc).value
+                                    else (c).value
+                                end
+                            )
+                        from
+                            unnest(columns) c
+                            full outer join unnest(old_columns) oc
+                                on (c).name = (oc).name
+                        where
+                            coalesce((c).is_selectable, (oc).is_selectable)
+                            and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
+                    )
+                )
+            else '{}'::jsonb
+        end
+        -- Add "old_record" key for update and delete
+        || case
+            when action = 'UPDATE' then
+                jsonb_build_object(
+                        'old_record',
+                        (
+                            select jsonb_object_agg((c).name, (c).value)
+                            from unnest(old_columns) c
+                            where
+                                (c).is_selectable
+                                and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
+                        )
+                    )
+            when action = 'DELETE' then
+                jsonb_build_object(
+                    'old_record',
+                    (
+                        select jsonb_object_agg((c).name, (c).value)
+                        from unnest(old_columns) c
+                        where
+                            (c).is_selectable
+                            and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
+                            and ( not is_rls_enabled or (c).is_pkey ) -- if RLS enabled, we can't secure deletes so filter to pkey
+                    )
+                )
+            else '{}'::jsonb
+        end;
+
+        -- Create the prepared statement
+        if is_rls_enabled and action <> 'DELETE' then
+            if (select 1 from pg_prepared_statements where name = 'walrus_rls_stmt' limit 1) > 0 then
+                deallocate walrus_rls_stmt;
+            end if;
+            execute realtime.build_prepared_statement_sql('walrus_rls_stmt', entity_, columns);
+        end if;
+
+        visible_to_subscription_ids = '{}';
+
+        for subscription_id, claims in (
+                select
+                    subs.subscription_id,
+                    subs.claims
+                from
+                    unnest(subscriptions) subs
+                where
+                    subs.entity = entity_
+                    and subs.claims_role = working_role
+                    and (
+                        realtime.is_visible_through_filters(columns, subs.filters)
+                        or (
+                          action = 'DELETE'
+                          and realtime.is_visible_through_filters(old_columns, subs.filters)
+                        )
+                    )
+        ) loop
+
+            if not is_rls_enabled or action = 'DELETE' then
+                visible_to_subscription_ids = visible_to_subscription_ids || subscription_id;
+            else
+                -- Check if RLS allows the role to see the record
+                perform
+                    -- Trim leading and trailing quotes from working_role because set_config
+                    -- doesn't recognize the role as valid if they are included
+                    set_config('role', trim(both '"' from working_role::text), true),
+                    set_config('request.jwt.claims', claims::text, true);
+
+                execute 'execute walrus_rls_stmt' into subscription_has_access;
+
+                if subscription_has_access then
+                    visible_to_subscription_ids = visible_to_subscription_ids || subscription_id;
+                end if;
+            end if;
+        end loop;
+
+        perform set_config('role', null, true);
+
+        return next (
+            output,
+            is_rls_enabled,
+            visible_to_subscription_ids,
+            case
+                when error_record_exceeds_max_size then array['Error 413: Payload Too Large']
+                else '{}'
+            end
+        )::realtime.wal_rls;
+
+    end if;
+end loop;
+
+perform set_config('role', null, true);
+end;
+$$;
+
+
+--
+-- Name: broadcast_changes(text, text, text, text, text, record, record, text); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.broadcast_changes(topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text DEFAULT 'ROW'::text) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    -- Declare a variable to hold the JSONB representation of the row
+    row_data jsonb := '{}'::jsonb;
+BEGIN
+    IF level = 'STATEMENT' THEN
+        RAISE EXCEPTION 'function can only be triggered for each row, not for each statement';
+    END IF;
+    -- Check the operation type and handle accordingly
+    IF operation = 'INSERT' OR operation = 'UPDATE' OR operation = 'DELETE' THEN
+        row_data := jsonb_build_object('old_record', OLD, 'record', NEW, 'operation', operation, 'table', table_name, 'schema', table_schema);
+        PERFORM realtime.send (row_data, event_name, topic_name);
+    ELSE
+        RAISE EXCEPTION 'Unexpected operation type: %', operation;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Failed to process the row: %', SQLERRM;
+END;
+
+$$;
+
+
+--
+-- Name: build_prepared_statement_sql(text, regclass, realtime.wal_column[]); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.build_prepared_statement_sql(prepared_statement_name text, entity regclass, columns realtime.wal_column[]) RETURNS text
+    LANGUAGE sql
+    AS $$
+      /*
+      Builds a sql string that, if executed, creates a prepared statement to
+      tests retrive a row from *entity* by its primary key columns.
+      Example
+          select realtime.build_prepared_statement_sql('public.notes', '{"id"}'::text[], '{"bigint"}'::text[])
+      */
+          select
+      'prepare ' || prepared_statement_name || ' as
+          select
+              exists(
+                  select
+                      1
+                  from
+                      ' || entity || '
+                  where
+                      ' || string_agg(quote_ident(pkc.name) || '=' || quote_nullable(pkc.value #>> '{}') , ' and ') || '
+              )'
+          from
+              unnest(columns) pkc
+          where
+              pkc.is_pkey
+          group by
+              entity
+      $$;
+
+
+--
+-- Name: cast(text, regtype); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime."cast"(val text, type_ regtype) RETURNS jsonb
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+declare
+  res jsonb;
+begin
+  if type_::text = 'bytea' then
+    return to_jsonb(val);
+  end if;
+  execute format('select to_jsonb(%L::'|| type_::text || ')', val) into res;
+  return res;
+end
+$$;
+
+
+--
+-- Name: check_equality_op(realtime.equality_op, regtype, text, text); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.check_equality_op(op realtime.equality_op, type_ regtype, val_1 text, val_2 text) RETURNS boolean
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+      /*
+      Casts *val_1* and *val_2* as type *type_* and check the *op* condition for truthiness
+      */
+      declare
+          op_symbol text = (
+              case
+                  when op = 'eq' then '='
+                  when op = 'neq' then '!='
+                  when op = 'lt' then '<'
+                  when op = 'lte' then '<='
+                  when op = 'gt' then '>'
+                  when op = 'gte' then '>='
+                  when op = 'in' then '= any'
+                  else 'UNKNOWN OP'
+              end
+          );
+          res boolean;
+      begin
+          execute format(
+              'select %L::'|| type_::text || ' ' || op_symbol
+              || ' ( %L::'
+              || (
+                  case
+                      when op = 'in' then type_::text || '[]'
+                      else type_::text end
+              )
+              || ')', val_1, val_2) into res;
+          return res;
+      end;
+      $$;
+
+
+--
+-- Name: is_visible_through_filters(realtime.wal_column[], realtime.user_defined_filter[]); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.is_visible_through_filters(columns realtime.wal_column[], filters realtime.user_defined_filter[]) RETURNS boolean
+    LANGUAGE sql IMMUTABLE
+    AS $_$
+    /*
+    Should the record be visible (true) or filtered out (false) after *filters* are applied
+    */
+        select
+            -- Default to allowed when no filters present
+            $2 is null -- no filters. this should not happen because subscriptions has a default
+            or array_length($2, 1) is null -- array length of an empty array is null
+            or bool_and(
+                coalesce(
+                    realtime.check_equality_op(
+                        op:=f.op,
+                        type_:=coalesce(
+                            col.type_oid::regtype, -- null when wal2json version <= 2.4
+                            col.type_name::regtype
+                        ),
+                        -- cast jsonb to text
+                        val_1:=col.value #>> '{}',
+                        val_2:=f.value
+                    ),
+                    false -- if null, filter does not match
+                )
+            )
+        from
+            unnest(filters) f
+            join unnest(columns) col
+                on f.column_name = col.name;
+    $_$;
+
+
+--
+-- Name: list_changes(name, name, integer, integer); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.list_changes(publication name, slot_name name, max_changes integer, max_record_bytes integer) RETURNS TABLE(wal jsonb, is_rls_enabled boolean, subscription_ids uuid[], errors text[], slot_changes_count bigint)
+    LANGUAGE sql
+    SET log_min_messages TO 'fatal'
+    AS $$
+  WITH pub AS (
+    SELECT
+      concat_ws(
+        ',',
+        CASE WHEN bool_or(pubinsert) THEN 'insert' ELSE NULL END,
+        CASE WHEN bool_or(pubupdate) THEN 'update' ELSE NULL END,
+        CASE WHEN bool_or(pubdelete) THEN 'delete' ELSE NULL END
+      ) AS w2j_actions,
+      coalesce(
+        string_agg(
+          realtime.quote_wal2json(format('%I.%I', schemaname, tablename)::regclass),
+          ','
+        ) filter (WHERE ppt.tablename IS NOT NULL AND ppt.tablename NOT LIKE '% %'),
+        ''
+      ) AS w2j_add_tables
+    FROM pg_publication pp
+    LEFT JOIN pg_publication_tables ppt ON pp.pubname = ppt.pubname
+    WHERE pp.pubname = publication
+    GROUP BY pp.pubname
+    LIMIT 1
+  ),
+  -- MATERIALIZED ensures pg_logical_slot_get_changes is called exactly once
+  w2j AS MATERIALIZED (
+    SELECT x.*, pub.w2j_add_tables
+    FROM pub,
+         pg_logical_slot_get_changes(
+           slot_name, null, max_changes,
+           'include-pk', 'true',
+           'include-transaction', 'false',
+           'include-timestamp', 'true',
+           'include-type-oids', 'true',
+           'format-version', '2',
+           'actions', pub.w2j_actions,
+           'add-tables', pub.w2j_add_tables
+         ) x
+  ),
+  -- Count raw slot entries before apply_rls/subscription filter
+  slot_count AS (
+    SELECT count(*)::bigint AS cnt
+    FROM w2j
+    WHERE w2j.w2j_add_tables <> ''
+  ),
+  -- Apply RLS and filter as before
+  rls_filtered AS (
+    SELECT xyz.wal, xyz.is_rls_enabled, xyz.subscription_ids, xyz.errors
+    FROM w2j,
+         realtime.apply_rls(
+           wal := w2j.data::jsonb,
+           max_record_bytes := max_record_bytes
+         ) xyz(wal, is_rls_enabled, subscription_ids, errors)
+    WHERE w2j.w2j_add_tables <> ''
+      AND xyz.subscription_ids[1] IS NOT NULL
+  )
+  -- Real rows with slot count attached
+  SELECT rf.wal, rf.is_rls_enabled, rf.subscription_ids, rf.errors, sc.cnt
+  FROM rls_filtered rf, slot_count sc
+
+  UNION ALL
+
+  -- Sentinel row: always returned when no real rows exist so Elixir can
+  -- always read slot_changes_count. Identified by wal IS NULL.
+  SELECT null, null, null, null, sc.cnt
+  FROM slot_count sc
+  WHERE NOT EXISTS (SELECT 1 FROM rls_filtered)
+$$;
+
+
+--
+-- Name: quote_wal2json(regclass); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.quote_wal2json(entity regclass) RETURNS text
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $$
+      select
+        (
+          select string_agg('' || ch,'')
+          from unnest(string_to_array(nsp.nspname::text, null)) with ordinality x(ch, idx)
+          where
+            not (x.idx = 1 and x.ch = '"')
+            and not (
+              x.idx = array_length(string_to_array(nsp.nspname::text, null), 1)
+              and x.ch = '"'
+            )
+        )
+        || '.'
+        || (
+          select string_agg('' || ch,'')
+          from unnest(string_to_array(pc.relname::text, null)) with ordinality x(ch, idx)
+          where
+            not (x.idx = 1 and x.ch = '"')
+            and not (
+              x.idx = array_length(string_to_array(nsp.nspname::text, null), 1)
+              and x.ch = '"'
+            )
+          )
+      from
+        pg_class pc
+        join pg_namespace nsp
+          on pc.relnamespace = nsp.oid
+      where
+        pc.oid = entity
+    $$;
+
+
+--
+-- Name: send(jsonb, text, text, boolean); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean DEFAULT true) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  generated_id uuid;
+  final_payload jsonb;
+BEGIN
+  BEGIN
+    -- Generate a new UUID for the id
+    generated_id := gen_random_uuid();
+
+    -- Check if payload has an 'id' key, if not, add the generated UUID
+    IF payload ? 'id' THEN
+      final_payload := payload;
+    ELSE
+      final_payload := jsonb_set(payload, '{id}', to_jsonb(generated_id));
+    END IF;
+
+    -- Set the topic configuration
+    EXECUTE format('SET LOCAL realtime.topic TO %L', topic);
+
+    -- Attempt to insert the message
+    INSERT INTO realtime.messages (id, payload, event, topic, private, extension)
+    VALUES (generated_id, final_payload, event, topic, private, 'broadcast');
+  EXCEPTION
+    WHEN OTHERS THEN
+      -- Capture and notify the error
+      RAISE WARNING 'ErrorSendingBroadcastMessage: %', SQLERRM;
+  END;
+END;
+$$;
+
+
+--
+-- Name: subscription_check_filters(); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.subscription_check_filters() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    /*
+    Validates that the user defined filters for a subscription:
+    - refer to valid columns that the claimed role may access
+    - values are coercable to the correct column type
+    */
+    declare
+        col_names text[] = coalesce(
+                array_agg(c.column_name order by c.ordinal_position),
+                '{}'::text[]
+            )
+            from
+                information_schema.columns c
+            where
+                format('%I.%I', c.table_schema, c.table_name)::regclass = new.entity
+                and pg_catalog.has_column_privilege(
+                    (new.claims ->> 'role'),
+                    format('%I.%I', c.table_schema, c.table_name)::regclass,
+                    c.column_name,
+                    'SELECT'
+                );
+        filter realtime.user_defined_filter;
+        col_type regtype;
+
+        in_val jsonb;
+    begin
+        for filter in select * from unnest(new.filters) loop
+            -- Filtered column is valid
+            if not filter.column_name = any(col_names) then
+                raise exception 'invalid column for filter %', filter.column_name;
+            end if;
+
+            -- Type is sanitized and safe for string interpolation
+            col_type = (
+                select atttypid::regtype
+                from pg_catalog.pg_attribute
+                where attrelid = new.entity
+                      and attname = filter.column_name
+            );
+            if col_type is null then
+                raise exception 'failed to lookup type for column %', filter.column_name;
+            end if;
+
+            -- Set maximum number of entries for in filter
+            if filter.op = 'in'::realtime.equality_op then
+                in_val = realtime.cast(filter.value, (col_type::text || '[]')::regtype);
+                if coalesce(jsonb_array_length(in_val), 0) > 100 then
+                    raise exception 'too many values for `in` filter. Maximum 100';
+                end if;
+            else
+                -- raises an exception if value is not coercable to type
+                perform realtime.cast(filter.value, col_type);
+            end if;
+
+        end loop;
+
+        -- Apply consistent order to filters so the unique constraint on
+        -- (subscription_id, entity, filters) can't be tricked by a different filter order
+        new.filters = coalesce(
+            array_agg(f order by f.column_name, f.op, f.value),
+            '{}'
+        ) from unnest(new.filters) f;
+
+        return new;
+    end;
+    $$;
+
+
+--
+-- Name: to_regrole(text); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.to_regrole(role_name text) RETURNS regrole
+    LANGUAGE sql IMMUTABLE
+    AS $$ select role_name::regrole $$;
+
+
+--
+-- Name: topic(); Type: FUNCTION; Schema: realtime; Owner: -
+--
+
+CREATE FUNCTION realtime.topic() RETURNS text
+    LANGUAGE sql STABLE
+    AS $$
+select nullif(current_setting('realtime.topic', true), '')::text;
+$$;
+
+
+--
+-- Name: allow_any_operation(text[]); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.allow_any_operation(expected_operations text[]) RETURNS boolean
+    LANGUAGE sql STABLE
+    AS $$
+  WITH current_operation AS (
+    SELECT storage.operation() AS raw_operation
+  ),
+  normalized AS (
+    SELECT CASE
+      WHEN raw_operation LIKE 'storage.%' THEN substr(raw_operation, 9)
+      ELSE raw_operation
+    END AS current_operation
+    FROM current_operation
+  )
+  SELECT EXISTS (
+    SELECT 1
+    FROM normalized n
+    CROSS JOIN LATERAL unnest(expected_operations) AS expected_operation
+    WHERE expected_operation IS NOT NULL
+      AND expected_operation <> ''
+      AND n.current_operation = CASE
+        WHEN expected_operation LIKE 'storage.%' THEN substr(expected_operation, 9)
+        ELSE expected_operation
+      END
+  );
+$$;
+
+
+--
+-- Name: allow_only_operation(text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.allow_only_operation(expected_operation text) RETURNS boolean
+    LANGUAGE sql STABLE
+    AS $$
+  WITH current_operation AS (
+    SELECT storage.operation() AS raw_operation
+  ),
+  normalized AS (
+    SELECT
+      CASE
+        WHEN raw_operation LIKE 'storage.%' THEN substr(raw_operation, 9)
+        ELSE raw_operation
+      END AS current_operation,
+      CASE
+        WHEN expected_operation LIKE 'storage.%' THEN substr(expected_operation, 9)
+        ELSE expected_operation
+      END AS requested_operation
+    FROM current_operation
+  )
+  SELECT CASE
+    WHEN requested_operation IS NULL OR requested_operation = '' THEN FALSE
+    ELSE COALESCE(current_operation = requested_operation, FALSE)
+  END
+  FROM normalized;
+$$;
+
+
+--
+-- Name: can_insert_object(text, text, uuid, jsonb); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.can_insert_object(bucketid text, name text, owner uuid, metadata jsonb) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  INSERT INTO "storage"."objects" ("bucket_id", "name", "owner", "metadata") VALUES (bucketid, name, owner, metadata);
+  -- hack to rollback the successful insert
+  RAISE sqlstate 'PT200' using
+  message = 'ROLLBACK',
+  detail = 'rollback successful insert';
+END
+$$;
+
+
+--
+-- Name: enforce_bucket_name_length(); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.enforce_bucket_name_length() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+    if length(new.name) > 100 then
+        raise exception 'bucket name "%" is too long (% characters). Max is 100.', new.name, length(new.name);
+    end if;
+    return new;
+end;
+$$;
+
+
+--
+-- Name: extension(text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.extension(name text) RETURNS text
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+DECLARE
+    _parts text[];
+    _filename text;
+BEGIN
+    -- Split on "/" to get path segments
+    SELECT string_to_array(name, '/') INTO _parts;
+    -- Get the last path segment (the actual filename)
+    SELECT _parts[array_length(_parts, 1)] INTO _filename;
+    -- Extract extension: reverse, split on '.', then reverse again
+    RETURN reverse(split_part(reverse(_filename), '.', 1));
+END
+$$;
+
+
+--
+-- Name: filename(text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.filename(name text) RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+_parts text[];
+BEGIN
+	select string_to_array(name, '/') into _parts;
+	return _parts[array_length(_parts,1)];
+END
+$$;
+
+
+--
+-- Name: foldername(text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.foldername(name text) RETURNS text[]
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+DECLARE
+    _parts text[];
+BEGIN
+    -- Split on "/" to get path segments
+    SELECT string_to_array(name, '/') INTO _parts;
+    -- Return everything except the last segment
+    RETURN _parts[1 : array_length(_parts,1) - 1];
+END
+$$;
+
+
+--
+-- Name: get_common_prefix(text, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.get_common_prefix(p_key text, p_prefix text, p_delimiter text) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    AS $$
+SELECT CASE
+    WHEN position(p_delimiter IN substring(p_key FROM length(p_prefix) + 1)) > 0
+    THEN left(p_key, length(p_prefix) + position(p_delimiter IN substring(p_key FROM length(p_prefix) + 1)))
+    ELSE NULL
+END;
+$$;
+
+
+--
+-- Name: get_size_by_bucket(); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.get_size_by_bucket() RETURNS TABLE(size bigint, bucket_id text)
+    LANGUAGE plpgsql STABLE
+    AS $$
+BEGIN
+    return query
+        select sum((metadata->>'size')::bigint)::bigint as size, obj.bucket_id
+        from "storage".objects as obj
+        group by obj.bucket_id;
+END
+$$;
+
+
+--
+-- Name: list_multipart_uploads_with_delimiter(text, text, text, integer, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.list_multipart_uploads_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer DEFAULT 100, next_key_token text DEFAULT ''::text, next_upload_token text DEFAULT ''::text) RETURNS TABLE(key text, id text, created_at timestamp with time zone)
+    LANGUAGE plpgsql
+    AS $_$
+BEGIN
+    RETURN QUERY EXECUTE
+        'SELECT DISTINCT ON(key COLLATE "C") * from (
+            SELECT
+                CASE
+                    WHEN position($2 IN substring(key from length($1) + 1)) > 0 THEN
+                        substring(key from 1 for length($1) + position($2 IN substring(key from length($1) + 1)))
+                    ELSE
+                        key
+                END AS key, id, created_at
+            FROM
+                storage.s3_multipart_uploads
+            WHERE
+                bucket_id = $5 AND
+                key ILIKE $1 || ''%'' AND
+                CASE
+                    WHEN $4 != '''' AND $6 = '''' THEN
+                        CASE
+                            WHEN position($2 IN substring(key from length($1) + 1)) > 0 THEN
+                                substring(key from 1 for length($1) + position($2 IN substring(key from length($1) + 1))) COLLATE "C" > $4
+                            ELSE
+                                key COLLATE "C" > $4
+                            END
+                    ELSE
+                        true
+                END AND
+                CASE
+                    WHEN $6 != '''' THEN
+                        id COLLATE "C" > $6
+                    ELSE
+                        true
+                    END
+            ORDER BY
+                key COLLATE "C" ASC, created_at ASC) as e order by key COLLATE "C" LIMIT $3'
+        USING prefix_param, delimiter_param, max_keys, next_key_token, bucket_id, next_upload_token;
+END;
+$_$;
+
+
+--
+-- Name: list_objects_with_delimiter(text, text, text, integer, text, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.list_objects_with_delimiter(_bucket_id text, prefix_param text, delimiter_param text, max_keys integer DEFAULT 100, start_after text DEFAULT ''::text, next_token text DEFAULT ''::text, sort_order text DEFAULT 'asc'::text) RETURNS TABLE(name text, id uuid, metadata jsonb, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone)
+    LANGUAGE plpgsql STABLE
+    AS $_$
+DECLARE
+    v_peek_name TEXT;
+    v_current RECORD;
+    v_common_prefix TEXT;
+
+    -- Configuration
+    v_is_asc BOOLEAN;
+    v_prefix TEXT;
+    v_start TEXT;
+    v_upper_bound TEXT;
+    v_file_batch_size INT;
+
+    -- Seek state
+    v_next_seek TEXT;
+    v_count INT := 0;
+
+    -- Dynamic SQL for batch query only
+    v_batch_query TEXT;
+
+BEGIN
+    -- ========================================================================
+    -- INITIALIZATION
+    -- ========================================================================
+    v_is_asc := lower(coalesce(sort_order, 'asc')) = 'asc';
+    v_prefix := coalesce(prefix_param, '');
+    v_start := CASE WHEN coalesce(next_token, '') <> '' THEN next_token ELSE coalesce(start_after, '') END;
+    v_file_batch_size := LEAST(GREATEST(max_keys * 2, 100), 1000);
+
+    -- Calculate upper bound for prefix filtering (bytewise, using COLLATE "C")
+    IF v_prefix = '' THEN
+        v_upper_bound := NULL;
+    ELSIF right(v_prefix, 1) = delimiter_param THEN
+        v_upper_bound := left(v_prefix, -1) || chr(ascii(delimiter_param) + 1);
+    ELSE
+        v_upper_bound := left(v_prefix, -1) || chr(ascii(right(v_prefix, 1)) + 1);
+    END IF;
+
+    -- Build batch query (dynamic SQL - called infrequently, amortized over many rows)
+    IF v_is_asc THEN
+        IF v_upper_bound IS NOT NULL THEN
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" >= $2 ' ||
+                'AND o.name COLLATE "C" < $3 ORDER BY o.name COLLATE "C" ASC LIMIT $4';
+        ELSE
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" >= $2 ' ||
+                'ORDER BY o.name COLLATE "C" ASC LIMIT $4';
+        END IF;
+    ELSE
+        IF v_upper_bound IS NOT NULL THEN
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" < $2 ' ||
+                'AND o.name COLLATE "C" >= $3 ORDER BY o.name COLLATE "C" DESC LIMIT $4';
+        ELSE
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" < $2 ' ||
+                'ORDER BY o.name COLLATE "C" DESC LIMIT $4';
+        END IF;
+    END IF;
+
+    -- ========================================================================
+    -- SEEK INITIALIZATION: Determine starting position
+    -- ========================================================================
+    IF v_start = '' THEN
+        IF v_is_asc THEN
+            v_next_seek := v_prefix;
+        ELSE
+            -- DESC without cursor: find the last item in range
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_next_seek FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_prefix AND o.name COLLATE "C" < v_upper_bound
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            ELSIF v_prefix <> '' THEN
+                SELECT o.name INTO v_next_seek FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_prefix
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_next_seek FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            END IF;
+
+            IF v_next_seek IS NOT NULL THEN
+                v_next_seek := v_next_seek || delimiter_param;
+            ELSE
+                RETURN;
+            END IF;
+        END IF;
+    ELSE
+        -- Cursor provided: determine if it refers to a folder or leaf
+        IF EXISTS (
+            SELECT 1 FROM storage.objects o
+            WHERE o.bucket_id = _bucket_id
+              AND o.name COLLATE "C" LIKE v_start || delimiter_param || '%'
+            LIMIT 1
+        ) THEN
+            -- Cursor refers to a folder
+            IF v_is_asc THEN
+                v_next_seek := v_start || chr(ascii(delimiter_param) + 1);
+            ELSE
+                v_next_seek := v_start || delimiter_param;
+            END IF;
+        ELSE
+            -- Cursor refers to a leaf object
+            IF v_is_asc THEN
+                v_next_seek := v_start || delimiter_param;
+            ELSE
+                v_next_seek := v_start;
+            END IF;
+        END IF;
+    END IF;
+
+    -- ========================================================================
+    -- MAIN LOOP: Hybrid peek-then-batch algorithm
+    -- Uses STATIC SQL for peek (hot path) and DYNAMIC SQL for batch
+    -- ========================================================================
+    LOOP
+        EXIT WHEN v_count >= max_keys;
+
+        -- STEP 1: PEEK using STATIC SQL (plan cached, very fast)
+        IF v_is_asc THEN
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_next_seek AND o.name COLLATE "C" < v_upper_bound
+                ORDER BY o.name COLLATE "C" ASC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_next_seek
+                ORDER BY o.name COLLATE "C" ASC LIMIT 1;
+            END IF;
+        ELSE
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" < v_next_seek AND o.name COLLATE "C" >= v_prefix
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            ELSIF v_prefix <> '' THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" < v_next_seek AND o.name COLLATE "C" >= v_prefix
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" < v_next_seek
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            END IF;
+        END IF;
+
+        EXIT WHEN v_peek_name IS NULL;
+
+        -- STEP 2: Check if this is a FOLDER or FILE
+        v_common_prefix := storage.get_common_prefix(v_peek_name, v_prefix, delimiter_param);
+
+        IF v_common_prefix IS NOT NULL THEN
+            -- FOLDER: Emit and skip to next folder (no heap access needed)
+            name := rtrim(v_common_prefix, delimiter_param);
+            id := NULL;
+            updated_at := NULL;
+            created_at := NULL;
+            last_accessed_at := NULL;
+            metadata := NULL;
+            RETURN NEXT;
+            v_count := v_count + 1;
+
+            -- Advance seek past the folder range
+            IF v_is_asc THEN
+                v_next_seek := left(v_common_prefix, -1) || chr(ascii(delimiter_param) + 1);
+            ELSE
+                v_next_seek := v_common_prefix;
+            END IF;
+        ELSE
+            -- FILE: Batch fetch using DYNAMIC SQL (overhead amortized over many rows)
+            -- For ASC: upper_bound is the exclusive upper limit (< condition)
+            -- For DESC: prefix is the inclusive lower limit (>= condition)
+            FOR v_current IN EXECUTE v_batch_query USING _bucket_id, v_next_seek,
+                CASE WHEN v_is_asc THEN COALESCE(v_upper_bound, v_prefix) ELSE v_prefix END, v_file_batch_size
+            LOOP
+                v_common_prefix := storage.get_common_prefix(v_current.name, v_prefix, delimiter_param);
+
+                IF v_common_prefix IS NOT NULL THEN
+                    -- Hit a folder: exit batch, let peek handle it
+                    v_next_seek := v_current.name;
+                    EXIT;
+                END IF;
+
+                -- Emit file
+                name := v_current.name;
+                id := v_current.id;
+                updated_at := v_current.updated_at;
+                created_at := v_current.created_at;
+                last_accessed_at := v_current.last_accessed_at;
+                metadata := v_current.metadata;
+                RETURN NEXT;
+                v_count := v_count + 1;
+
+                -- Advance seek past this file
+                IF v_is_asc THEN
+                    v_next_seek := v_current.name || delimiter_param;
+                ELSE
+                    v_next_seek := v_current.name;
+                END IF;
+
+                EXIT WHEN v_count >= max_keys;
+            END LOOP;
+        END IF;
+    END LOOP;
+END;
+$_$;
+
+
+--
+-- Name: operation(); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.operation() RETURNS text
+    LANGUAGE plpgsql STABLE
+    AS $$
+BEGIN
+    RETURN current_setting('storage.operation', true);
+END;
+$$;
+
+
+--
+-- Name: protect_delete(); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.protect_delete() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Check if storage.allow_delete_query is set to 'true'
+    IF COALESCE(current_setting('storage.allow_delete_query', true), 'false') != 'true' THEN
+        RAISE EXCEPTION 'Direct deletion from storage tables is not allowed. Use the Storage API instead.'
+            USING HINT = 'This prevents accidental data loss from orphaned objects.',
+                  ERRCODE = '42501';
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: search(text, text, integer, integer, integer, text, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.search(prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text) RETURNS TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
+    LANGUAGE plpgsql STABLE
+    AS $_$
+DECLARE
+    v_peek_name TEXT;
+    v_current RECORD;
+    v_common_prefix TEXT;
+    v_delimiter CONSTANT TEXT := '/';
+
+    -- Configuration
+    v_limit INT;
+    v_prefix TEXT;
+    v_prefix_lower TEXT;
+    v_is_asc BOOLEAN;
+    v_order_by TEXT;
+    v_sort_order TEXT;
+    v_upper_bound TEXT;
+    v_file_batch_size INT;
+
+    -- Dynamic SQL for batch query only
+    v_batch_query TEXT;
+
+    -- Seek state
+    v_next_seek TEXT;
+    v_count INT := 0;
+    v_skipped INT := 0;
+BEGIN
+    -- ========================================================================
+    -- INITIALIZATION
+    -- ========================================================================
+    v_limit := LEAST(coalesce(limits, 100), 1500);
+    v_prefix := coalesce(prefix, '') || coalesce(search, '');
+    v_prefix_lower := lower(v_prefix);
+    v_is_asc := lower(coalesce(sortorder, 'asc')) = 'asc';
+    v_file_batch_size := LEAST(GREATEST(v_limit * 2, 100), 1000);
+
+    -- Validate sort column
+    CASE lower(coalesce(sortcolumn, 'name'))
+        WHEN 'name' THEN v_order_by := 'name';
+        WHEN 'updated_at' THEN v_order_by := 'updated_at';
+        WHEN 'created_at' THEN v_order_by := 'created_at';
+        WHEN 'last_accessed_at' THEN v_order_by := 'last_accessed_at';
+        ELSE v_order_by := 'name';
+    END CASE;
+
+    v_sort_order := CASE WHEN v_is_asc THEN 'asc' ELSE 'desc' END;
+
+    -- ========================================================================
+    -- NON-NAME SORTING: Use path_tokens approach (unchanged)
+    -- ========================================================================
+    IF v_order_by != 'name' THEN
+        RETURN QUERY EXECUTE format(
+            $sql$
+            WITH folders AS (
+                SELECT path_tokens[$1] AS folder
+                FROM storage.objects
+                WHERE objects.name ILIKE $2 || '%%'
+                  AND bucket_id = $3
+                  AND array_length(objects.path_tokens, 1) <> $1
+                GROUP BY folder
+                ORDER BY folder %s
+            )
+            (SELECT folder AS "name",
+                   NULL::uuid AS id,
+                   NULL::timestamptz AS updated_at,
+                   NULL::timestamptz AS created_at,
+                   NULL::timestamptz AS last_accessed_at,
+                   NULL::jsonb AS metadata FROM folders)
+            UNION ALL
+            (SELECT path_tokens[$1] AS "name",
+                   id, updated_at, created_at, last_accessed_at, metadata
+             FROM storage.objects
+             WHERE objects.name ILIKE $2 || '%%'
+               AND bucket_id = $3
+               AND array_length(objects.path_tokens, 1) = $1
+             ORDER BY %I %s)
+            LIMIT $4 OFFSET $5
+            $sql$, v_sort_order, v_order_by, v_sort_order
+        ) USING levels, v_prefix, bucketname, v_limit, offsets;
+        RETURN;
+    END IF;
+
+    -- ========================================================================
+    -- NAME SORTING: Hybrid skip-scan with batch optimization
+    -- ========================================================================
+
+    -- Calculate upper bound for prefix filtering
+    IF v_prefix_lower = '' THEN
+        v_upper_bound := NULL;
+    ELSIF right(v_prefix_lower, 1) = v_delimiter THEN
+        v_upper_bound := left(v_prefix_lower, -1) || chr(ascii(v_delimiter) + 1);
+    ELSE
+        v_upper_bound := left(v_prefix_lower, -1) || chr(ascii(right(v_prefix_lower, 1)) + 1);
+    END IF;
+
+    -- Build batch query (dynamic SQL - called infrequently, amortized over many rows)
+    IF v_is_asc THEN
+        IF v_upper_bound IS NOT NULL THEN
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" >= $2 ' ||
+                'AND lower(o.name) COLLATE "C" < $3 ORDER BY lower(o.name) COLLATE "C" ASC LIMIT $4';
+        ELSE
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" >= $2 ' ||
+                'ORDER BY lower(o.name) COLLATE "C" ASC LIMIT $4';
+        END IF;
+    ELSE
+        IF v_upper_bound IS NOT NULL THEN
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" < $2 ' ||
+                'AND lower(o.name) COLLATE "C" >= $3 ORDER BY lower(o.name) COLLATE "C" DESC LIMIT $4';
+        ELSE
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" < $2 ' ||
+                'ORDER BY lower(o.name) COLLATE "C" DESC LIMIT $4';
+        END IF;
+    END IF;
+
+    -- Initialize seek position
+    IF v_is_asc THEN
+        v_next_seek := v_prefix_lower;
+    ELSE
+        -- DESC: find the last item in range first (static SQL)
+        IF v_upper_bound IS NOT NULL THEN
+            SELECT o.name INTO v_peek_name FROM storage.objects o
+            WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_prefix_lower AND lower(o.name) COLLATE "C" < v_upper_bound
+            ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+        ELSIF v_prefix_lower <> '' THEN
+            SELECT o.name INTO v_peek_name FROM storage.objects o
+            WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_prefix_lower
+            ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+        ELSE
+            SELECT o.name INTO v_peek_name FROM storage.objects o
+            WHERE o.bucket_id = bucketname
+            ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+        END IF;
+
+        IF v_peek_name IS NOT NULL THEN
+            v_next_seek := lower(v_peek_name) || v_delimiter;
+        ELSE
+            RETURN;
+        END IF;
+    END IF;
+
+    -- ========================================================================
+    -- MAIN LOOP: Hybrid peek-then-batch algorithm
+    -- Uses STATIC SQL for peek (hot path) and DYNAMIC SQL for batch
+    -- ========================================================================
+    LOOP
+        EXIT WHEN v_count >= v_limit;
+
+        -- STEP 1: PEEK using STATIC SQL (plan cached, very fast)
+        IF v_is_asc THEN
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_next_seek AND lower(o.name) COLLATE "C" < v_upper_bound
+                ORDER BY lower(o.name) COLLATE "C" ASC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_next_seek
+                ORDER BY lower(o.name) COLLATE "C" ASC LIMIT 1;
+            END IF;
+        ELSE
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" < v_next_seek AND lower(o.name) COLLATE "C" >= v_prefix_lower
+                ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+            ELSIF v_prefix_lower <> '' THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" < v_next_seek AND lower(o.name) COLLATE "C" >= v_prefix_lower
+                ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" < v_next_seek
+                ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+            END IF;
+        END IF;
+
+        EXIT WHEN v_peek_name IS NULL;
+
+        -- STEP 2: Check if this is a FOLDER or FILE
+        v_common_prefix := storage.get_common_prefix(lower(v_peek_name), v_prefix_lower, v_delimiter);
+
+        IF v_common_prefix IS NOT NULL THEN
+            -- FOLDER: Handle offset, emit if needed, skip to next folder
+            IF v_skipped < offsets THEN
+                v_skipped := v_skipped + 1;
+            ELSE
+                name := split_part(rtrim(storage.get_common_prefix(v_peek_name, v_prefix, v_delimiter), v_delimiter), v_delimiter, levels);
+                id := NULL;
+                updated_at := NULL;
+                created_at := NULL;
+                last_accessed_at := NULL;
+                metadata := NULL;
+                RETURN NEXT;
+                v_count := v_count + 1;
+            END IF;
+
+            -- Advance seek past the folder range
+            IF v_is_asc THEN
+                v_next_seek := lower(left(v_common_prefix, -1)) || chr(ascii(v_delimiter) + 1);
+            ELSE
+                v_next_seek := lower(v_common_prefix);
+            END IF;
+        ELSE
+            -- FILE: Batch fetch using DYNAMIC SQL (overhead amortized over many rows)
+            -- For ASC: upper_bound is the exclusive upper limit (< condition)
+            -- For DESC: prefix_lower is the inclusive lower limit (>= condition)
+            FOR v_current IN EXECUTE v_batch_query
+                USING bucketname, v_next_seek,
+                    CASE WHEN v_is_asc THEN COALESCE(v_upper_bound, v_prefix_lower) ELSE v_prefix_lower END, v_file_batch_size
+            LOOP
+                v_common_prefix := storage.get_common_prefix(lower(v_current.name), v_prefix_lower, v_delimiter);
+
+                IF v_common_prefix IS NOT NULL THEN
+                    -- Hit a folder: exit batch, let peek handle it
+                    v_next_seek := lower(v_current.name);
+                    EXIT;
+                END IF;
+
+                -- Handle offset skipping
+                IF v_skipped < offsets THEN
+                    v_skipped := v_skipped + 1;
+                ELSE
+                    -- Emit file
+                    name := split_part(v_current.name, v_delimiter, levels);
+                    id := v_current.id;
+                    updated_at := v_current.updated_at;
+                    created_at := v_current.created_at;
+                    last_accessed_at := v_current.last_accessed_at;
+                    metadata := v_current.metadata;
+                    RETURN NEXT;
+                    v_count := v_count + 1;
+                END IF;
+
+                -- Advance seek past this file
+                IF v_is_asc THEN
+                    v_next_seek := lower(v_current.name) || v_delimiter;
+                ELSE
+                    v_next_seek := lower(v_current.name);
+                END IF;
+
+                EXIT WHEN v_count >= v_limit;
+            END LOOP;
+        END IF;
+    END LOOP;
+END;
+$_$;
+
+
+--
+-- Name: search_by_timestamp(text, text, integer, integer, text, text, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.search_by_timestamp(p_prefix text, p_bucket_id text, p_limit integer, p_level integer, p_start_after text, p_sort_order text, p_sort_column text, p_sort_column_after text) RETURNS TABLE(key text, name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
+    LANGUAGE plpgsql STABLE
+    AS $_$
+DECLARE
+    v_cursor_op text;
+    v_query text;
+    v_prefix text;
+BEGIN
+    v_prefix := coalesce(p_prefix, '');
+
+    IF p_sort_order = 'asc' THEN
+        v_cursor_op := '>';
+    ELSE
+        v_cursor_op := '<';
+    END IF;
+
+    v_query := format($sql$
+        WITH raw_objects AS (
+            SELECT
+                o.name AS obj_name,
+                o.id AS obj_id,
+                o.updated_at AS obj_updated_at,
+                o.created_at AS obj_created_at,
+                o.last_accessed_at AS obj_last_accessed_at,
+                o.metadata AS obj_metadata,
+                storage.get_common_prefix(o.name, $1, '/') AS common_prefix
+            FROM storage.objects o
+            WHERE o.bucket_id = $2
+              AND o.name COLLATE "C" LIKE $1 || '%%'
+        ),
+        -- Aggregate common prefixes (folders)
+        -- Both created_at and updated_at use MIN(obj_created_at) to match the old prefixes table behavior
+        aggregated_prefixes AS (
+            SELECT
+                rtrim(common_prefix, '/') AS name,
+                NULL::uuid AS id,
+                MIN(obj_created_at) AS updated_at,
+                MIN(obj_created_at) AS created_at,
+                NULL::timestamptz AS last_accessed_at,
+                NULL::jsonb AS metadata,
+                TRUE AS is_prefix
+            FROM raw_objects
+            WHERE common_prefix IS NOT NULL
+            GROUP BY common_prefix
+        ),
+        leaf_objects AS (
+            SELECT
+                obj_name AS name,
+                obj_id AS id,
+                obj_updated_at AS updated_at,
+                obj_created_at AS created_at,
+                obj_last_accessed_at AS last_accessed_at,
+                obj_metadata AS metadata,
+                FALSE AS is_prefix
+            FROM raw_objects
+            WHERE common_prefix IS NULL
+        ),
+        combined AS (
+            SELECT * FROM aggregated_prefixes
+            UNION ALL
+            SELECT * FROM leaf_objects
+        ),
+        filtered AS (
+            SELECT *
+            FROM combined
+            WHERE (
+                $5 = ''
+                OR ROW(
+                    date_trunc('milliseconds', %I),
+                    name COLLATE "C"
+                ) %s ROW(
+                    COALESCE(NULLIF($6, '')::timestamptz, 'epoch'::timestamptz),
+                    $5
+                )
+            )
+        )
+        SELECT
+            split_part(name, '/', $3) AS key,
+            name,
+            id,
+            updated_at,
+            created_at,
+            last_accessed_at,
+            metadata
+        FROM filtered
+        ORDER BY
+            COALESCE(date_trunc('milliseconds', %I), 'epoch'::timestamptz) %s,
+            name COLLATE "C" %s
+        LIMIT $4
+    $sql$,
+        p_sort_column,
+        v_cursor_op,
+        p_sort_column,
+        p_sort_order,
+        p_sort_order
+    );
+
+    RETURN QUERY EXECUTE v_query
+    USING v_prefix, p_bucket_id, p_level, p_limit, p_start_after, p_sort_column_after;
+END;
+$_$;
+
+
+--
+-- Name: search_v2(text, text, integer, integer, text, text, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.search_v2(prefix text, bucket_name text, limits integer DEFAULT 100, levels integer DEFAULT 1, start_after text DEFAULT ''::text, sort_order text DEFAULT 'asc'::text, sort_column text DEFAULT 'name'::text, sort_column_after text DEFAULT ''::text) RETURNS TABLE(key text, name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
+    LANGUAGE plpgsql STABLE
+    AS $$
+DECLARE
+    v_sort_col text;
+    v_sort_ord text;
+    v_limit int;
+BEGIN
+    -- Cap limit to maximum of 1500 records
+    v_limit := LEAST(coalesce(limits, 100), 1500);
+
+    -- Validate and normalize sort_order
+    v_sort_ord := lower(coalesce(sort_order, 'asc'));
+    IF v_sort_ord NOT IN ('asc', 'desc') THEN
+        v_sort_ord := 'asc';
+    END IF;
+
+    -- Validate and normalize sort_column
+    v_sort_col := lower(coalesce(sort_column, 'name'));
+    IF v_sort_col NOT IN ('name', 'updated_at', 'created_at') THEN
+        v_sort_col := 'name';
+    END IF;
+
+    -- Route to appropriate implementation
+    IF v_sort_col = 'name' THEN
+        -- Use list_objects_with_delimiter for name sorting (most efficient: O(k * log n))
+        RETURN QUERY
+        SELECT
+            split_part(l.name, '/', levels) AS key,
+            l.name AS name,
+            l.id,
+            l.updated_at,
+            l.created_at,
+            l.last_accessed_at,
+            l.metadata
+        FROM storage.list_objects_with_delimiter(
+            bucket_name,
+            coalesce(prefix, ''),
+            '/',
+            v_limit,
+            start_after,
+            '',
+            v_sort_ord
+        ) l;
+    ELSE
+        -- Use aggregation approach for timestamp sorting
+        -- Not efficient for large datasets but supports correct pagination
+        RETURN QUERY SELECT * FROM storage.search_by_timestamp(
+            prefix, bucket_name, v_limit, levels, start_after,
+            v_sort_ord, v_sort_col, sort_column_after
+        );
+    END IF;
+END;
+$$;
+
+
+--
+-- Name: update_updated_at_column(); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.update_updated_at_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW; 
+END;
+$$;
+
 
 SET default_tablespace = '';
 
-SET default_table_access_method = "heap";
+SET default_table_access_method = heap;
 
+--
+-- Name: audit_log_entries; Type: TABLE; Schema: auth; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."address_city" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "city_id" integer NOT NULL,
-    "city_name" character varying(100) NOT NULL,
-    "prov_id" integer NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+CREATE TABLE auth.audit_log_entries (
+    instance_id uuid,
+    id uuid NOT NULL,
+    payload json,
+    created_at timestamp with time zone,
+    ip_address character varying(64) DEFAULT ''::character varying NOT NULL
 );
 
 
-ALTER TABLE "public"."address_city" OWNER TO "postgres";
+--
+-- Name: TABLE audit_log_entries; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.audit_log_entries IS 'Auth: Audit trail for user actions.';
 
 
-CREATE TABLE IF NOT EXISTS "public"."address_district" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "dis_id" integer NOT NULL,
-    "dis_name" character varying(100) NOT NULL,
-    "city_id" integer NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+--
+-- Name: custom_oauth_providers; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.custom_oauth_providers (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    provider_type text NOT NULL,
+    identifier text NOT NULL,
+    name text NOT NULL,
+    client_id text NOT NULL,
+    client_secret text NOT NULL,
+    acceptable_client_ids text[] DEFAULT '{}'::text[] NOT NULL,
+    scopes text[] DEFAULT '{}'::text[] NOT NULL,
+    pkce_enabled boolean DEFAULT true NOT NULL,
+    attribute_mapping jsonb DEFAULT '{}'::jsonb NOT NULL,
+    authorization_params jsonb DEFAULT '{}'::jsonb NOT NULL,
+    enabled boolean DEFAULT true NOT NULL,
+    email_optional boolean DEFAULT false NOT NULL,
+    issuer text,
+    discovery_url text,
+    skip_nonce_check boolean DEFAULT false NOT NULL,
+    cached_discovery jsonb,
+    discovery_cached_at timestamp with time zone,
+    authorization_url text,
+    token_url text,
+    userinfo_url text,
+    jwks_uri text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT custom_oauth_providers_authorization_url_https CHECK (((authorization_url IS NULL) OR (authorization_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_authorization_url_length CHECK (((authorization_url IS NULL) OR (char_length(authorization_url) <= 2048))),
+    CONSTRAINT custom_oauth_providers_client_id_length CHECK (((char_length(client_id) >= 1) AND (char_length(client_id) <= 512))),
+    CONSTRAINT custom_oauth_providers_discovery_url_length CHECK (((discovery_url IS NULL) OR (char_length(discovery_url) <= 2048))),
+    CONSTRAINT custom_oauth_providers_identifier_format CHECK ((identifier ~ '^[a-z0-9][a-z0-9:-]{0,48}[a-z0-9]$'::text)),
+    CONSTRAINT custom_oauth_providers_issuer_length CHECK (((issuer IS NULL) OR ((char_length(issuer) >= 1) AND (char_length(issuer) <= 2048)))),
+    CONSTRAINT custom_oauth_providers_jwks_uri_https CHECK (((jwks_uri IS NULL) OR (jwks_uri ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_jwks_uri_length CHECK (((jwks_uri IS NULL) OR (char_length(jwks_uri) <= 2048))),
+    CONSTRAINT custom_oauth_providers_name_length CHECK (((char_length(name) >= 1) AND (char_length(name) <= 100))),
+    CONSTRAINT custom_oauth_providers_oauth2_requires_endpoints CHECK (((provider_type <> 'oauth2'::text) OR ((authorization_url IS NOT NULL) AND (token_url IS NOT NULL) AND (userinfo_url IS NOT NULL)))),
+    CONSTRAINT custom_oauth_providers_oidc_discovery_url_https CHECK (((provider_type <> 'oidc'::text) OR (discovery_url IS NULL) OR (discovery_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_oidc_issuer_https CHECK (((provider_type <> 'oidc'::text) OR (issuer IS NULL) OR (issuer ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_oidc_requires_issuer CHECK (((provider_type <> 'oidc'::text) OR (issuer IS NOT NULL))),
+    CONSTRAINT custom_oauth_providers_provider_type_check CHECK ((provider_type = ANY (ARRAY['oauth2'::text, 'oidc'::text]))),
+    CONSTRAINT custom_oauth_providers_token_url_https CHECK (((token_url IS NULL) OR (token_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_token_url_length CHECK (((token_url IS NULL) OR (char_length(token_url) <= 2048))),
+    CONSTRAINT custom_oauth_providers_userinfo_url_https CHECK (((userinfo_url IS NULL) OR (userinfo_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_userinfo_url_length CHECK (((userinfo_url IS NULL) OR (char_length(userinfo_url) <= 2048)))
 );
 
 
-ALTER TABLE "public"."address_district" OWNER TO "postgres";
+--
+-- Name: flow_state; Type: TABLE; Schema: auth; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."address_postal_code" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "postal_id" integer NOT NULL,
-    "postal_code" character varying(5) NOT NULL,
-    "subdis_id" integer NOT NULL,
-    "dis_id" integer NOT NULL,
-    "city_id" integer NOT NULL,
-    "prov_id" integer NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+CREATE TABLE auth.flow_state (
+    id uuid NOT NULL,
+    user_id uuid,
+    auth_code text,
+    code_challenge_method auth.code_challenge_method,
+    code_challenge text,
+    provider_type text NOT NULL,
+    provider_access_token text,
+    provider_refresh_token text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    authentication_method text NOT NULL,
+    auth_code_issued_at timestamp with time zone,
+    invite_token text,
+    referrer text,
+    oauth_client_state_id uuid,
+    linking_target_id uuid,
+    email_optional boolean DEFAULT false NOT NULL
 );
 
 
-ALTER TABLE "public"."address_postal_code" OWNER TO "postgres";
+--
+-- Name: TABLE flow_state; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.flow_state IS 'Stores metadata for all OAuth/SSO login flows';
 
 
-CREATE TABLE IF NOT EXISTS "public"."address_province" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "prov_id" integer NOT NULL,
-    "prov_name" character varying(100) NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+--
+-- Name: identities; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.identities (
+    provider_id text NOT NULL,
+    user_id uuid NOT NULL,
+    identity_data jsonb NOT NULL,
+    provider text NOT NULL,
+    last_sign_in_at timestamp with time zone,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    email text GENERATED ALWAYS AS (lower((identity_data ->> 'email'::text))) STORED,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
 );
 
 
-ALTER TABLE "public"."address_province" OWNER TO "postgres";
+--
+-- Name: TABLE identities; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.identities IS 'Auth: Stores identities associated to a user.';
 
 
-CREATE TABLE IF NOT EXISTS "public"."address_subdistrict" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "subdis_id" integer NOT NULL,
-    "subdis_name" character varying(100) NOT NULL,
-    "dis_id" integer NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+--
+-- Name: COLUMN identities.email; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.identities.email IS 'Auth: Email is a generated column that references the optional email property in the identity_data';
+
+
+--
+-- Name: instances; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.instances (
+    id uuid NOT NULL,
+    uuid uuid,
+    raw_base_config text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
 );
 
 
-ALTER TABLE "public"."address_subdistrict" OWNER TO "postgres";
+--
+-- Name: TABLE instances; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.instances IS 'Auth: Manages users across multiple sites.';
 
 
-CREATE TABLE IF NOT EXISTS "public"."admin_profiles" (
-    "id" "uuid" NOT NULL,
-    "full_name" "text" NOT NULL,
-    "email" "text",
-    "phone" "text",
-    "admin_level" "public"."admin_level_enum" DEFAULT 'ADMIN'::"public"."admin_level_enum" NOT NULL,
-    "is_active" boolean DEFAULT true NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "created_by" "uuid",
-    "updated_by" "uuid"
+--
+-- Name: mfa_amr_claims; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.mfa_amr_claims (
+    session_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    authentication_method text NOT NULL,
+    id uuid NOT NULL
 );
 
 
-ALTER TABLE "public"."admin_profiles" OWNER TO "postgres";
+--
+-- Name: TABLE mfa_amr_claims; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.mfa_amr_claims IS 'auth: stores authenticator method reference claims for multi factor authentication';
 
 
-CREATE TABLE IF NOT EXISTS "public"."appointments" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "patient_id" "uuid" NOT NULL,
-    "start_time" timestamp with time zone NOT NULL,
-    "end_time" timestamp with time zone NOT NULL,
-    "status" "public"."appointment_status" DEFAULT 'scheduled'::"public"."appointment_status" NOT NULL,
-    "notes" "text",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL,
-    "clinic_patient_id" "uuid" NOT NULL,
-    "practitioner_membership_id" "uuid" NOT NULL
+--
+-- Name: mfa_challenges; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.mfa_challenges (
+    id uuid NOT NULL,
+    factor_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    verified_at timestamp with time zone,
+    ip_address inet NOT NULL,
+    otp_code text,
+    web_authn_session_data jsonb
 );
 
 
-ALTER TABLE "public"."appointments" OWNER TO "postgres";
+--
+-- Name: TABLE mfa_challenges; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.mfa_challenges IS 'auth: stores metadata about challenge requests made';
 
 
-CREATE TABLE IF NOT EXISTS "public"."b2b_agreement_templates" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "title" "text" NOT NULL,
-    "content" "text" NOT NULL,
-    "is_active" boolean DEFAULT false,
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "updated_at" timestamp with time zone DEFAULT "now"()
+--
+-- Name: mfa_factors; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.mfa_factors (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    friendly_name text,
+    factor_type auth.factor_type NOT NULL,
+    status auth.factor_status NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    secret text,
+    phone text,
+    last_challenged_at timestamp with time zone,
+    web_authn_credential jsonb,
+    web_authn_aaguid uuid,
+    last_webauthn_challenge_data jsonb
 );
 
 
-ALTER TABLE "public"."b2b_agreement_templates" OWNER TO "postgres";
+--
+-- Name: TABLE mfa_factors; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.mfa_factors IS 'auth: stores metadata about factors';
 
 
-CREATE TABLE IF NOT EXISTS "public"."b2b_agreements" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL,
-    "template_id" "uuid" NOT NULL,
-    "signed_by_name" "text" NOT NULL,
-    "signed_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "signature_image_path" "text" NOT NULL,
-    CONSTRAINT "b2b_agreements_signature_image_path_check" CHECK (("btrim"("signature_image_path") <> ''::"text")),
-    CONSTRAINT "b2b_agreements_signed_by_name_check" CHECK (("btrim"("signed_by_name") <> ''::"text"))
+--
+-- Name: COLUMN mfa_factors.last_webauthn_challenge_data; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.mfa_factors.last_webauthn_challenge_data IS 'Stores the latest WebAuthn challenge data including attestation/assertion for customer verification';
+
+
+--
+-- Name: oauth_authorizations; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.oauth_authorizations (
+    id uuid NOT NULL,
+    authorization_id text NOT NULL,
+    client_id uuid NOT NULL,
+    user_id uuid,
+    redirect_uri text NOT NULL,
+    scope text NOT NULL,
+    state text,
+    resource text,
+    code_challenge text,
+    code_challenge_method auth.code_challenge_method,
+    response_type auth.oauth_response_type DEFAULT 'code'::auth.oauth_response_type NOT NULL,
+    status auth.oauth_authorization_status DEFAULT 'pending'::auth.oauth_authorization_status NOT NULL,
+    authorization_code text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone DEFAULT (now() + '00:03:00'::interval) NOT NULL,
+    approved_at timestamp with time zone,
+    nonce text,
+    CONSTRAINT oauth_authorizations_authorization_code_length CHECK ((char_length(authorization_code) <= 255)),
+    CONSTRAINT oauth_authorizations_code_challenge_length CHECK ((char_length(code_challenge) <= 128)),
+    CONSTRAINT oauth_authorizations_expires_at_future CHECK ((expires_at > created_at)),
+    CONSTRAINT oauth_authorizations_nonce_length CHECK ((char_length(nonce) <= 255)),
+    CONSTRAINT oauth_authorizations_redirect_uri_length CHECK ((char_length(redirect_uri) <= 2048)),
+    CONSTRAINT oauth_authorizations_resource_length CHECK ((char_length(resource) <= 2048)),
+    CONSTRAINT oauth_authorizations_scope_length CHECK ((char_length(scope) <= 4096)),
+    CONSTRAINT oauth_authorizations_state_length CHECK ((char_length(state) <= 4096))
 );
 
 
-ALTER TABLE "public"."b2b_agreements" OWNER TO "postgres";
+--
+-- Name: oauth_client_states; Type: TABLE; Schema: auth; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."b2b_invitations" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL,
-    "token_hash" "text" NOT NULL,
-    "template_id" "uuid",
-    "status" "text" DEFAULT 'pending'::"text",
-    "signed_at" timestamp with time zone,
-    "signature_url" "text",
-    "signature_storage_path" "text",
-    "signed_by_name" "text",
-    "signed_by_position" "text",
-    "created_by" "uuid",
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "updated_at" timestamp with time zone DEFAULT "now"(),
-    CONSTRAINT "b2b_invitations_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'signed'::"text", 'expired'::"text", 'cancelled'::"text"])))
+CREATE TABLE auth.oauth_client_states (
+    id uuid NOT NULL,
+    provider_type text NOT NULL,
+    code_verifier text,
+    created_at timestamp with time zone NOT NULL
 );
 
 
-ALTER TABLE "public"."b2b_invitations" OWNER TO "postgres";
+--
+-- Name: TABLE oauth_client_states; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.oauth_client_states IS 'Stores OAuth states for third-party provider authentication flows where Supabase acts as the OAuth client.';
 
 
-CREATE TABLE IF NOT EXISTS "public"."clinic_extension_requests" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL,
-    "b2b_agreement_id" "uuid" NOT NULL,
-    "status" "public"."clinic_extension_request_status_enum" DEFAULT 'PENDING'::"public"."clinic_extension_request_status_enum" NOT NULL,
-    "requested_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "approved_at" timestamp with time zone,
-    "approved_by" "uuid",
-    "added_days" integer,
-    CONSTRAINT "clinic_extension_requests_added_days_check" CHECK ((("added_days" IS NULL) OR ("added_days" > 0))),
-    CONSTRAINT "clinic_extension_requests_approval_fields_check" CHECK (((("status" = 'PENDING'::"public"."clinic_extension_request_status_enum") AND ("approved_at" IS NULL) AND ("approved_by" IS NULL) AND ("added_days" IS NULL)) OR (("status" = 'REJECTED'::"public"."clinic_extension_request_status_enum") AND ("approved_at" IS NULL) AND ("approved_by" IS NULL) AND ("added_days" IS NULL)) OR (("status" = 'APPROVED'::"public"."clinic_extension_request_status_enum") AND ("approved_at" IS NOT NULL) AND ("approved_by" IS NOT NULL) AND ("added_days" IS NOT NULL))))
+--
+-- Name: oauth_clients; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.oauth_clients (
+    id uuid NOT NULL,
+    client_secret_hash text,
+    registration_type auth.oauth_registration_type NOT NULL,
+    redirect_uris text NOT NULL,
+    grant_types text NOT NULL,
+    client_name text,
+    client_uri text,
+    logo_uri text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_at timestamp with time zone,
+    client_type auth.oauth_client_type DEFAULT 'confidential'::auth.oauth_client_type NOT NULL,
+    token_endpoint_auth_method text NOT NULL,
+    CONSTRAINT oauth_clients_client_name_length CHECK ((char_length(client_name) <= 1024)),
+    CONSTRAINT oauth_clients_client_uri_length CHECK ((char_length(client_uri) <= 2048)),
+    CONSTRAINT oauth_clients_logo_uri_length CHECK ((char_length(logo_uri) <= 2048)),
+    CONSTRAINT oauth_clients_token_endpoint_auth_method_check CHECK ((token_endpoint_auth_method = ANY (ARRAY['client_secret_basic'::text, 'client_secret_post'::text, 'none'::text])))
 );
 
 
-ALTER TABLE "public"."clinic_extension_requests" OWNER TO "postgres";
+--
+-- Name: oauth_consents; Type: TABLE; Schema: auth; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."clinic_memberships" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL,
-    "user_id" "uuid" NOT NULL,
-    "is_owner" boolean DEFAULT false NOT NULL,
-    "is_staff" boolean DEFAULT false NOT NULL,
-    "is_practitioner" boolean DEFAULT false NOT NULL,
-    "profession" "public"."practitioner_profession",
-    "is_active" boolean DEFAULT true NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "full_name" "text",
-    "email" "text",
-    "birth_date" "date",
-    "ktp_number" character varying(32),
-    "gender" character varying(20),
-    "address" "text",
-    "phone" character varying(32),
-    "sip_number" character varying(64)
+CREATE TABLE auth.oauth_consents (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    client_id uuid NOT NULL,
+    scopes text NOT NULL,
+    granted_at timestamp with time zone DEFAULT now() NOT NULL,
+    revoked_at timestamp with time zone,
+    CONSTRAINT oauth_consents_revoked_after_granted CHECK (((revoked_at IS NULL) OR (revoked_at >= granted_at))),
+    CONSTRAINT oauth_consents_scopes_length CHECK ((char_length(scopes) <= 2048)),
+    CONSTRAINT oauth_consents_scopes_not_empty CHECK ((char_length(TRIM(BOTH FROM scopes)) > 0))
 );
 
 
-ALTER TABLE "public"."clinic_memberships" OWNER TO "postgres";
+--
+-- Name: one_time_tokens; Type: TABLE; Schema: auth; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."clinic_patients" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL,
-    "patient_id" "uuid" NOT NULL,
-    "mrn" character varying(64) NOT NULL,
-    "is_active" boolean DEFAULT true NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+CREATE TABLE auth.one_time_tokens (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    token_type auth.one_time_token_type NOT NULL,
+    token_hash text NOT NULL,
+    relates_to text NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT one_time_tokens_token_hash_check CHECK ((char_length(token_hash) > 0))
 );
 
 
-ALTER TABLE "public"."clinic_patients" OWNER TO "postgres";
+--
+-- Name: refresh_tokens; Type: TABLE; Schema: auth; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."clinics" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "name" "text" NOT NULL,
-    "slug" character varying(120) NOT NULL,
-    "owner_user_id" "uuid",
-    "is_active" boolean DEFAULT true NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "expired_date" timestamp with time zone,
-    "is_agreement_signed" boolean DEFAULT false,
-    "permit_number" "text",
-    "owner_ktp_number" "text",
-    "phone_number" "text",
-    "address_line" "text",
-    "rt_rw" "text",
-    "province_name" "text",
-    "city_name" "text",
-    "district_name" "text",
-    "subdistrict_name" "text",
-    "postal_code" "text",
-    "full_address" "text",
-    "profile_picture_path" "text",
-    "stamp_path" "text",
-    "signature_path" "text"
+CREATE TABLE auth.refresh_tokens (
+    instance_id uuid,
+    id bigint NOT NULL,
+    token character varying(255),
+    user_id character varying(255),
+    revoked boolean,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    parent character varying(255),
+    session_id uuid
 );
 
 
-ALTER TABLE "public"."clinics" OWNER TO "postgres";
+--
+-- Name: TABLE refresh_tokens; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.refresh_tokens IS 'Auth: Store of tokens used to refresh JWT tokens once they expire.';
 
 
-CREATE TABLE IF NOT EXISTS "public"."cognitive_assessments" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "visit_id" "uuid" NOT NULL,
-    "knows_letters" boolean,
-    "knows_colors" boolean,
-    "writes" boolean,
-    "counts" boolean,
-    "reads" boolean,
-    "reading_spelling" boolean,
-    "fluent_reading" boolean,
-    "reversed_letters" boolean,
-    "autism_indication" "public"."autism_indication",
-    "adhd_indication" "public"."adhd_indication",
-    "initial_conclusion" "text",
-    "intervention_counseling_given" boolean,
-    "intervention_areas" "text",
-    "other_medical_action" "text",
-    "referral_action" "text",
-    "assessment_result" "text",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL
+--
+-- Name: refresh_tokens_id_seq; Type: SEQUENCE; Schema: auth; Owner: -
+--
+
+CREATE SEQUENCE auth.refresh_tokens_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: refresh_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: auth; Owner: -
+--
+
+ALTER SEQUENCE auth.refresh_tokens_id_seq OWNED BY auth.refresh_tokens.id;
+
+
+--
+-- Name: saml_providers; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.saml_providers (
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    entity_id text NOT NULL,
+    metadata_xml text NOT NULL,
+    metadata_url text,
+    attribute_mapping jsonb,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    name_id_format text,
+    CONSTRAINT "entity_id not empty" CHECK ((char_length(entity_id) > 0)),
+    CONSTRAINT "metadata_url not empty" CHECK (((metadata_url = NULL::text) OR (char_length(metadata_url) > 0))),
+    CONSTRAINT "metadata_xml not empty" CHECK ((char_length(metadata_xml) > 0))
 );
 
 
-ALTER TABLE "public"."cognitive_assessments" OWNER TO "postgres";
+--
+-- Name: TABLE saml_providers; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.saml_providers IS 'Auth: Manages SAML Identity Provider connections.';
 
 
-CREATE TABLE IF NOT EXISTS "public"."consent_templates" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "title" "text" NOT NULL,
-    "body" "text" NOT NULL,
-    "is_active" boolean DEFAULT false NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "consent_templates_body_check" CHECK (("btrim"("body") <> ''::"text")),
-    CONSTRAINT "consent_templates_title_check" CHECK (("btrim"("title") <> ''::"text"))
+--
+-- Name: saml_relay_states; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.saml_relay_states (
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    request_id text NOT NULL,
+    for_email text,
+    redirect_to text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    flow_state_id uuid,
+    CONSTRAINT "request_id not empty" CHECK ((char_length(request_id) > 0))
 );
 
 
-ALTER TABLE "public"."consent_templates" OWNER TO "postgres";
+--
+-- Name: TABLE saml_relay_states; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.saml_relay_states IS 'Auth: Contains SAML Relay State information for each Service Provider initiated login.';
 
 
-CREATE TABLE IF NOT EXISTS "public"."demo_requests" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "clinic_name" "text" NOT NULL,
-    "clinic_type" "text",
-    "pic_name" "text" NOT NULL,
-    "pic_role" "text",
-    "email" "text" NOT NULL,
-    "whatsapp" "text" NOT NULL,
-    "province_id" "uuid",
-    "city_id" "uuid",
-    "district_id" "uuid",
-    "subdistrict_id" "uuid",
-    "postal_code_id" "uuid",
-    "province_name" "text",
-    "city_name" "text",
-    "district_name" "text",
-    "subdistrict_name" "text",
-    "postal_code" "text",
-    "message" "text",
-    "referral_source" "text",
-    "status" "public"."demo_request_status_enum" DEFAULT 'pending'::"public"."demo_request_status_enum" NOT NULL,
-    "submitted_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "address_line" "text",
-    "rt_rw" "text",
-    "subscribe" boolean DEFAULT false NOT NULL,
-    "privacy" boolean DEFAULT true NOT NULL,
-    "fullname" "text",
-    "position" "text",
-    "client_ip" "text",
-    "user_agent" "text",
-    "email_delivery_status" "text" DEFAULT 'pending'::"text" NOT NULL,
-    "email_delivery_error" "text",
-    "registration_status" "text" DEFAULT 'not_registered'::"text" NOT NULL,
-    "registered_at" timestamp with time zone,
-    "registered_clinic_id" "uuid",
-    CONSTRAINT "demo_requests_email_delivery_status_check" CHECK (("email_delivery_status" = ANY (ARRAY['pending'::"text", 'sent'::"text", 'failed'::"text"]))),
-    CONSTRAINT "demo_requests_registration_status_check" CHECK (("registration_status" = ANY (ARRAY['registered'::"text", 'not_registered'::"text"])))
+--
+-- Name: schema_migrations; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.schema_migrations (
+    version character varying(255) NOT NULL
 );
 
 
-ALTER TABLE "public"."demo_requests" OWNER TO "postgres";
+--
+-- Name: TABLE schema_migrations; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.schema_migrations IS 'Auth: Manages updates to the auth system.';
 
 
-CREATE TABLE IF NOT EXISTS "public"."developmental_history" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "visit_id" "uuid" NOT NULL,
-    "mother_pregnancy_notes" "text",
-    "birth_process" "public"."birth_process",
-    "gestational_age_weeks" integer,
-    "birth_weight_kg" numeric(5,2),
-    "birth_length_cm" numeric(5,2),
-    "walking_age_months" integer,
-    "speaking_age_months" integer,
-    "hearing_function" "text",
-    "speech_articulation" "text",
-    "vision_function" "text",
-    "child_medical_history" "text",
-    "special_notes" "text",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL
+--
+-- Name: sessions; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.sessions (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    factor_id uuid,
+    aal auth.aal_level,
+    not_after timestamp with time zone,
+    refreshed_at timestamp without time zone,
+    user_agent text,
+    ip inet,
+    tag text,
+    oauth_client_id uuid,
+    refresh_token_hmac_key text,
+    refresh_token_counter bigint,
+    scopes text,
+    CONSTRAINT sessions_scopes_length CHECK ((char_length(scopes) <= 4096))
 );
 
 
-ALTER TABLE "public"."developmental_history" OWNER TO "postgres";
+--
+-- Name: TABLE sessions; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.sessions IS 'Auth: Stores session data associated to a user.';
 
 
-CREATE TABLE IF NOT EXISTS "public"."edge_rate_limit_events" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "function_name" "text" NOT NULL,
-    "identifier" "text" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+--
+-- Name: COLUMN sessions.not_after; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.sessions.not_after IS 'Auth: Not after is a nullable column that contains a timestamp after which the session should be regarded as expired.';
+
+
+--
+-- Name: COLUMN sessions.refresh_token_hmac_key; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.sessions.refresh_token_hmac_key IS 'Holds a HMAC-SHA256 key used to sign refresh tokens for this session.';
+
+
+--
+-- Name: COLUMN sessions.refresh_token_counter; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.sessions.refresh_token_counter IS 'Holds the ID (counter) of the last issued refresh token.';
+
+
+--
+-- Name: sso_domains; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.sso_domains (
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    domain text NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    CONSTRAINT "domain not empty" CHECK ((char_length(domain) > 0))
 );
 
 
-ALTER TABLE "public"."edge_rate_limit_events" OWNER TO "postgres";
+--
+-- Name: TABLE sso_domains; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.sso_domains IS 'Auth: Manages SSO email address domain mapping to an SSO Identity Provider.';
 
 
-CREATE TABLE IF NOT EXISTS "public"."education" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "name" "text" NOT NULL,
-    "order_index" integer DEFAULT 0 NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "created_by" "uuid",
-    "updated_by" "uuid"
+--
+-- Name: sso_providers; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.sso_providers (
+    id uuid NOT NULL,
+    resource_id text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    disabled boolean,
+    CONSTRAINT "resource_id not empty" CHECK (((resource_id = NULL::text) OR (char_length(resource_id) > 0)))
 );
 
 
-ALTER TABLE "public"."education" OWNER TO "postgres";
+--
+-- Name: TABLE sso_providers; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.sso_providers IS 'Auth: Manages SSO identity provider information; see saml_providers for SAML.';
 
 
-CREATE TABLE IF NOT EXISTS "public"."marital_status" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "name" "text" NOT NULL,
-    "order_index" integer DEFAULT 0 NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "created_by" "uuid",
-    "updated_by" "uuid"
+--
+-- Name: COLUMN sso_providers.resource_id; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.sso_providers.resource_id IS 'Auth: Uniquely identifies a SSO provider according to a user-chosen resource ID (case insensitive), useful in infrastructure as code.';
+
+
+--
+-- Name: users; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.users (
+    instance_id uuid,
+    id uuid NOT NULL,
+    aud character varying(255),
+    role character varying(255),
+    email character varying(255),
+    encrypted_password character varying(255),
+    email_confirmed_at timestamp with time zone,
+    invited_at timestamp with time zone,
+    confirmation_token character varying(255),
+    confirmation_sent_at timestamp with time zone,
+    recovery_token character varying(255),
+    recovery_sent_at timestamp with time zone,
+    email_change_token_new character varying(255),
+    email_change character varying(255),
+    email_change_sent_at timestamp with time zone,
+    last_sign_in_at timestamp with time zone,
+    raw_app_meta_data jsonb,
+    raw_user_meta_data jsonb,
+    is_super_admin boolean,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    phone text DEFAULT NULL::character varying,
+    phone_confirmed_at timestamp with time zone,
+    phone_change text DEFAULT ''::character varying,
+    phone_change_token character varying(255) DEFAULT ''::character varying,
+    phone_change_sent_at timestamp with time zone,
+    confirmed_at timestamp with time zone GENERATED ALWAYS AS (LEAST(email_confirmed_at, phone_confirmed_at)) STORED,
+    email_change_token_current character varying(255) DEFAULT ''::character varying,
+    email_change_confirm_status smallint DEFAULT 0,
+    banned_until timestamp with time zone,
+    reauthentication_token character varying(255) DEFAULT ''::character varying,
+    reauthentication_sent_at timestamp with time zone,
+    is_sso_user boolean DEFAULT false NOT NULL,
+    deleted_at timestamp with time zone,
+    is_anonymous boolean DEFAULT false NOT NULL,
+    CONSTRAINT users_email_change_confirm_status_check CHECK (((email_change_confirm_status >= 0) AND (email_change_confirm_status <= 2)))
 );
 
 
-ALTER TABLE "public"."marital_status" OWNER TO "postgres";
+--
+-- Name: TABLE users; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.users IS 'Auth: Stores user login data within a secure schema.';
 
 
-CREATE TABLE IF NOT EXISTS "public"."occupation" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "name" "text" NOT NULL,
-    "order_index" integer DEFAULT 0 NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "created_by" "uuid",
-    "updated_by" "uuid"
+--
+-- Name: COLUMN users.is_sso_user; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.users.is_sso_user IS 'Auth: Set this column to true when the account comes from SSO. These accounts can have duplicate emails.';
+
+
+--
+-- Name: webauthn_challenges; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.webauthn_challenges (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid,
+    challenge_type text NOT NULL,
+    session_data jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT webauthn_challenges_challenge_type_check CHECK ((challenge_type = ANY (ARRAY['signup'::text, 'registration'::text, 'authentication'::text])))
 );
 
 
-ALTER TABLE "public"."occupation" OWNER TO "postgres";
+--
+-- Name: webauthn_credentials; Type: TABLE; Schema: auth; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."otp_verifications" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "email" "text" NOT NULL,
-    "otp_code" "text" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "expires_at" timestamp with time zone NOT NULL,
-    "is_verified" boolean DEFAULT false,
-    "updated_at" timestamp with time zone DEFAULT "now"(),
-    "created_by" "uuid",
-    "updated_by" "uuid"
+CREATE TABLE auth.webauthn_credentials (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    credential_id bytea NOT NULL,
+    public_key bytea NOT NULL,
+    attestation_type text DEFAULT ''::text NOT NULL,
+    aaguid uuid,
+    sign_count bigint DEFAULT 0 NOT NULL,
+    transports jsonb DEFAULT '[]'::jsonb NOT NULL,
+    backup_eligible boolean DEFAULT false NOT NULL,
+    backed_up boolean DEFAULT false NOT NULL,
+    friendly_name text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_used_at timestamp with time zone
 );
 
 
-ALTER TABLE "public"."otp_verifications" OWNER TO "postgres";
+--
+-- Name: address_city; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."patient_clinic_consents" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL,
-    "patient_id" "uuid" NOT NULL,
-    "invitation_id" "uuid",
-    "consent_version" character varying(20) DEFAULT 'v1'::character varying NOT NULL,
-    "consent_text" "text" NOT NULL,
-    "source" "public"."consent_source" DEFAULT 'registration_wizard'::"public"."consent_source" NOT NULL,
-    "accepted_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "accepted_ip" "text",
-    "accepted_user_agent" "text",
-    "revoked_at" timestamp with time zone,
-    "revoked_reason" "text",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "signature_id" "uuid"
+CREATE TABLE public.address_city (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    city_id integer NOT NULL,
+    city_name character varying(100) NOT NULL,
+    prov_id integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
-ALTER TABLE "public"."patient_clinic_consents" OWNER TO "postgres";
+--
+-- Name: address_district; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."patient_consents" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "visit_id" "uuid",
-    "patient_id" "uuid" NOT NULL,
-    "consent_type" "text" NOT NULL,
-    "signed_by_name" "text" NOT NULL,
-    "signature_path" "text",
-    "notes" "text" DEFAULT ''::"text",
-    "signed_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "patient_consents_consent_type_check" CHECK (("consent_type" = ANY (ARRAY['informed'::"text", 'general'::"text"])))
+CREATE TABLE public.address_district (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    dis_id integer NOT NULL,
+    dis_name character varying(100) NOT NULL,
+    city_id integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
-ALTER TABLE "public"."patient_consents" OWNER TO "postgres";
+--
+-- Name: address_postal_code; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."patient_family_data" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "patient_id" "uuid" NOT NULL,
-    "guardian_name" "text",
-    "guardian_relation" character varying(50),
-    "guardian_phone" character varying(32),
-    "guardian_address" "text",
-    "father_name" "text",
-    "father_age" integer,
-    "father_education" character varying(120),
-    "father_occupation" character varying(120),
-    "mother_name" "text",
-    "mother_age" integer,
-    "mother_education" character varying(120),
-    "mother_occupation" character varying(120),
-    "marital_status" character varying(40),
-    "number_of_children" integer,
-    "monthly_income" numeric(12,2),
-    "family_notes" "text",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL,
-    "guardian_province_domain_id" bigint,
-    "guardian_city_domain_id" bigint,
-    "guardian_district_domain_id" bigint,
-    "guardian_subdistrict_domain_id" bigint,
-    "guardian_postal_code_domain_id" bigint,
-    "guardian_address_line" "text",
-    "guardian_rt_rw" character varying(10),
-    "father_education_id" "uuid",
-    "other_father_education" "text",
-    "father_occupation_id" "uuid",
-    "other_father_occupation" "text",
-    "mother_education_id" "uuid",
-    "other_mother_education" "text",
-    "mother_occupation_id" "uuid",
-    "other_mother_occupation" "text",
-    "marital_status_id" "uuid",
-    "other_marital_status" "text"
+CREATE TABLE public.address_postal_code (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    postal_id integer NOT NULL,
+    postal_code character varying(5) NOT NULL,
+    subdis_id integer NOT NULL,
+    dis_id integer NOT NULL,
+    city_id integer NOT NULL,
+    prov_id integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
-ALTER TABLE "public"."patient_family_data" OWNER TO "postgres";
+--
+-- Name: address_province; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."patient_invitations" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "email" "text",
-    "token" character varying(128) NOT NULL,
-    "expires_at" timestamp with time zone NOT NULL,
-    "is_used" boolean DEFAULT false NOT NULL,
-    "used_at" timestamp with time zone,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL,
-    "invited_by_membership_id" "uuid",
-    "flow" "public"."patient_invitation_flow" DEFAULT 'registration_required'::"public"."patient_invitation_flow" NOT NULL,
-    "session_start_at" timestamp with time zone,
-    "session_end_at" timestamp with time zone,
-    "session_timezone" "text" DEFAULT 'Asia/Jakarta'::"text",
-    "target_patient_id" "uuid",
-    "practitioner_membership_id" "uuid",
-    "used_reason" "public"."patient_invitation_used_reason",
-    "replaced_by_invitation_id" "uuid",
-    "appointment_id" "uuid",
-    "phone" "text",
-    "contact_type" "text" DEFAULT 'email'::"text" NOT NULL,
-    CONSTRAINT "patient_invitations_contact_presence_chk" CHECK (((("contact_type" = 'email'::"text") AND ("email" IS NOT NULL)) OR (("contact_type" = 'phone'::"text") AND ("phone" IS NOT NULL)))),
-    CONSTRAINT "patient_invitations_contact_type_chk" CHECK (("contact_type" = ANY (ARRAY['email'::"text", 'phone'::"text"]))),
-    CONSTRAINT "patient_invitations_session_range_chk" CHECK ((("session_start_at" IS NULL) OR ("session_end_at" IS NULL) OR ("session_end_at" > "session_start_at")))
+CREATE TABLE public.address_province (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    prov_id integer NOT NULL,
+    prov_name character varying(100) NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
-ALTER TABLE "public"."patient_invitations" OWNER TO "postgres";
+--
+-- Name: address_subdistrict; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."patient_personal_data" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "patient_id" "uuid" NOT NULL,
-    "case_number" character varying(64),
-    "sex" character varying(1),
-    "birth_date" "date",
-    "address" "text",
-    "religion" character varying(80),
-    "education" character varying(120),
-    "occupation" character varying(120),
-    "hobby" character varying(120),
-    "referral_source" "text",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "full_name" "text",
-    "clinic_id" "uuid" NOT NULL,
-    "religion_id" "uuid",
-    "other_religion" "text",
-    "education_id" "uuid",
-    "other_education" "text",
-    "occupation_id" "uuid",
-    "other_occupation" "text",
-    "province_domain_id" bigint,
-    "city_domain_id" bigint,
-    "district_domain_id" bigint,
-    "subdistrict_domain_id" bigint,
-    "postal_code_domain_id" bigint,
-    "address_line" "text",
-    "rt_rw" character varying(10)
+CREATE TABLE public.address_subdistrict (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    subdis_id integer NOT NULL,
+    subdis_name character varying(100) NOT NULL,
+    dis_id integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
-ALTER TABLE "public"."patient_personal_data" OWNER TO "postgres";
+--
+-- Name: admin_profiles; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."patient_signatures" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "patient_id" "uuid" NOT NULL,
-    "storage_bucket" "text" DEFAULT 'patient_signatures'::"text" NOT NULL,
-    "storage_path" "text" NOT NULL,
-    "signed_by_name" "text" NOT NULL,
-    "signed_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "locked_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "signed_ip" "text",
-    "signed_user_agent" "text",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+CREATE TABLE public.admin_profiles (
+    id uuid NOT NULL,
+    full_name text NOT NULL,
+    email text,
+    phone text,
+    admin_level public.admin_level_enum DEFAULT 'ADMIN'::public.admin_level_enum NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid
 );
 
 
-ALTER TABLE "public"."patient_signatures" OWNER TO "postgres";
+--
+-- Name: appointments; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."patient_visits" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "patient_id" "uuid" NOT NULL,
-    "appointment_id" "uuid" NOT NULL,
-    "status" "public"."visit_status" DEFAULT 'scheduled'::"public"."visit_status" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL,
-    "clinic_patient_id" "uuid" NOT NULL
+CREATE TABLE public.appointments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    patient_id uuid NOT NULL,
+    start_time timestamp with time zone NOT NULL,
+    end_time timestamp with time zone NOT NULL,
+    status public.appointment_status DEFAULT 'scheduled'::public.appointment_status NOT NULL,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    clinic_id uuid NOT NULL,
+    clinic_patient_id uuid NOT NULL,
+    practitioner_membership_id uuid NOT NULL
 );
 
 
-ALTER TABLE "public"."patient_visits" OWNER TO "postgres";
+--
+-- Name: b2b_agreement_templates; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."patients" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "user_id" "uuid",
-    "mrn" character varying(64) NOT NULL,
-    "full_name" "text" NOT NULL,
-    "email" "text",
-    "phone" character varying(32),
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+CREATE TABLE public.b2b_agreement_templates (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    content text NOT NULL,
+    is_active boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
 );
 
 
-ALTER TABLE "public"."patients" OWNER TO "postgres";
+--
+-- Name: b2b_agreements; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."referrals_and_feedback" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "visit_id" "uuid" NOT NULL,
-    "patient_id" "uuid" NOT NULL,
-    "destination" character varying(120) NOT NULL,
-    "notes" "text" NOT NULL,
-    "secure_pin" character varying(6) NOT NULL,
-    "expires_at" timestamp with time zone NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL,
-    "practitioner_membership_id" "uuid",
-    CONSTRAINT "referrals_and_feedback_secure_pin_check" CHECK ((("secure_pin")::"text" ~ '^[0-9]{6}$'::"text"))
+CREATE TABLE public.b2b_agreements (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clinic_id uuid NOT NULL,
+    template_id uuid NOT NULL,
+    signed_by_name text NOT NULL,
+    signed_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    signature_image_path text NOT NULL,
+    CONSTRAINT b2b_agreements_signature_image_path_check CHECK ((btrim(signature_image_path) <> ''::text)),
+    CONSTRAINT b2b_agreements_signed_by_name_check CHECK ((btrim(signed_by_name) <> ''::text))
 );
 
 
-ALTER TABLE "public"."referrals_and_feedback" OWNER TO "postgres";
+--
+-- Name: b2b_invitations; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."religion" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "name" "text" NOT NULL,
-    "order_index" integer DEFAULT 0 NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "created_by" "uuid",
-    "updated_by" "uuid"
+CREATE TABLE public.b2b_invitations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clinic_id uuid NOT NULL,
+    token_hash text NOT NULL,
+    template_id uuid,
+    status text DEFAULT 'pending'::text,
+    signed_at timestamp with time zone,
+    signature_url text,
+    signature_storage_path text,
+    signed_by_name text,
+    signed_by_position text,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT b2b_invitations_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'signed'::text, 'expired'::text, 'cancelled'::text])))
 );
 
 
-ALTER TABLE "public"."religion" OWNER TO "postgres";
+--
+-- Name: clinic_extension_requests; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."therapy_sessions" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "visit_id" "uuid" NOT NULL,
-    "session_date" "date" NOT NULL,
-    "session_time" time without time zone NOT NULL,
-    "activity_type" character varying(120) NOT NULL,
-    "subject" "text",
-    "clinical_notes" "text" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "clinic_id" "uuid" NOT NULL
+CREATE TABLE public.clinic_extension_requests (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clinic_id uuid NOT NULL,
+    b2b_agreement_id uuid NOT NULL,
+    status public.clinic_extension_request_status_enum DEFAULT 'PENDING'::public.clinic_extension_request_status_enum NOT NULL,
+    requested_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    approved_at timestamp with time zone,
+    approved_by uuid,
+    added_days integer,
+    CONSTRAINT clinic_extension_requests_added_days_check CHECK (((added_days IS NULL) OR (added_days > 0))),
+    CONSTRAINT clinic_extension_requests_approval_fields_check CHECK ((((status = 'PENDING'::public.clinic_extension_request_status_enum) AND (approved_at IS NULL) AND (approved_by IS NULL) AND (added_days IS NULL)) OR ((status = 'REJECTED'::public.clinic_extension_request_status_enum) AND (approved_at IS NULL) AND (approved_by IS NULL) AND (added_days IS NULL)) OR ((status = 'APPROVED'::public.clinic_extension_request_status_enum) AND (approved_at IS NOT NULL) AND (approved_by IS NOT NULL) AND (added_days IS NOT NULL))))
 );
 
 
-ALTER TABLE "public"."therapy_sessions" OWNER TO "postgres";
+--
+-- Name: clinic_memberships; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."users" (
-    "id" "uuid" NOT NULL,
-    "role" "public"."user_role" DEFAULT 'clinic_staff'::"public"."user_role" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "users_role_supported_chk" CHECK ((("role")::"text" = ANY (ARRAY['clinic_staff'::"text", 'patient'::"text"])))
+CREATE TABLE public.clinic_memberships (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clinic_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    is_owner boolean DEFAULT false NOT NULL,
+    is_staff boolean DEFAULT false NOT NULL,
+    is_practitioner boolean DEFAULT false NOT NULL,
+    profession public.practitioner_profession,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    full_name text,
+    email text,
+    birth_date date,
+    ktp_number character varying(32),
+    gender character varying(20),
+    address text,
+    phone character varying(32),
+    sip_number character varying(64)
 );
 
 
-ALTER TABLE "public"."users" OWNER TO "postgres";
+--
+-- Name: clinic_patients; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.clinic_patients (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clinic_id uuid NOT NULL,
+    patient_id uuid NOT NULL,
+    mrn character varying(64) NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: clinics; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.clinics (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    slug character varying(120) NOT NULL,
+    owner_user_id uuid,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    expired_date timestamp with time zone,
+    is_agreement_signed boolean DEFAULT false,
+    permit_number text,
+    owner_ktp_number text,
+    phone_number text,
+    address_line text,
+    rt_rw text,
+    province_name text,
+    city_name text,
+    district_name text,
+    subdistrict_name text,
+    postal_code text,
+    full_address text
+);
+
+
+--
+-- Name: cognitive_assessments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.cognitive_assessments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    visit_id uuid NOT NULL,
+    knows_letters boolean,
+    knows_colors boolean,
+    writes boolean,
+    counts boolean,
+    reads boolean,
+    reading_spelling boolean,
+    fluent_reading boolean,
+    reversed_letters boolean,
+    autism_indication public.autism_indication,
+    adhd_indication public.adhd_indication,
+    initial_conclusion text,
+    intervention_counseling_given boolean,
+    intervention_areas text,
+    other_medical_action text,
+    referral_action text,
+    assessment_result text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    clinic_id uuid NOT NULL
+);
+
+
+--
+-- Name: consent_templates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.consent_templates (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    body text NOT NULL,
+    is_active boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT consent_templates_body_check CHECK ((btrim(body) <> ''::text)),
+    CONSTRAINT consent_templates_title_check CHECK ((btrim(title) <> ''::text))
+);
+
+
+--
+-- Name: demo_requests; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.demo_requests (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clinic_name text NOT NULL,
+    clinic_type text,
+    pic_name text NOT NULL,
+    pic_role text,
+    email text NOT NULL,
+    whatsapp text NOT NULL,
+    province_id uuid,
+    city_id uuid,
+    district_id uuid,
+    subdistrict_id uuid,
+    postal_code_id uuid,
+    province_name text,
+    city_name text,
+    district_name text,
+    subdistrict_name text,
+    postal_code text,
+    message text,
+    referral_source text,
+    status public.demo_request_status_enum DEFAULT 'pending'::public.demo_request_status_enum NOT NULL,
+    submitted_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: developmental_history; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.developmental_history (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    visit_id uuid NOT NULL,
+    mother_pregnancy_notes text,
+    birth_process public.birth_process,
+    gestational_age_weeks integer,
+    birth_weight_kg numeric(5,2),
+    birth_length_cm numeric(5,2),
+    walking_age_months integer,
+    speaking_age_months integer,
+    hearing_function text,
+    speech_articulation text,
+    vision_function text,
+    child_medical_history text,
+    special_notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    clinic_id uuid NOT NULL
+);
+
+
+--
+-- Name: edge_rate_limit_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.edge_rate_limit_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    function_name text NOT NULL,
+    identifier text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: education; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.education (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    order_index integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid
+);
+
+
+--
+-- Name: marital_status; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.marital_status (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    order_index integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid
+);
+
+
+--
+-- Name: occupation; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.occupation (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    order_index integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid
+);
+
+
+--
+-- Name: otp_verifications; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.otp_verifications (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    email text NOT NULL,
+    otp_code text NOT NULL,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    is_verified boolean DEFAULT false,
+    updated_at timestamp with time zone DEFAULT now(),
+    created_by uuid,
+    updated_by uuid
+);
+
+
+--
+-- Name: patient_clinic_consents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.patient_clinic_consents (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    clinic_id uuid NOT NULL,
+    patient_id uuid NOT NULL,
+    invitation_id uuid,
+    consent_version character varying(20) DEFAULT 'v1'::character varying NOT NULL,
+    consent_text text NOT NULL,
+    source public.consent_source DEFAULT 'registration_wizard'::public.consent_source NOT NULL,
+    accepted_at timestamp with time zone DEFAULT now() NOT NULL,
+    accepted_ip text,
+    accepted_user_agent text,
+    revoked_at timestamp with time zone,
+    revoked_reason text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: patient_consents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.patient_consents (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    visit_id uuid,
+    patient_id uuid NOT NULL,
+    consent_type text NOT NULL,
+    signed_by_name text NOT NULL,
+    signature_path text,
+    notes text DEFAULT ''::text,
+    signed_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT patient_consents_consent_type_check CHECK ((consent_type = ANY (ARRAY['informed'::text, 'general'::text])))
+);
+
+
+--
+-- Name: patient_family_data; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.patient_family_data (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    patient_id uuid NOT NULL,
+    guardian_name text,
+    guardian_relation character varying(50),
+    guardian_phone character varying(32),
+    guardian_address text,
+    father_name text,
+    father_age integer,
+    father_education character varying(120),
+    father_occupation character varying(120),
+    mother_name text,
+    mother_age integer,
+    mother_education character varying(120),
+    mother_occupation character varying(120),
+    marital_status character varying(40),
+    number_of_children integer,
+    monthly_income numeric(12,2),
+    family_notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    clinic_id uuid NOT NULL
+);
+
+
+--
+-- Name: patient_invitations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.patient_invitations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    email text,
+    token character varying(128) NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    is_used boolean DEFAULT false NOT NULL,
+    used_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    clinic_id uuid NOT NULL,
+    invited_by_membership_id uuid,
+    flow public.patient_invitation_flow DEFAULT 'registration_required'::public.patient_invitation_flow NOT NULL,
+    session_start_at timestamp with time zone,
+    session_end_at timestamp with time zone,
+    session_timezone text DEFAULT 'Asia/Jakarta'::text,
+    target_patient_id uuid,
+    practitioner_membership_id uuid,
+    used_reason public.patient_invitation_used_reason,
+    replaced_by_invitation_id uuid,
+    appointment_id uuid,
+    phone text,
+    contact_type text DEFAULT 'email'::text NOT NULL,
+    CONSTRAINT patient_invitations_contact_presence_chk CHECK ((((contact_type = 'email'::text) AND (email IS NOT NULL)) OR ((contact_type = 'phone'::text) AND (phone IS NOT NULL)))),
+    CONSTRAINT patient_invitations_contact_type_chk CHECK ((contact_type = ANY (ARRAY['email'::text, 'phone'::text]))),
+    CONSTRAINT patient_invitations_session_range_chk CHECK (((session_start_at IS NULL) OR (session_end_at IS NULL) OR (session_end_at > session_start_at)))
+);
+
+
+--
+-- Name: patient_personal_data; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.patient_personal_data (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    patient_id uuid NOT NULL,
+    case_number character varying(64),
+    sex character varying(1),
+    birth_date date,
+    address text,
+    religion character varying(80),
+    education character varying(120),
+    occupation character varying(120),
+    hobby character varying(120),
+    referral_source text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    full_name text,
+    clinic_id uuid NOT NULL
+);
+
+
+--
+-- Name: patient_signatures; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.patient_signatures (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    patient_id uuid NOT NULL,
+    storage_bucket text DEFAULT 'patient_signatures'::text NOT NULL,
+    storage_path text NOT NULL,
+    signed_by_name text NOT NULL,
+    signed_at timestamp with time zone DEFAULT now() NOT NULL,
+    locked_at timestamp with time zone DEFAULT now() NOT NULL,
+    signed_ip text,
+    signed_user_agent text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: patient_visits; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.patient_visits (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    patient_id uuid NOT NULL,
+    appointment_id uuid NOT NULL,
+    status public.visit_status DEFAULT 'scheduled'::public.visit_status NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    clinic_id uuid NOT NULL,
+    clinic_patient_id uuid NOT NULL
+);
+
+
+--
+-- Name: patients; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.patients (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid,
+    mrn character varying(64) NOT NULL,
+    full_name text NOT NULL,
+    email text,
+    phone character varying(32),
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: referrals_and_feedback; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.referrals_and_feedback (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    visit_id uuid NOT NULL,
+    patient_id uuid NOT NULL,
+    destination character varying(120) NOT NULL,
+    notes text NOT NULL,
+    secure_pin character varying(6) NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    clinic_id uuid NOT NULL,
+    practitioner_membership_id uuid,
+    CONSTRAINT referrals_and_feedback_secure_pin_check CHECK (((secure_pin)::text ~ '^[0-9]{6}$'::text))
+);
+
+
+--
+-- Name: religion; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.religion (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    order_index integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid
+);
+
+
+--
+-- Name: therapy_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.therapy_sessions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    visit_id uuid NOT NULL,
+    session_date date NOT NULL,
+    session_time time without time zone NOT NULL,
+    activity_type character varying(120) NOT NULL,
+    subject text,
+    clinical_notes text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    clinic_id uuid NOT NULL
+);
+
+
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.users (
+    id uuid NOT NULL,
+    role public.user_role DEFAULT 'clinic_staff'::public.user_role NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT users_role_supported_chk CHECK (((role)::text = ANY (ARRAY['clinic_staff'::text, 'patient'::text])))
+);
+
+
+--
+-- Name: messages; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+)
+PARTITION BY RANGE (inserted_at);
+
+
+--
+-- Name: schema_migrations; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.schema_migrations (
+    version bigint NOT NULL,
+    inserted_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: subscription; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.subscription (
+    id bigint NOT NULL,
+    subscription_id uuid NOT NULL,
+    entity regclass NOT NULL,
+    filters realtime.user_defined_filter[] DEFAULT '{}'::realtime.user_defined_filter[] NOT NULL,
+    claims jsonb NOT NULL,
+    claims_role regrole GENERATED ALWAYS AS (realtime.to_regrole((claims ->> 'role'::text))) STORED NOT NULL,
+    created_at timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    action_filter text DEFAULT '*'::text,
+    CONSTRAINT subscription_action_filter_check CHECK ((action_filter = ANY (ARRAY['*'::text, 'INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))
+);
+
+
+--
+-- Name: subscription_id_seq; Type: SEQUENCE; Schema: realtime; Owner: -
+--
+
+ALTER TABLE realtime.subscription ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME realtime.subscription_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: buckets; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.buckets (
+    id text NOT NULL,
+    name text NOT NULL,
+    owner uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    public boolean DEFAULT false,
+    avif_autodetection boolean DEFAULT false,
+    file_size_limit bigint,
+    allowed_mime_types text[],
+    owner_id text,
+    type storage.buckettype DEFAULT 'STANDARD'::storage.buckettype NOT NULL
+);
+
+
+--
+-- Name: COLUMN buckets.owner; Type: COMMENT; Schema: storage; Owner: -
+--
+
+COMMENT ON COLUMN storage.buckets.owner IS 'Field is deprecated, use owner_id instead';
+
+
+--
+-- Name: buckets_analytics; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.buckets_analytics (
+    name text NOT NULL,
+    type storage.buckettype DEFAULT 'ANALYTICS'::storage.buckettype NOT NULL,
+    format text DEFAULT 'ICEBERG'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    deleted_at timestamp with time zone
+);
+
+
+--
+-- Name: buckets_vectors; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.buckets_vectors (
+    id text NOT NULL,
+    type storage.buckettype DEFAULT 'VECTOR'::storage.buckettype NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: migrations; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.migrations (
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    hash character varying(40) NOT NULL,
+    executed_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: objects; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.objects (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bucket_id text,
+    name text,
+    owner uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    last_accessed_at timestamp with time zone DEFAULT now(),
+    metadata jsonb,
+    path_tokens text[] GENERATED ALWAYS AS (string_to_array(name, '/'::text)) STORED,
+    version text,
+    owner_id text,
+    user_metadata jsonb
+);
+
+
+--
+-- Name: COLUMN objects.owner; Type: COMMENT; Schema: storage; Owner: -
+--
+
+COMMENT ON COLUMN storage.objects.owner IS 'Field is deprecated, use owner_id instead';
+
+
+--
+-- Name: s3_multipart_uploads; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.s3_multipart_uploads (
+    id text NOT NULL,
+    in_progress_size bigint DEFAULT 0 NOT NULL,
+    upload_signature text NOT NULL,
+    bucket_id text NOT NULL,
+    key text NOT NULL COLLATE pg_catalog."C",
+    version text NOT NULL,
+    owner_id text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    user_metadata jsonb,
+    metadata jsonb
+);
+
+
+--
+-- Name: s3_multipart_uploads_parts; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.s3_multipart_uploads_parts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    upload_id text NOT NULL,
+    size bigint DEFAULT 0 NOT NULL,
+    part_number integer NOT NULL,
+    bucket_id text NOT NULL,
+    key text NOT NULL COLLATE pg_catalog."C",
+    etag text NOT NULL,
+    owner_id text,
+    version text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: vector_indexes; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.vector_indexes (
+    id text DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL COLLATE pg_catalog."C",
+    bucket_id text NOT NULL,
+    data_type text NOT NULL,
+    dimension integer NOT NULL,
+    distance_metric text NOT NULL,
+    metadata_configuration jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: schema_migrations; Type: TABLE; Schema: supabase_migrations; Owner: -
+--
+
+CREATE TABLE supabase_migrations.schema_migrations (
+    version text NOT NULL,
+    statements text[],
+    name text
+);
+
+
+--
+-- Name: refresh_tokens id; Type: DEFAULT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.refresh_tokens ALTER COLUMN id SET DEFAULT nextval('auth.refresh_tokens_id_seq'::regclass);
+
+
+--
+-- Name: mfa_amr_claims amr_id_pk; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_amr_claims
+    ADD CONSTRAINT amr_id_pk PRIMARY KEY (id);
+
+
+--
+-- Name: audit_log_entries audit_log_entries_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.audit_log_entries
+    ADD CONSTRAINT audit_log_entries_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: custom_oauth_providers custom_oauth_providers_identifier_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.custom_oauth_providers
+    ADD CONSTRAINT custom_oauth_providers_identifier_key UNIQUE (identifier);
+
+
+--
+-- Name: custom_oauth_providers custom_oauth_providers_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.custom_oauth_providers
+    ADD CONSTRAINT custom_oauth_providers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: flow_state flow_state_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.flow_state
+    ADD CONSTRAINT flow_state_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: identities identities_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.identities
+    ADD CONSTRAINT identities_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: identities identities_provider_id_provider_unique; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.identities
+    ADD CONSTRAINT identities_provider_id_provider_unique UNIQUE (provider_id, provider);
+
+
+--
+-- Name: instances instances_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.instances
+    ADD CONSTRAINT instances_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mfa_amr_claims mfa_amr_claims_session_id_authentication_method_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_amr_claims
+    ADD CONSTRAINT mfa_amr_claims_session_id_authentication_method_pkey UNIQUE (session_id, authentication_method);
+
+
+--
+-- Name: mfa_challenges mfa_challenges_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_challenges
+    ADD CONSTRAINT mfa_challenges_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mfa_factors mfa_factors_last_challenged_at_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_factors
+    ADD CONSTRAINT mfa_factors_last_challenged_at_key UNIQUE (last_challenged_at);
+
+
+--
+-- Name: mfa_factors mfa_factors_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_factors
+    ADD CONSTRAINT mfa_factors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: oauth_authorizations oauth_authorizations_authorization_code_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_authorizations
+    ADD CONSTRAINT oauth_authorizations_authorization_code_key UNIQUE (authorization_code);
+
+
+--
+-- Name: oauth_authorizations oauth_authorizations_authorization_id_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_authorizations
+    ADD CONSTRAINT oauth_authorizations_authorization_id_key UNIQUE (authorization_id);
+
+
+--
+-- Name: oauth_authorizations oauth_authorizations_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_authorizations
+    ADD CONSTRAINT oauth_authorizations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: oauth_client_states oauth_client_states_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_client_states
+    ADD CONSTRAINT oauth_client_states_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: oauth_clients oauth_clients_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_clients
+    ADD CONSTRAINT oauth_clients_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: oauth_consents oauth_consents_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_consents
+    ADD CONSTRAINT oauth_consents_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: oauth_consents oauth_consents_user_client_unique; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.oauth_consents
+    ADD CONSTRAINT oauth_consents_user_client_unique UNIQUE (user_id, client_id);
+
+
+--
+-- Name: one_time_tokens one_time_tokens_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.one_time_tokens
+    ADD CONSTRAINT one_time_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: refresh_tokens refresh_tokens_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: refresh_tokens refresh_tokens_token_unique; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_token_unique UNIQUE (token);
+
+
+--
+-- Name: saml_providers saml_providers_entity_id_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_providers
+    ADD CONSTRAINT saml_providers_entity_id_key UNIQUE (entity_id);
+
+
+--
+-- Name: saml_providers saml_providers_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_providers
+    ADD CONSTRAINT saml_providers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: saml_relay_states saml_relay_states_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_relay_states
+    ADD CONSTRAINT saml_relay_states_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.schema_migrations
+    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sessions
+    ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sso_domains sso_domains_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sso_domains
+    ADD CONSTRAINT sso_domains_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sso_providers sso_providers_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sso_providers
+    ADD CONSTRAINT sso_providers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: users users_phone_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.users
+    ADD CONSTRAINT users_phone_key UNIQUE (phone);
 
-ALTER TABLE ONLY "public"."address_city"
-    ADD CONSTRAINT "address_city_city_id_key" UNIQUE ("city_id");
 
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."address_city"
-    ADD CONSTRAINT "address_city_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: webauthn_challenges webauthn_challenges_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.webauthn_challenges
+    ADD CONSTRAINT webauthn_challenges_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."address_district"
-    ADD CONSTRAINT "address_district_dis_id_key" UNIQUE ("dis_id");
 
+--
+-- Name: webauthn_credentials webauthn_credentials_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.webauthn_credentials
+    ADD CONSTRAINT webauthn_credentials_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."address_district"
-    ADD CONSTRAINT "address_district_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: address_city address_city_city_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_city
+    ADD CONSTRAINT address_city_city_id_key UNIQUE (city_id);
 
-ALTER TABLE ONLY "public"."address_postal_code"
-    ADD CONSTRAINT "address_postal_code_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: address_city address_city_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_city
+    ADD CONSTRAINT address_city_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."address_postal_code"
-    ADD CONSTRAINT "address_postal_code_postal_id_key" UNIQUE ("postal_id");
 
+--
+-- Name: address_district address_district_dis_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_district
+    ADD CONSTRAINT address_district_dis_id_key UNIQUE (dis_id);
 
-ALTER TABLE ONLY "public"."address_province"
-    ADD CONSTRAINT "address_province_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: address_district address_district_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_district
+    ADD CONSTRAINT address_district_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."address_province"
-    ADD CONSTRAINT "address_province_prov_id_key" UNIQUE ("prov_id");
 
+--
+-- Name: address_postal_code address_postal_code_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_postal_code
+    ADD CONSTRAINT address_postal_code_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."address_subdistrict"
-    ADD CONSTRAINT "address_subdistrict_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: address_postal_code address_postal_code_postal_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_postal_code
+    ADD CONSTRAINT address_postal_code_postal_id_key UNIQUE (postal_id);
 
-ALTER TABLE ONLY "public"."address_subdistrict"
-    ADD CONSTRAINT "address_subdistrict_subdis_id_key" UNIQUE ("subdis_id");
 
+--
+-- Name: address_province address_province_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_province
+    ADD CONSTRAINT address_province_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."admin_profiles"
-    ADD CONSTRAINT "admin_profiles_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: address_province address_province_prov_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_province
+    ADD CONSTRAINT address_province_prov_id_key UNIQUE (prov_id);
 
-ALTER TABLE ONLY "public"."appointments"
-    ADD CONSTRAINT "appointments_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: address_subdistrict address_subdistrict_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_subdistrict
+    ADD CONSTRAINT address_subdistrict_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."b2b_agreement_templates"
-    ADD CONSTRAINT "b2b_agreement_templates_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: address_subdistrict address_subdistrict_subdis_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_subdistrict
+    ADD CONSTRAINT address_subdistrict_subdis_id_key UNIQUE (subdis_id);
 
-ALTER TABLE ONLY "public"."b2b_agreements"
-    ADD CONSTRAINT "b2b_agreements_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: admin_profiles admin_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.admin_profiles
+    ADD CONSTRAINT admin_profiles_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."b2b_invitations"
-    ADD CONSTRAINT "b2b_invitations_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: appointments appointments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.appointments
+    ADD CONSTRAINT appointments_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."b2b_invitations"
-    ADD CONSTRAINT "b2b_invitations_token_hash_key" UNIQUE ("token_hash");
 
+--
+-- Name: b2b_agreement_templates b2b_agreement_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.b2b_agreement_templates
+    ADD CONSTRAINT b2b_agreement_templates_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."clinic_extension_requests"
-    ADD CONSTRAINT "clinic_extension_requests_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: b2b_agreements b2b_agreements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.b2b_agreements
+    ADD CONSTRAINT b2b_agreements_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."clinic_memberships"
-    ADD CONSTRAINT "clinic_memberships_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: b2b_invitations b2b_invitations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.b2b_invitations
+    ADD CONSTRAINT b2b_invitations_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."clinic_memberships"
-    ADD CONSTRAINT "clinic_memberships_user_clinic_unique" UNIQUE ("clinic_id", "user_id");
 
+--
+-- Name: b2b_invitations b2b_invitations_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.b2b_invitations
+    ADD CONSTRAINT b2b_invitations_token_hash_key UNIQUE (token_hash);
 
-ALTER TABLE ONLY "public"."clinic_patients"
-    ADD CONSTRAINT "clinic_patients_mrn_unique" UNIQUE ("clinic_id", "mrn");
 
+--
+-- Name: clinic_extension_requests clinic_extension_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinic_extension_requests
+    ADD CONSTRAINT clinic_extension_requests_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."clinic_patients"
-    ADD CONSTRAINT "clinic_patients_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: clinic_memberships clinic_memberships_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinic_memberships
+    ADD CONSTRAINT clinic_memberships_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."clinic_patients"
-    ADD CONSTRAINT "clinic_patients_unique" UNIQUE ("clinic_id", "patient_id");
 
+--
+-- Name: clinic_memberships clinic_memberships_user_clinic_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinic_memberships
+    ADD CONSTRAINT clinic_memberships_user_clinic_unique UNIQUE (clinic_id, user_id);
 
-ALTER TABLE ONLY "public"."clinics"
-    ADD CONSTRAINT "clinics_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: clinic_patients clinic_patients_mrn_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinic_patients
+    ADD CONSTRAINT clinic_patients_mrn_unique UNIQUE (clinic_id, mrn);
 
-ALTER TABLE ONLY "public"."cognitive_assessments"
-    ADD CONSTRAINT "cognitive_assessments_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: clinic_patients clinic_patients_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinic_patients
+    ADD CONSTRAINT clinic_patients_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."consent_templates"
-    ADD CONSTRAINT "consent_templates_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: clinic_patients clinic_patients_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinic_patients
+    ADD CONSTRAINT clinic_patients_unique UNIQUE (clinic_id, patient_id);
 
-ALTER TABLE ONLY "public"."demo_requests"
-    ADD CONSTRAINT "demo_requests_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: clinics clinics_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinics
+    ADD CONSTRAINT clinics_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."developmental_history"
-    ADD CONSTRAINT "developmental_history_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: cognitive_assessments cognitive_assessments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.cognitive_assessments
+    ADD CONSTRAINT cognitive_assessments_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."edge_rate_limit_events"
-    ADD CONSTRAINT "edge_rate_limit_events_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: demo_requests demo_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.demo_requests
+    ADD CONSTRAINT demo_requests_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."education"
-    ADD CONSTRAINT "education_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: developmental_history developmental_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.developmental_history
+    ADD CONSTRAINT developmental_history_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."marital_status"
-    ADD CONSTRAINT "marital_status_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: edge_rate_limit_events edge_rate_limit_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.edge_rate_limit_events
+    ADD CONSTRAINT edge_rate_limit_events_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."occupation"
-    ADD CONSTRAINT "occupation_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: patient_clinic_consents patient_clinic_consents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_clinic_consents
+    ADD CONSTRAINT patient_clinic_consents_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."otp_verifications"
-    ADD CONSTRAINT "otp_verifications_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: patient_family_data patient_family_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_family_data
+    ADD CONSTRAINT patient_family_data_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."patient_clinic_consents"
-    ADD CONSTRAINT "patient_clinic_consents_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: patient_invitations patient_invitations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_invitations
+    ADD CONSTRAINT patient_invitations_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."patient_consents"
-    ADD CONSTRAINT "patient_consents_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: patient_personal_data patient_personal_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_personal_data
+    ADD CONSTRAINT patient_personal_data_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."patient_family_data"
-    ADD CONSTRAINT "patient_family_data_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: patient_signatures patient_signatures_patient_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_signatures
+    ADD CONSTRAINT patient_signatures_patient_id_key UNIQUE (patient_id);
 
-ALTER TABLE ONLY "public"."patient_invitations"
-    ADD CONSTRAINT "patient_invitations_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: patient_visits patient_visits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_visits
+    ADD CONSTRAINT patient_visits_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."patient_personal_data"
-    ADD CONSTRAINT "patient_personal_data_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: patients patients_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patients
+    ADD CONSTRAINT patients_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."patient_signatures"
-    ADD CONSTRAINT "patient_signatures_patient_id_key" UNIQUE ("patient_id");
 
+--
+-- Name: referrals_and_feedback referrals_and_feedback_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.referrals_and_feedback
+    ADD CONSTRAINT referrals_and_feedback_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."patient_signatures"
-    ADD CONSTRAINT "patient_signatures_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: therapy_sessions therapy_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.therapy_sessions
+    ADD CONSTRAINT therapy_sessions_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."patient_visits"
-    ADD CONSTRAINT "patient_visits_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."patients"
-    ADD CONSTRAINT "patients_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: messages messages_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
 
+ALTER TABLE ONLY realtime.messages
+    ADD CONSTRAINT messages_pkey PRIMARY KEY (id, inserted_at);
 
-ALTER TABLE ONLY "public"."referrals_and_feedback"
-    ADD CONSTRAINT "referrals_and_feedback_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: subscription pk_subscription; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
 
+ALTER TABLE ONLY realtime.subscription
+    ADD CONSTRAINT pk_subscription PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."religion"
-    ADD CONSTRAINT "religion_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
 
+ALTER TABLE ONLY realtime.schema_migrations
+    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
 
-ALTER TABLE ONLY "public"."therapy_sessions"
-    ADD CONSTRAINT "therapy_sessions_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: buckets_analytics buckets_analytics_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
 
+ALTER TABLE ONLY storage.buckets_analytics
+    ADD CONSTRAINT buckets_analytics_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY "public"."users"
-    ADD CONSTRAINT "users_pkey" PRIMARY KEY ("id");
 
+--
+-- Name: buckets buckets_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
 
+ALTER TABLE ONLY storage.buckets
+    ADD CONSTRAINT buckets_pkey PRIMARY KEY (id);
 
-CREATE INDEX "appointments_clinic_id_idx" ON "public"."appointments" USING "btree" ("clinic_id");
 
+--
+-- Name: buckets_vectors buckets_vectors_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
 
+ALTER TABLE ONLY storage.buckets_vectors
+    ADD CONSTRAINT buckets_vectors_pkey PRIMARY KEY (id);
 
-CREATE INDEX "appointments_clinic_patient_id_idx" ON "public"."appointments" USING "btree" ("clinic_patient_id");
 
+--
+-- Name: migrations migrations_name_key; Type: CONSTRAINT; Schema: storage; Owner: -
+--
 
+ALTER TABLE ONLY storage.migrations
+    ADD CONSTRAINT migrations_name_key UNIQUE (name);
 
-CREATE INDEX "appointments_patient_id_idx" ON "public"."appointments" USING "btree" ("patient_id");
 
+--
+-- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
 
+ALTER TABLE ONLY storage.migrations
+    ADD CONSTRAINT migrations_pkey PRIMARY KEY (id);
 
-CREATE INDEX "appointments_practitioner_membership_id_idx" ON "public"."appointments" USING "btree" ("practitioner_membership_id");
 
+--
+-- Name: objects objects_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
 
+ALTER TABLE ONLY storage.objects
+    ADD CONSTRAINT objects_pkey PRIMARY KEY (id);
 
-CREATE INDEX "appointments_start_time_idx" ON "public"."appointments" USING "btree" ("start_time");
 
+--
+-- Name: s3_multipart_uploads_parts s3_multipart_uploads_parts_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
 
+ALTER TABLE ONLY storage.s3_multipart_uploads_parts
+    ADD CONSTRAINT s3_multipart_uploads_parts_pkey PRIMARY KEY (id);
 
-CREATE UNIQUE INDEX "clinic_extension_requests_b2b_agreement_id_key" ON "public"."clinic_extension_requests" USING "btree" ("b2b_agreement_id");
 
+--
+-- Name: s3_multipart_uploads s3_multipart_uploads_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
 
+ALTER TABLE ONLY storage.s3_multipart_uploads
+    ADD CONSTRAINT s3_multipart_uploads_pkey PRIMARY KEY (id);
 
-CREATE INDEX "clinic_extension_requests_clinic_id_requested_at_idx" ON "public"."clinic_extension_requests" USING "btree" ("clinic_id", "requested_at" DESC);
 
+--
+-- Name: vector_indexes vector_indexes_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
 
+ALTER TABLE ONLY storage.vector_indexes
+    ADD CONSTRAINT vector_indexes_pkey PRIMARY KEY (id);
 
-CREATE UNIQUE INDEX "clinic_extension_requests_pending_unique_idx" ON "public"."clinic_extension_requests" USING "btree" ("clinic_id") WHERE ("status" = 'PENDING'::"public"."clinic_extension_request_status_enum");
 
+--
+-- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: supabase_migrations; Owner: -
+--
 
+ALTER TABLE ONLY supabase_migrations.schema_migrations
+    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
 
-CREATE INDEX "clinic_memberships_clinic_idx" ON "public"."clinic_memberships" USING "btree" ("clinic_id");
 
+--
+-- Name: audit_logs_instance_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX audit_logs_instance_id_idx ON auth.audit_log_entries USING btree (instance_id);
 
-CREATE INDEX "clinic_memberships_user_idx" ON "public"."clinic_memberships" USING "btree" ("user_id");
 
+--
+-- Name: confirmation_token_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE UNIQUE INDEX confirmation_token_idx ON auth.users USING btree (confirmation_token) WHERE ((confirmation_token)::text !~ '^[0-9 ]*$'::text);
 
-CREATE INDEX "clinic_patients_clinic_idx" ON "public"."clinic_patients" USING "btree" ("clinic_id");
 
+--
+-- Name: custom_oauth_providers_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX custom_oauth_providers_created_at_idx ON auth.custom_oauth_providers USING btree (created_at);
 
-CREATE INDEX "clinic_patients_patient_idx" ON "public"."clinic_patients" USING "btree" ("patient_id");
 
+--
+-- Name: custom_oauth_providers_enabled_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX custom_oauth_providers_enabled_idx ON auth.custom_oauth_providers USING btree (enabled);
 
-CREATE UNIQUE INDEX "clinics_slug_unique" ON "public"."clinics" USING "btree" ("slug");
 
+--
+-- Name: custom_oauth_providers_identifier_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX custom_oauth_providers_identifier_idx ON auth.custom_oauth_providers USING btree (identifier);
 
-CREATE INDEX "cognitive_assessments_clinic_id_idx" ON "public"."cognitive_assessments" USING "btree" ("clinic_id");
 
+--
+-- Name: custom_oauth_providers_provider_type_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX custom_oauth_providers_provider_type_idx ON auth.custom_oauth_providers USING btree (provider_type);
 
-CREATE UNIQUE INDEX "cognitive_assessments_visit_id_unique" ON "public"."cognitive_assessments" USING "btree" ("visit_id");
 
+--
+-- Name: email_change_token_current_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE UNIQUE INDEX email_change_token_current_idx ON auth.users USING btree (email_change_token_current) WHERE ((email_change_token_current)::text !~ '^[0-9 ]*$'::text);
 
-CREATE UNIQUE INDEX "consent_templates_single_active_idx" ON "public"."consent_templates" USING "btree" ("is_active") WHERE ("is_active" = true);
 
+--
+-- Name: email_change_token_new_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE UNIQUE INDEX email_change_token_new_idx ON auth.users USING btree (email_change_token_new) WHERE ((email_change_token_new)::text !~ '^[0-9 ]*$'::text);
 
-CREATE INDEX "developmental_history_clinic_id_idx" ON "public"."developmental_history" USING "btree" ("clinic_id");
 
+--
+-- Name: factor_id_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX factor_id_created_at_idx ON auth.mfa_factors USING btree (user_id, created_at);
 
-CREATE UNIQUE INDEX "developmental_history_visit_id_unique" ON "public"."developmental_history" USING "btree" ("visit_id");
 
+--
+-- Name: flow_state_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX flow_state_created_at_idx ON auth.flow_state USING btree (created_at DESC);
 
-CREATE INDEX "edge_rate_limit_events_lookup_idx" ON "public"."edge_rate_limit_events" USING "btree" ("function_name", "identifier", "created_at");
 
+--
+-- Name: identities_email_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX identities_email_idx ON auth.identities USING btree (email text_pattern_ops);
 
-CREATE UNIQUE INDEX "education_name_unique_idx" ON "public"."education" USING "btree" ("lower"("name"));
 
+--
+-- Name: INDEX identities_email_idx; Type: COMMENT; Schema: auth; Owner: -
+--
 
+COMMENT ON INDEX auth.identities_email_idx IS 'Auth: Ensures indexed queries on the email column';
 
-CREATE UNIQUE INDEX "idx_admin_profiles_email_lower" ON "public"."admin_profiles" USING "btree" ("lower"("email")) WHERE ("email" IS NOT NULL);
 
+--
+-- Name: identities_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX identities_user_id_idx ON auth.identities USING btree (user_id);
 
-CREATE INDEX "idx_b2b_agreements_clinic_id" ON "public"."b2b_agreements" USING "btree" ("clinic_id");
 
+--
+-- Name: idx_auth_code; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX idx_auth_code ON auth.flow_state USING btree (auth_code);
 
-CREATE INDEX "idx_b2b_agreements_template_id" ON "public"."b2b_agreements" USING "btree" ("template_id");
 
+--
+-- Name: idx_oauth_client_states_created_at; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX idx_oauth_client_states_created_at ON auth.oauth_client_states USING btree (created_at);
 
-CREATE INDEX "idx_b2b_invitations_clinic_id" ON "public"."b2b_invitations" USING "btree" ("clinic_id");
 
+--
+-- Name: idx_user_id_auth_method; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX idx_user_id_auth_method ON auth.flow_state USING btree (user_id, authentication_method);
 
-CREATE INDEX "idx_b2b_invitations_created_by" ON "public"."b2b_invitations" USING "btree" ("created_by");
 
+--
+-- Name: mfa_challenge_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX mfa_challenge_created_at_idx ON auth.mfa_challenges USING btree (created_at DESC);
 
-CREATE INDEX "idx_b2b_invitations_template_id" ON "public"."b2b_invitations" USING "btree" ("template_id");
 
+--
+-- Name: mfa_factors_user_friendly_name_unique; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE UNIQUE INDEX mfa_factors_user_friendly_name_unique ON auth.mfa_factors USING btree (friendly_name, user_id) WHERE (TRIM(BOTH FROM friendly_name) <> ''::text);
 
-CREATE INDEX "idx_clinics_owner_user_id" ON "public"."clinics" USING "btree" ("owner_user_id");
 
+--
+-- Name: mfa_factors_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX mfa_factors_user_id_idx ON auth.mfa_factors USING btree (user_id);
 
-CREATE INDEX "idx_otp_verifications_email_created_at" ON "public"."otp_verifications" USING "btree" ("email", "created_at" DESC);
 
+--
+-- Name: oauth_auth_pending_exp_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX oauth_auth_pending_exp_idx ON auth.oauth_authorizations USING btree (expires_at) WHERE (status = 'pending'::auth.oauth_authorization_status);
 
-CREATE INDEX "idx_patient_consents_patient_id" ON "public"."patient_consents" USING "btree" ("patient_id");
 
+--
+-- Name: oauth_clients_deleted_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX oauth_clients_deleted_at_idx ON auth.oauth_clients USING btree (deleted_at);
 
-CREATE INDEX "idx_patient_consents_visit_id" ON "public"."patient_consents" USING "btree" ("visit_id");
 
+--
+-- Name: oauth_consents_active_client_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX oauth_consents_active_client_idx ON auth.oauth_consents USING btree (client_id) WHERE (revoked_at IS NULL);
 
-CREATE INDEX "idx_patient_family_data_father_education" ON "public"."patient_family_data" USING "btree" ("father_education_id");
 
+--
+-- Name: oauth_consents_active_user_client_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX oauth_consents_active_user_client_idx ON auth.oauth_consents USING btree (user_id, client_id) WHERE (revoked_at IS NULL);
 
-CREATE INDEX "idx_patient_family_data_father_occupation" ON "public"."patient_family_data" USING "btree" ("father_occupation_id");
 
+--
+-- Name: oauth_consents_user_order_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX oauth_consents_user_order_idx ON auth.oauth_consents USING btree (user_id, granted_at DESC);
 
-CREATE INDEX "idx_patient_family_data_marital_status" ON "public"."patient_family_data" USING "btree" ("marital_status_id");
 
+--
+-- Name: one_time_tokens_relates_to_hash_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX one_time_tokens_relates_to_hash_idx ON auth.one_time_tokens USING hash (relates_to);
 
-CREATE INDEX "idx_patient_family_data_mother_education" ON "public"."patient_family_data" USING "btree" ("mother_education_id");
 
+--
+-- Name: one_time_tokens_token_hash_hash_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX one_time_tokens_token_hash_hash_idx ON auth.one_time_tokens USING hash (token_hash);
 
-CREATE INDEX "idx_patient_family_data_mother_occupation" ON "public"."patient_family_data" USING "btree" ("mother_occupation_id");
 
+--
+-- Name: one_time_tokens_user_id_token_type_key; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE UNIQUE INDEX one_time_tokens_user_id_token_type_key ON auth.one_time_tokens USING btree (user_id, token_type);
 
-CREATE INDEX "idx_patient_invitations_invited_by" ON "public"."patient_invitations" USING "btree" ("invited_by_membership_id");
 
+--
+-- Name: reauthentication_token_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE UNIQUE INDEX reauthentication_token_idx ON auth.users USING btree (reauthentication_token) WHERE ((reauthentication_token)::text !~ '^[0-9 ]*$'::text);
 
-CREATE INDEX "idx_patient_invitations_practitioner" ON "public"."patient_invitations" USING "btree" ("practitioner_membership_id");
 
+--
+-- Name: recovery_token_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE UNIQUE INDEX recovery_token_idx ON auth.users USING btree (recovery_token) WHERE ((recovery_token)::text !~ '^[0-9 ]*$'::text);
 
-CREATE INDEX "idx_patient_personal_data_education_id" ON "public"."patient_personal_data" USING "btree" ("education_id");
 
+--
+-- Name: refresh_tokens_instance_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX refresh_tokens_instance_id_idx ON auth.refresh_tokens USING btree (instance_id);
 
-CREATE INDEX "idx_patient_personal_data_occupation_id" ON "public"."patient_personal_data" USING "btree" ("occupation_id");
 
+--
+-- Name: refresh_tokens_instance_id_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX refresh_tokens_instance_id_user_id_idx ON auth.refresh_tokens USING btree (instance_id, user_id);
 
-CREATE INDEX "idx_patient_personal_data_religion_id" ON "public"."patient_personal_data" USING "btree" ("religion_id");
 
+--
+-- Name: refresh_tokens_parent_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX refresh_tokens_parent_idx ON auth.refresh_tokens USING btree (parent);
 
-CREATE INDEX "idx_patient_signatures_patient_id" ON "public"."patient_signatures" USING "btree" ("patient_id");
 
+--
+-- Name: refresh_tokens_session_id_revoked_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX refresh_tokens_session_id_revoked_idx ON auth.refresh_tokens USING btree (session_id, revoked);
 
-CREATE UNIQUE INDEX "marital_status_name_unique_idx" ON "public"."marital_status" USING "btree" ("lower"("name"));
 
+--
+-- Name: refresh_tokens_updated_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX refresh_tokens_updated_at_idx ON auth.refresh_tokens USING btree (updated_at DESC);
 
-CREATE UNIQUE INDEX "occupation_name_unique_idx" ON "public"."occupation" USING "btree" ("lower"("name"));
 
+--
+-- Name: saml_providers_sso_provider_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX saml_providers_sso_provider_id_idx ON auth.saml_providers USING btree (sso_provider_id);
 
-CREATE UNIQUE INDEX "patient_clinic_consents_active_unique" ON "public"."patient_clinic_consents" USING "btree" ("clinic_id", "patient_id") WHERE ("revoked_at" IS NULL);
 
+--
+-- Name: saml_relay_states_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX saml_relay_states_created_at_idx ON auth.saml_relay_states USING btree (created_at DESC);
 
-CREATE INDEX "patient_clinic_consents_clinic_idx" ON "public"."patient_clinic_consents" USING "btree" ("clinic_id");
 
+--
+-- Name: saml_relay_states_for_email_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX saml_relay_states_for_email_idx ON auth.saml_relay_states USING btree (for_email);
 
-CREATE INDEX "patient_clinic_consents_invitation_idx" ON "public"."patient_clinic_consents" USING "btree" ("invitation_id");
 
+--
+-- Name: saml_relay_states_sso_provider_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX saml_relay_states_sso_provider_id_idx ON auth.saml_relay_states USING btree (sso_provider_id);
 
-CREATE INDEX "patient_clinic_consents_patient_idx" ON "public"."patient_clinic_consents" USING "btree" ("patient_id");
 
+--
+-- Name: sessions_not_after_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX sessions_not_after_idx ON auth.sessions USING btree (not_after DESC);
 
-CREATE INDEX "patient_clinic_consents_signature_idx" ON "public"."patient_clinic_consents" USING "btree" ("signature_id");
 
+--
+-- Name: sessions_oauth_client_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX sessions_oauth_client_id_idx ON auth.sessions USING btree (oauth_client_id);
 
-CREATE INDEX "patient_family_data_clinic_patient_idx" ON "public"."patient_family_data" USING "btree" ("clinic_id", "patient_id");
 
+--
+-- Name: sessions_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX sessions_user_id_idx ON auth.sessions USING btree (user_id);
 
-CREATE UNIQUE INDEX "patient_family_data_clinic_patient_unique" ON "public"."patient_family_data" USING "btree" ("clinic_id", "patient_id");
 
+--
+-- Name: sso_domains_domain_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE UNIQUE INDEX sso_domains_domain_idx ON auth.sso_domains USING btree (lower(domain));
 
-CREATE INDEX "patient_invitations_appointment_idx" ON "public"."patient_invitations" USING "btree" ("appointment_id");
 
+--
+-- Name: sso_domains_sso_provider_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX sso_domains_sso_provider_id_idx ON auth.sso_domains USING btree (sso_provider_id);
 
-CREATE INDEX "patient_invitations_clinic_id_idx" ON "public"."patient_invitations" USING "btree" ("clinic_id");
 
+--
+-- Name: sso_providers_resource_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE UNIQUE INDEX sso_providers_resource_id_idx ON auth.sso_providers USING btree (lower(resource_id));
 
-CREATE INDEX "patient_invitations_email_idx" ON "public"."patient_invitations" USING "btree" ("email");
 
+--
+-- Name: sso_providers_resource_id_pattern_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX sso_providers_resource_id_pattern_idx ON auth.sso_providers USING btree (resource_id text_pattern_ops);
 
-CREATE INDEX "patient_invitations_flow_idx" ON "public"."patient_invitations" USING "btree" ("flow");
 
+--
+-- Name: unique_phone_factor_per_user; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE UNIQUE INDEX unique_phone_factor_per_user ON auth.mfa_factors USING btree (user_id, phone);
 
-CREATE INDEX "patient_invitations_session_start_idx" ON "public"."patient_invitations" USING "btree" ("session_start_at");
 
+--
+-- Name: user_id_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX user_id_created_at_idx ON auth.sessions USING btree (user_id, created_at);
 
-CREATE INDEX "patient_invitations_target_patient_idx" ON "public"."patient_invitations" USING "btree" ("target_patient_id");
 
+--
+-- Name: users_email_partial_key; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE UNIQUE INDEX users_email_partial_key ON auth.users USING btree (email) WHERE (is_sso_user = false);
 
-CREATE UNIQUE INDEX "patient_invitations_token_unique" ON "public"."patient_invitations" USING "btree" ("token");
 
+--
+-- Name: INDEX users_email_partial_key; Type: COMMENT; Schema: auth; Owner: -
+--
 
+COMMENT ON INDEX auth.users_email_partial_key IS 'Auth: A partial unique index that applies only when is_sso_user is false';
 
-CREATE INDEX "patient_personal_data_clinic_patient_idx" ON "public"."patient_personal_data" USING "btree" ("clinic_id", "patient_id");
 
+--
+-- Name: users_instance_id_email_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX users_instance_id_email_idx ON auth.users USING btree (instance_id, lower((email)::text));
 
-CREATE UNIQUE INDEX "patient_personal_data_clinic_patient_unique" ON "public"."patient_personal_data" USING "btree" ("clinic_id", "patient_id");
 
+--
+-- Name: users_instance_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX users_instance_id_idx ON auth.users USING btree (instance_id);
 
-CREATE UNIQUE INDEX "patient_visits_appointment_id_unique" ON "public"."patient_visits" USING "btree" ("appointment_id");
 
+--
+-- Name: users_is_anonymous_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX users_is_anonymous_idx ON auth.users USING btree (is_anonymous);
 
-CREATE INDEX "patient_visits_clinic_id_idx" ON "public"."patient_visits" USING "btree" ("clinic_id");
 
+--
+-- Name: webauthn_challenges_expires_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX webauthn_challenges_expires_at_idx ON auth.webauthn_challenges USING btree (expires_at);
 
-CREATE INDEX "patient_visits_clinic_patient_id_idx" ON "public"."patient_visits" USING "btree" ("clinic_patient_id");
 
+--
+-- Name: webauthn_challenges_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX webauthn_challenges_user_id_idx ON auth.webauthn_challenges USING btree (user_id);
 
-CREATE INDEX "patient_visits_patient_id_idx" ON "public"."patient_visits" USING "btree" ("patient_id");
 
+--
+-- Name: webauthn_credentials_credential_id_key; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE UNIQUE INDEX webauthn_credentials_credential_id_key ON auth.webauthn_credentials USING btree (credential_id);
 
-CREATE UNIQUE INDEX "patients_mrn_unique" ON "public"."patients" USING "btree" ("mrn");
 
+--
+-- Name: webauthn_credentials_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
 
+CREATE INDEX webauthn_credentials_user_id_idx ON auth.webauthn_credentials USING btree (user_id);
 
-CREATE INDEX "patients_user_id_idx" ON "public"."patients" USING "btree" ("user_id");
 
+--
+-- Name: appointments_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX appointments_clinic_id_idx ON public.appointments USING btree (clinic_id);
 
-CREATE INDEX "referrals_and_feedback_clinic_id_idx" ON "public"."referrals_and_feedback" USING "btree" ("clinic_id");
 
+--
+-- Name: appointments_clinic_patient_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX appointments_clinic_patient_id_idx ON public.appointments USING btree (clinic_patient_id);
 
-CREATE INDEX "referrals_and_feedback_patient_id_idx" ON "public"."referrals_and_feedback" USING "btree" ("patient_id");
 
+--
+-- Name: appointments_patient_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX appointments_patient_id_idx ON public.appointments USING btree (patient_id);
 
-CREATE INDEX "referrals_and_feedback_practitioner_membership_idx" ON "public"."referrals_and_feedback" USING "btree" ("practitioner_membership_id");
 
+--
+-- Name: appointments_practitioner_membership_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX appointments_practitioner_membership_id_idx ON public.appointments USING btree (practitioner_membership_id);
 
-CREATE INDEX "referrals_and_feedback_secure_pin_idx" ON "public"."referrals_and_feedback" USING "btree" ("secure_pin");
 
+--
+-- Name: appointments_start_time_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX appointments_start_time_idx ON public.appointments USING btree (start_time);
 
-CREATE INDEX "referrals_and_feedback_visit_id_idx" ON "public"."referrals_and_feedback" USING "btree" ("visit_id");
 
+--
+-- Name: clinic_extension_requests_b2b_agreement_id_key; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX clinic_extension_requests_b2b_agreement_id_key ON public.clinic_extension_requests USING btree (b2b_agreement_id);
 
-CREATE UNIQUE INDEX "religion_name_unique_idx" ON "public"."religion" USING "btree" ("lower"("name"));
 
+--
+-- Name: clinic_extension_requests_clinic_id_requested_at_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX clinic_extension_requests_clinic_id_requested_at_idx ON public.clinic_extension_requests USING btree (clinic_id, requested_at DESC);
 
-CREATE INDEX "therapy_sessions_clinic_id_idx" ON "public"."therapy_sessions" USING "btree" ("clinic_id");
 
+--
+-- Name: clinic_extension_requests_pending_unique_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX clinic_extension_requests_pending_unique_idx ON public.clinic_extension_requests USING btree (clinic_id) WHERE (status = 'PENDING'::public.clinic_extension_request_status_enum);
 
-CREATE INDEX "therapy_sessions_session_date_idx" ON "public"."therapy_sessions" USING "btree" ("session_date");
 
+--
+-- Name: clinic_memberships_clinic_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX clinic_memberships_clinic_idx ON public.clinic_memberships USING btree (clinic_id);
 
-CREATE INDEX "therapy_sessions_visit_id_idx" ON "public"."therapy_sessions" USING "btree" ("visit_id");
 
+--
+-- Name: clinic_memberships_user_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX clinic_memberships_user_idx ON public.clinic_memberships USING btree (user_id);
 
-CREATE OR REPLACE TRIGGER "trg_admin_profiles_audit_fields" BEFORE INSERT OR UPDATE ON "public"."admin_profiles" FOR EACH ROW EXECUTE FUNCTION "public"."set_admin_profiles_audit_fields"();
 
+--
+-- Name: clinic_patients_clinic_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX clinic_patients_clinic_idx ON public.clinic_patients USING btree (clinic_id);
 
-CREATE OR REPLACE TRIGGER "trg_clinic_memberships_sync_profile" BEFORE INSERT OR UPDATE ON "public"."clinic_memberships" FOR EACH ROW EXECUTE FUNCTION "public"."sync_clinic_membership_profile_defaults"();
 
+--
+-- Name: clinic_patients_patient_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX clinic_patients_patient_idx ON public.clinic_patients USING btree (patient_id);
 
-ALTER TABLE ONLY "public"."address_city"
-    ADD CONSTRAINT "address_city_prov_id_fkey" FOREIGN KEY ("prov_id") REFERENCES "public"."address_province"("prov_id");
 
+--
+-- Name: clinics_slug_unique; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX clinics_slug_unique ON public.clinics USING btree (slug);
 
-ALTER TABLE ONLY "public"."address_district"
-    ADD CONSTRAINT "address_district_city_id_fkey" FOREIGN KEY ("city_id") REFERENCES "public"."address_city"("city_id");
 
+--
+-- Name: cognitive_assessments_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX cognitive_assessments_clinic_id_idx ON public.cognitive_assessments USING btree (clinic_id);
 
-ALTER TABLE ONLY "public"."address_postal_code"
-    ADD CONSTRAINT "address_postal_code_city_id_fkey" FOREIGN KEY ("city_id") REFERENCES "public"."address_city"("city_id");
 
+--
+-- Name: cognitive_assessments_visit_id_unique; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX cognitive_assessments_visit_id_unique ON public.cognitive_assessments USING btree (visit_id);
 
-ALTER TABLE ONLY "public"."address_postal_code"
-    ADD CONSTRAINT "address_postal_code_dis_id_fkey" FOREIGN KEY ("dis_id") REFERENCES "public"."address_district"("dis_id");
 
+--
+-- Name: consent_templates_single_active_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX consent_templates_single_active_idx ON public.consent_templates USING btree (is_active) WHERE (is_active = true);
 
-ALTER TABLE ONLY "public"."address_postal_code"
-    ADD CONSTRAINT "address_postal_code_prov_id_fkey" FOREIGN KEY ("prov_id") REFERENCES "public"."address_province"("prov_id");
 
+--
+-- Name: developmental_history_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX developmental_history_clinic_id_idx ON public.developmental_history USING btree (clinic_id);
 
-ALTER TABLE ONLY "public"."address_postal_code"
-    ADD CONSTRAINT "address_postal_code_subdis_id_fkey" FOREIGN KEY ("subdis_id") REFERENCES "public"."address_subdistrict"("subdis_id");
 
+--
+-- Name: developmental_history_visit_id_unique; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX developmental_history_visit_id_unique ON public.developmental_history USING btree (visit_id);
 
-ALTER TABLE ONLY "public"."address_subdistrict"
-    ADD CONSTRAINT "address_subdistrict_dis_id_fkey" FOREIGN KEY ("dis_id") REFERENCES "public"."address_district"("dis_id");
 
+--
+-- Name: edge_rate_limit_events_lookup_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX edge_rate_limit_events_lookup_idx ON public.edge_rate_limit_events USING btree (function_name, identifier, created_at);
 
-ALTER TABLE ONLY "public"."admin_profiles"
-    ADD CONSTRAINT "admin_profiles_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."admin_profiles"("id") ON DELETE SET NULL;
 
+--
+-- Name: education_name_unique_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX education_name_unique_idx ON public.education USING btree (lower(name));
 
-ALTER TABLE ONLY "public"."admin_profiles"
-    ADD CONSTRAINT "admin_profiles_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
+--
+-- Name: idx_admin_profiles_email_lower; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX idx_admin_profiles_email_lower ON public.admin_profiles USING btree (lower(email)) WHERE (email IS NOT NULL);
 
-ALTER TABLE ONLY "public"."admin_profiles"
-    ADD CONSTRAINT "admin_profiles_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "public"."admin_profiles"("id") ON DELETE SET NULL;
 
+--
+-- Name: idx_otp_verifications_email_created_at; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX idx_otp_verifications_email_created_at ON public.otp_verifications USING btree (email, created_at DESC);
 
-ALTER TABLE ONLY "public"."appointments"
-    ADD CONSTRAINT "appointments_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: idx_patient_consents_patient_id; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX idx_patient_consents_patient_id ON public.patient_consents USING btree (patient_id);
 
-ALTER TABLE ONLY "public"."appointments"
-    ADD CONSTRAINT "appointments_clinic_patient_id_fkey" FOREIGN KEY ("clinic_patient_id") REFERENCES "public"."clinic_patients"("id") ON DELETE RESTRICT;
 
+--
+-- Name: idx_patient_consents_visit_id; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX idx_patient_consents_visit_id ON public.patient_consents USING btree (visit_id);
 
-ALTER TABLE ONLY "public"."appointments"
-    ADD CONSTRAINT "appointments_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
+--
+-- Name: marital_status_name_unique_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX marital_status_name_unique_idx ON public.marital_status USING btree (lower(name));
 
-ALTER TABLE ONLY "public"."appointments"
-    ADD CONSTRAINT "appointments_practitioner_membership_id_fkey" FOREIGN KEY ("practitioner_membership_id") REFERENCES "public"."clinic_memberships"("id") ON DELETE RESTRICT;
 
+--
+-- Name: occupation_name_unique_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX occupation_name_unique_idx ON public.occupation USING btree (lower(name));
 
-ALTER TABLE ONLY "public"."b2b_agreements"
-    ADD CONSTRAINT "b2b_agreements_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: patient_clinic_consents_active_unique; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX patient_clinic_consents_active_unique ON public.patient_clinic_consents USING btree (clinic_id, patient_id) WHERE (revoked_at IS NULL);
 
-ALTER TABLE ONLY "public"."b2b_agreements"
-    ADD CONSTRAINT "b2b_agreements_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."b2b_agreement_templates"("id") ON DELETE RESTRICT;
 
+--
+-- Name: patient_clinic_consents_clinic_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_clinic_consents_clinic_idx ON public.patient_clinic_consents USING btree (clinic_id);
 
-ALTER TABLE ONLY "public"."b2b_invitations"
-    ADD CONSTRAINT "b2b_invitations_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: patient_clinic_consents_invitation_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_clinic_consents_invitation_idx ON public.patient_clinic_consents USING btree (invitation_id);
 
-ALTER TABLE ONLY "public"."b2b_invitations"
-    ADD CONSTRAINT "b2b_invitations_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
 
+--
+-- Name: patient_clinic_consents_patient_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_clinic_consents_patient_idx ON public.patient_clinic_consents USING btree (patient_id);
 
-ALTER TABLE ONLY "public"."b2b_invitations"
-    ADD CONSTRAINT "b2b_invitations_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."b2b_agreement_templates"("id");
 
+--
+-- Name: patient_family_data_clinic_patient_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_family_data_clinic_patient_idx ON public.patient_family_data USING btree (clinic_id, patient_id);
 
-ALTER TABLE ONLY "public"."clinic_extension_requests"
-    ADD CONSTRAINT "clinic_extension_requests_approved_by_fkey" FOREIGN KEY ("approved_by") REFERENCES "public"."admin_profiles"("id") ON DELETE SET NULL;
 
+--
+-- Name: patient_family_data_clinic_patient_unique; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX patient_family_data_clinic_patient_unique ON public.patient_family_data USING btree (clinic_id, patient_id);
 
-ALTER TABLE ONLY "public"."clinic_extension_requests"
-    ADD CONSTRAINT "clinic_extension_requests_b2b_agreement_id_fkey" FOREIGN KEY ("b2b_agreement_id") REFERENCES "public"."b2b_agreements"("id") ON DELETE RESTRICT;
 
+--
+-- Name: patient_invitations_appointment_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_invitations_appointment_idx ON public.patient_invitations USING btree (appointment_id);
 
-ALTER TABLE ONLY "public"."clinic_extension_requests"
-    ADD CONSTRAINT "clinic_extension_requests_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: patient_invitations_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_invitations_clinic_id_idx ON public.patient_invitations USING btree (clinic_id);
 
-ALTER TABLE ONLY "public"."clinic_memberships"
-    ADD CONSTRAINT "clinic_memberships_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: patient_invitations_email_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_invitations_email_idx ON public.patient_invitations USING btree (email);
 
-ALTER TABLE ONLY "public"."clinic_memberships"
-    ADD CONSTRAINT "clinic_memberships_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
 
+--
+-- Name: patient_invitations_flow_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_invitations_flow_idx ON public.patient_invitations USING btree (flow);
 
-ALTER TABLE ONLY "public"."clinic_patients"
-    ADD CONSTRAINT "clinic_patients_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: patient_invitations_session_start_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_invitations_session_start_idx ON public.patient_invitations USING btree (session_start_at);
 
-ALTER TABLE ONLY "public"."clinic_patients"
-    ADD CONSTRAINT "clinic_patients_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
+--
+-- Name: patient_invitations_target_patient_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_invitations_target_patient_idx ON public.patient_invitations USING btree (target_patient_id);
 
-ALTER TABLE ONLY "public"."clinics"
-    ADD CONSTRAINT "clinics_owner_user_id_fkey" FOREIGN KEY ("owner_user_id") REFERENCES "public"."users"("id") ON DELETE SET NULL;
 
+--
+-- Name: patient_invitations_token_unique; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX patient_invitations_token_unique ON public.patient_invitations USING btree (token);
 
-ALTER TABLE ONLY "public"."cognitive_assessments"
-    ADD CONSTRAINT "cognitive_assessments_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: patient_personal_data_clinic_patient_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_personal_data_clinic_patient_idx ON public.patient_personal_data USING btree (clinic_id, patient_id);
 
-ALTER TABLE ONLY "public"."cognitive_assessments"
-    ADD CONSTRAINT "cognitive_assessments_visit_id_fkey" FOREIGN KEY ("visit_id") REFERENCES "public"."patient_visits"("id") ON DELETE CASCADE;
 
+--
+-- Name: patient_personal_data_clinic_patient_unique; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX patient_personal_data_clinic_patient_unique ON public.patient_personal_data USING btree (clinic_id, patient_id);
 
-ALTER TABLE ONLY "public"."demo_requests"
-    ADD CONSTRAINT "demo_requests_city_id_fkey" FOREIGN KEY ("city_id") REFERENCES "public"."address_city"("id");
 
+--
+-- Name: patient_visits_appointment_id_unique; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX patient_visits_appointment_id_unique ON public.patient_visits USING btree (appointment_id);
 
-ALTER TABLE ONLY "public"."demo_requests"
-    ADD CONSTRAINT "demo_requests_district_id_fkey" FOREIGN KEY ("district_id") REFERENCES "public"."address_district"("id");
 
+--
+-- Name: patient_visits_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_visits_clinic_id_idx ON public.patient_visits USING btree (clinic_id);
 
-ALTER TABLE ONLY "public"."demo_requests"
-    ADD CONSTRAINT "demo_requests_postal_code_id_fkey" FOREIGN KEY ("postal_code_id") REFERENCES "public"."address_postal_code"("id");
 
+--
+-- Name: patient_visits_clinic_patient_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_visits_clinic_patient_id_idx ON public.patient_visits USING btree (clinic_patient_id);
 
-ALTER TABLE ONLY "public"."demo_requests"
-    ADD CONSTRAINT "demo_requests_province_id_fkey" FOREIGN KEY ("province_id") REFERENCES "public"."address_province"("id");
 
+--
+-- Name: patient_visits_patient_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patient_visits_patient_id_idx ON public.patient_visits USING btree (patient_id);
 
-ALTER TABLE ONLY "public"."demo_requests"
-    ADD CONSTRAINT "demo_requests_registered_clinic_id_fkey" FOREIGN KEY ("registered_clinic_id") REFERENCES "public"."clinics"("id") ON DELETE SET NULL;
 
+--
+-- Name: patients_mrn_unique; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX patients_mrn_unique ON public.patients USING btree (mrn);
 
-ALTER TABLE ONLY "public"."demo_requests"
-    ADD CONSTRAINT "demo_requests_subdistrict_id_fkey" FOREIGN KEY ("subdistrict_id") REFERENCES "public"."address_subdistrict"("id");
 
+--
+-- Name: patients_user_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX patients_user_id_idx ON public.patients USING btree (user_id);
 
-ALTER TABLE ONLY "public"."developmental_history"
-    ADD CONSTRAINT "developmental_history_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: referrals_and_feedback_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX referrals_and_feedback_clinic_id_idx ON public.referrals_and_feedback USING btree (clinic_id);
 
-ALTER TABLE ONLY "public"."developmental_history"
-    ADD CONSTRAINT "developmental_history_visit_id_fkey" FOREIGN KEY ("visit_id") REFERENCES "public"."patient_visits"("id") ON DELETE CASCADE;
 
+--
+-- Name: referrals_and_feedback_patient_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX referrals_and_feedback_patient_id_idx ON public.referrals_and_feedback USING btree (patient_id);
 
-ALTER TABLE ONLY "public"."education"
-    ADD CONSTRAINT "education_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
 
+--
+-- Name: referrals_and_feedback_practitioner_membership_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX referrals_and_feedback_practitioner_membership_idx ON public.referrals_and_feedback USING btree (practitioner_membership_id);
 
-ALTER TABLE ONLY "public"."education"
-    ADD CONSTRAINT "education_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id");
 
+--
+-- Name: referrals_and_feedback_secure_pin_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX referrals_and_feedback_secure_pin_idx ON public.referrals_and_feedback USING btree (secure_pin);
 
-ALTER TABLE ONLY "public"."marital_status"
-    ADD CONSTRAINT "marital_status_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
 
+--
+-- Name: referrals_and_feedback_visit_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX referrals_and_feedback_visit_id_idx ON public.referrals_and_feedback USING btree (visit_id);
 
-ALTER TABLE ONLY "public"."marital_status"
-    ADD CONSTRAINT "marital_status_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id");
 
+--
+-- Name: religion_name_unique_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE UNIQUE INDEX religion_name_unique_idx ON public.religion USING btree (lower(name));
 
-ALTER TABLE ONLY "public"."occupation"
-    ADD CONSTRAINT "occupation_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
 
+--
+-- Name: therapy_sessions_clinic_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX therapy_sessions_clinic_id_idx ON public.therapy_sessions USING btree (clinic_id);
 
-ALTER TABLE ONLY "public"."occupation"
-    ADD CONSTRAINT "occupation_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id");
 
+--
+-- Name: therapy_sessions_session_date_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX therapy_sessions_session_date_idx ON public.therapy_sessions USING btree (session_date);
 
-ALTER TABLE ONLY "public"."patient_clinic_consents"
-    ADD CONSTRAINT "patient_clinic_consents_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: therapy_sessions_visit_id_idx; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX therapy_sessions_visit_id_idx ON public.therapy_sessions USING btree (visit_id);
 
-ALTER TABLE ONLY "public"."patient_clinic_consents"
-    ADD CONSTRAINT "patient_clinic_consents_invitation_id_fkey" FOREIGN KEY ("invitation_id") REFERENCES "public"."patient_invitations"("id") ON DELETE SET NULL;
 
+--
+-- Name: ix_realtime_subscription_entity; Type: INDEX; Schema: realtime; Owner: -
+--
 
+CREATE INDEX ix_realtime_subscription_entity ON realtime.subscription USING btree (entity);
 
-ALTER TABLE ONLY "public"."patient_clinic_consents"
-    ADD CONSTRAINT "patient_clinic_consents_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
+--
+-- Name: messages_inserted_at_topic_index; Type: INDEX; Schema: realtime; Owner: -
+--
 
+CREATE INDEX messages_inserted_at_topic_index ON ONLY realtime.messages USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
 
-ALTER TABLE ONLY "public"."patient_clinic_consents"
-    ADD CONSTRAINT "patient_clinic_consents_signature_id_fkey" FOREIGN KEY ("signature_id") REFERENCES "public"."patient_signatures"("id");
 
+--
+-- Name: subscription_subscription_id_entity_filters_action_filter_key; Type: INDEX; Schema: realtime; Owner: -
+--
 
+CREATE UNIQUE INDEX subscription_subscription_id_entity_filters_action_filter_key ON realtime.subscription USING btree (subscription_id, entity, filters, action_filter);
 
-ALTER TABLE ONLY "public"."patient_consents"
-    ADD CONSTRAINT "patient_consents_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
+--
+-- Name: bname; Type: INDEX; Schema: storage; Owner: -
+--
 
+CREATE UNIQUE INDEX bname ON storage.buckets USING btree (name);
 
-ALTER TABLE ONLY "public"."patient_consents"
-    ADD CONSTRAINT "patient_consents_visit_id_fkey" FOREIGN KEY ("visit_id") REFERENCES "public"."patient_visits"("id") ON DELETE CASCADE;
 
+--
+-- Name: bucketid_objname; Type: INDEX; Schema: storage; Owner: -
+--
 
+CREATE UNIQUE INDEX bucketid_objname ON storage.objects USING btree (bucket_id, name);
 
-ALTER TABLE ONLY "public"."patient_family_data"
-    ADD CONSTRAINT "patient_family_data_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: buckets_analytics_unique_name_idx; Type: INDEX; Schema: storage; Owner: -
+--
 
+CREATE UNIQUE INDEX buckets_analytics_unique_name_idx ON storage.buckets_analytics USING btree (name) WHERE (deleted_at IS NULL);
 
-ALTER TABLE ONLY "public"."patient_family_data"
-    ADD CONSTRAINT "patient_family_data_father_education_id_fkey" FOREIGN KEY ("father_education_id") REFERENCES "public"."education"("id");
 
+--
+-- Name: idx_multipart_uploads_list; Type: INDEX; Schema: storage; Owner: -
+--
 
+CREATE INDEX idx_multipart_uploads_list ON storage.s3_multipart_uploads USING btree (bucket_id, key, created_at);
 
-ALTER TABLE ONLY "public"."patient_family_data"
-    ADD CONSTRAINT "patient_family_data_father_occupation_id_fkey" FOREIGN KEY ("father_occupation_id") REFERENCES "public"."occupation"("id");
 
+--
+-- Name: idx_objects_bucket_id_name; Type: INDEX; Schema: storage; Owner: -
+--
 
+CREATE INDEX idx_objects_bucket_id_name ON storage.objects USING btree (bucket_id, name COLLATE "C");
 
-ALTER TABLE ONLY "public"."patient_family_data"
-    ADD CONSTRAINT "patient_family_data_marital_status_id_fkey" FOREIGN KEY ("marital_status_id") REFERENCES "public"."marital_status"("id");
 
+--
+-- Name: name_prefix_search; Type: INDEX; Schema: storage; Owner: -
+--
 
+CREATE INDEX name_prefix_search ON storage.objects USING btree (name text_pattern_ops);
 
-ALTER TABLE ONLY "public"."patient_family_data"
-    ADD CONSTRAINT "patient_family_data_mother_education_id_fkey" FOREIGN KEY ("mother_education_id") REFERENCES "public"."education"("id");
 
+--
+-- Name: vector_indexes_name_bucket_id_idx; Type: INDEX; Schema: storage; Owner: -
+--
 
+CREATE UNIQUE INDEX vector_indexes_name_bucket_id_idx ON storage.vector_indexes USING btree (name, bucket_id);
 
-ALTER TABLE ONLY "public"."patient_family_data"
-    ADD CONSTRAINT "patient_family_data_mother_occupation_id_fkey" FOREIGN KEY ("mother_occupation_id") REFERENCES "public"."occupation"("id");
 
+--
+-- Name: users on_auth_user_created; Type: TRIGGER; Schema: auth; Owner: -
+--
 
+CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_auth_user();
 
-ALTER TABLE ONLY "public"."patient_family_data"
-    ADD CONSTRAINT "patient_family_data_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
+--
+-- Name: admin_profiles trg_admin_profiles_audit_fields; Type: TRIGGER; Schema: public; Owner: -
+--
 
+CREATE TRIGGER trg_admin_profiles_audit_fields BEFORE INSERT OR UPDATE ON public.admin_profiles FOR EACH ROW EXECUTE FUNCTION public.set_admin_profiles_audit_fields();
 
-ALTER TABLE ONLY "public"."patient_invitations"
-    ADD CONSTRAINT "patient_invitations_appointment_id_fkey" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("id") ON DELETE SET NULL;
 
+--
+-- Name: clinic_memberships trg_clinic_memberships_sync_profile; Type: TRIGGER; Schema: public; Owner: -
+--
 
+CREATE TRIGGER trg_clinic_memberships_sync_profile BEFORE INSERT OR UPDATE ON public.clinic_memberships FOR EACH ROW EXECUTE FUNCTION public.sync_clinic_membership_profile_defaults();
 
-ALTER TABLE ONLY "public"."patient_invitations"
-    ADD CONSTRAINT "patient_invitations_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: subscription tr_check_filters; Type: TRIGGER; Schema: realtime; Owner: -
+--
 
+CREATE TRIGGER tr_check_filters BEFORE INSERT OR UPDATE ON realtime.subscription FOR EACH ROW EXECUTE FUNCTION realtime.subscription_check_filters();
 
-ALTER TABLE ONLY "public"."patient_invitations"
-    ADD CONSTRAINT "patient_invitations_invited_by_membership_id_fkey" FOREIGN KEY ("invited_by_membership_id") REFERENCES "public"."clinic_memberships"("id") ON DELETE SET NULL;
 
+--
+-- Name: buckets enforce_bucket_name_length_trigger; Type: TRIGGER; Schema: storage; Owner: -
+--
 
+CREATE TRIGGER enforce_bucket_name_length_trigger BEFORE INSERT OR UPDATE OF name ON storage.buckets FOR EACH ROW EXECUTE FUNCTION storage.enforce_bucket_name_length();
 
-ALTER TABLE ONLY "public"."patient_invitations"
-    ADD CONSTRAINT "patient_invitations_practitioner_membership_id_fkey" FOREIGN KEY ("practitioner_membership_id") REFERENCES "public"."clinic_memberships"("id") ON DELETE SET NULL;
 
+--
+-- Name: buckets protect_buckets_delete; Type: TRIGGER; Schema: storage; Owner: -
+--
 
+CREATE TRIGGER protect_buckets_delete BEFORE DELETE ON storage.buckets FOR EACH STATEMENT EXECUTE FUNCTION storage.protect_delete();
 
-ALTER TABLE ONLY "public"."patient_invitations"
-    ADD CONSTRAINT "patient_invitations_replaced_by_invitation_id_fkey" FOREIGN KEY ("replaced_by_invitation_id") REFERENCES "public"."patient_invitations"("id") ON DELETE SET NULL;
 
+--
+-- Name: objects protect_objects_delete; Type: TRIGGER; Schema: storage; Owner: -
+--
 
+CREATE TRIGGER protect_objects_delete BEFORE DELETE ON storage.objects FOR EACH STATEMENT EXECUTE FUNCTION storage.protect_delete();
 
-ALTER TABLE ONLY "public"."patient_invitations"
-    ADD CONSTRAINT "patient_invitations_target_patient_id_fkey" FOREIGN KEY ("target_patient_id") REFERENCES "public"."patients"("id") ON DELETE SET NULL;
 
+--
+-- Name: objects update_objects_updated_at; Type: TRIGGER; Schema: storage; Owner: -
+--
 
+CREATE TRIGGER update_objects_updated_at BEFORE UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.update_updated_at_column();
 
-ALTER TABLE ONLY "public"."patient_personal_data"
-    ADD CONSTRAINT "patient_personal_data_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: identities identities_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.identities
+    ADD CONSTRAINT identities_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."patient_personal_data"
-    ADD CONSTRAINT "patient_personal_data_education_id_fkey" FOREIGN KEY ("education_id") REFERENCES "public"."education"("id");
 
+--
+-- Name: mfa_amr_claims mfa_amr_claims_session_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.mfa_amr_claims
+    ADD CONSTRAINT mfa_amr_claims_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."patient_personal_data"
-    ADD CONSTRAINT "patient_personal_data_occupation_id_fkey" FOREIGN KEY ("occupation_id") REFERENCES "public"."occupation"("id");
 
+--
+-- Name: mfa_challenges mfa_challenges_auth_factor_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.mfa_challenges
+    ADD CONSTRAINT mfa_challenges_auth_factor_id_fkey FOREIGN KEY (factor_id) REFERENCES auth.mfa_factors(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."patient_personal_data"
-    ADD CONSTRAINT "patient_personal_data_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
+--
+-- Name: mfa_factors mfa_factors_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.mfa_factors
+    ADD CONSTRAINT mfa_factors_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."patient_personal_data"
-    ADD CONSTRAINT "patient_personal_data_religion_id_fkey" FOREIGN KEY ("religion_id") REFERENCES "public"."religion"("id");
 
+--
+-- Name: oauth_authorizations oauth_authorizations_client_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.oauth_authorizations
+    ADD CONSTRAINT oauth_authorizations_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."patient_signatures"
-    ADD CONSTRAINT "patient_signatures_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
+--
+-- Name: oauth_authorizations oauth_authorizations_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.oauth_authorizations
+    ADD CONSTRAINT oauth_authorizations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."patient_visits"
-    ADD CONSTRAINT "patient_visits_appointment_id_fkey" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("id") ON DELETE CASCADE;
 
+--
+-- Name: oauth_consents oauth_consents_client_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.oauth_consents
+    ADD CONSTRAINT oauth_consents_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."patient_visits"
-    ADD CONSTRAINT "patient_visits_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: oauth_consents oauth_consents_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.oauth_consents
+    ADD CONSTRAINT oauth_consents_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."patient_visits"
-    ADD CONSTRAINT "patient_visits_clinic_patient_id_fkey" FOREIGN KEY ("clinic_patient_id") REFERENCES "public"."clinic_patients"("id") ON DELETE RESTRICT;
 
+--
+-- Name: one_time_tokens one_time_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.one_time_tokens
+    ADD CONSTRAINT one_time_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."patient_visits"
-    ADD CONSTRAINT "patient_visits_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
+--
+-- Name: refresh_tokens refresh_tokens_session_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."patients"
-    ADD CONSTRAINT "patients_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE SET NULL;
 
+--
+-- Name: saml_providers saml_providers_sso_provider_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.saml_providers
+    ADD CONSTRAINT saml_providers_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."referrals_and_feedback"
-    ADD CONSTRAINT "referrals_and_feedback_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: saml_relay_states saml_relay_states_flow_state_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.saml_relay_states
+    ADD CONSTRAINT saml_relay_states_flow_state_id_fkey FOREIGN KEY (flow_state_id) REFERENCES auth.flow_state(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."referrals_and_feedback"
-    ADD CONSTRAINT "referrals_and_feedback_patient_id_fkey" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE CASCADE;
 
+--
+-- Name: saml_relay_states saml_relay_states_sso_provider_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.saml_relay_states
+    ADD CONSTRAINT saml_relay_states_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."referrals_and_feedback"
-    ADD CONSTRAINT "referrals_and_feedback_practitioner_membership_id_fkey" FOREIGN KEY ("practitioner_membership_id") REFERENCES "public"."clinic_memberships"("id") ON DELETE SET NULL;
 
+--
+-- Name: sessions sessions_oauth_client_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.sessions
+    ADD CONSTRAINT sessions_oauth_client_id_fkey FOREIGN KEY (oauth_client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."referrals_and_feedback"
-    ADD CONSTRAINT "referrals_and_feedback_visit_id_fkey" FOREIGN KEY ("visit_id") REFERENCES "public"."patient_visits"("id") ON DELETE CASCADE;
 
+--
+-- Name: sessions sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.sessions
+    ADD CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."religion"
-    ADD CONSTRAINT "religion_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
 
+--
+-- Name: sso_domains sso_domains_sso_provider_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.sso_domains
+    ADD CONSTRAINT sso_domains_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."religion"
-    ADD CONSTRAINT "religion_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id");
 
+--
+-- Name: webauthn_challenges webauthn_challenges_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.webauthn_challenges
+    ADD CONSTRAINT webauthn_challenges_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."therapy_sessions"
-    ADD CONSTRAINT "therapy_sessions_clinic_id_fkey" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE CASCADE;
 
+--
+-- Name: webauthn_credentials webauthn_credentials_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
 
+ALTER TABLE ONLY auth.webauthn_credentials
+    ADD CONSTRAINT webauthn_credentials_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY "public"."therapy_sessions"
-    ADD CONSTRAINT "therapy_sessions_visit_id_fkey" FOREIGN KEY ("visit_id") REFERENCES "public"."patient_visits"("id") ON DELETE CASCADE;
 
+--
+-- Name: address_city address_city_prov_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_city
+    ADD CONSTRAINT address_city_prov_id_fkey FOREIGN KEY (prov_id) REFERENCES public.address_province(prov_id);
 
-ALTER TABLE ONLY "public"."users"
-    ADD CONSTRAINT "users_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
+--
+-- Name: address_district address_district_city_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_district
+    ADD CONSTRAINT address_district_city_id_fkey FOREIGN KEY (city_id) REFERENCES public.address_city(city_id);
 
-ALTER TABLE "public"."address_city" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: address_postal_code address_postal_code_city_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."address_district" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.address_postal_code
+    ADD CONSTRAINT address_postal_code_city_id_fkey FOREIGN KEY (city_id) REFERENCES public.address_city(city_id);
 
 
-ALTER TABLE "public"."address_postal_code" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: address_postal_code address_postal_code_dis_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_postal_code
+    ADD CONSTRAINT address_postal_code_dis_id_fkey FOREIGN KEY (dis_id) REFERENCES public.address_district(dis_id);
 
-ALTER TABLE "public"."address_province" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: address_postal_code address_postal_code_prov_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."address_subdistrict" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.address_postal_code
+    ADD CONSTRAINT address_postal_code_prov_id_fkey FOREIGN KEY (prov_id) REFERENCES public.address_province(prov_id);
 
 
-CREATE POLICY "admin_all_b2b_invitations" ON "public"."b2b_invitations" TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM "public"."admin_profiles"
-  WHERE (("admin_profiles"."id" = "auth"."uid"()) AND ("admin_profiles"."is_active" = true)))));
+--
+-- Name: address_postal_code address_postal_code_subdis_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_postal_code
+    ADD CONSTRAINT address_postal_code_subdis_id_fkey FOREIGN KEY (subdis_id) REFERENCES public.address_subdistrict(subdis_id);
 
 
-CREATE POLICY "admin_all_b2b_templates" ON "public"."b2b_agreement_templates" TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM "public"."admin_profiles"
-  WHERE (("admin_profiles"."id" = "auth"."uid"()) AND ("admin_profiles"."is_active" = true)))));
+--
+-- Name: address_subdistrict address_subdistrict_dis_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.address_subdistrict
+    ADD CONSTRAINT address_subdistrict_dis_id_fkey FOREIGN KEY (dis_id) REFERENCES public.address_district(dis_id);
 
 
-ALTER TABLE "public"."admin_profiles" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: admin_profiles admin_profiles_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.admin_profiles
+    ADD CONSTRAINT admin_profiles_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.admin_profiles(id) ON DELETE SET NULL;
 
-CREATE POLICY "admin_profiles_admin_insert" ON "public"."admin_profiles" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('ADMIN'::"text"));
 
+--
+-- Name: admin_profiles admin_profiles_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.admin_profiles
+    ADD CONSTRAINT admin_profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
-CREATE POLICY "admin_profiles_admin_select" ON "public"."admin_profiles" FOR SELECT TO "authenticated" USING ("public"."is_admin_at_least"('ADMIN'::"text"));
 
+--
+-- Name: admin_profiles admin_profiles_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.admin_profiles
+    ADD CONSTRAINT admin_profiles_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.admin_profiles(id) ON DELETE SET NULL;
 
-CREATE POLICY "admin_profiles_admin_update" ON "public"."admin_profiles" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('ADMIN'::"text")) WITH CHECK ("public"."is_admin_at_least"('ADMIN'::"text"));
 
+--
+-- Name: appointments appointments_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.appointments
+    ADD CONSTRAINT appointments_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
-CREATE POLICY "admin_profiles_read_own_profile" ON "public"."admin_profiles" FOR SELECT TO "authenticated" USING (("id" = "auth"."uid"()));
 
+--
+-- Name: appointments appointments_clinic_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.appointments
+    ADD CONSTRAINT appointments_clinic_patient_id_fkey FOREIGN KEY (clinic_patient_id) REFERENCES public.clinic_patients(id) ON DELETE RESTRICT;
 
-CREATE POLICY "admin_profiles_super_admin_delete" ON "public"."admin_profiles" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('SUPER_ADMIN'::"text"));
 
+--
+-- Name: appointments appointments_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.appointments
+    ADD CONSTRAINT appointments_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
-CREATE POLICY "admin_read_demo_request" ON "public"."demo_requests" FOR SELECT TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text"));
 
+--
+-- Name: appointments appointments_practitioner_membership_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.appointments
+    ADD CONSTRAINT appointments_practitioner_membership_id_fkey FOREIGN KEY (practitioner_membership_id) REFERENCES public.clinic_memberships(id) ON DELETE RESTRICT;
 
-ALTER TABLE "public"."appointments" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: b2b_agreements b2b_agreements_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "appointments_clinic_ops_all" ON "public"."appointments" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
+ALTER TABLE ONLY public.b2b_agreements
+    ADD CONSTRAINT b2b_agreements_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
 
+--
+-- Name: b2b_agreements b2b_agreements_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."b2b_agreement_templates" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.b2b_agreements
+    ADD CONSTRAINT b2b_agreements_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.b2b_agreement_templates(id) ON DELETE RESTRICT;
 
 
-ALTER TABLE "public"."b2b_agreements" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: b2b_invitations b2b_invitations_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.b2b_invitations
+    ADD CONSTRAINT b2b_invitations_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
-CREATE POLICY "b2b_agreements_owner_insert" ON "public"."b2b_agreements" FOR INSERT TO "authenticated" WITH CHECK ("public"."has_owner_access"("clinic_id"));
 
+--
+-- Name: b2b_invitations b2b_invitations_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.b2b_invitations
+    ADD CONSTRAINT b2b_invitations_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
 
-CREATE POLICY "b2b_agreements_select" ON "public"."b2b_agreements" FOR SELECT TO "authenticated" USING (("public"."is_admin_at_least"('STAFF'::"text") OR "public"."has_active_membership"("clinic_id")));
 
+--
+-- Name: b2b_invitations b2b_invitations_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.b2b_invitations
+    ADD CONSTRAINT b2b_invitations_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.b2b_agreement_templates(id);
 
-ALTER TABLE "public"."b2b_invitations" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: clinic_extension_requests clinic_extension_requests_approved_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."clinic_extension_requests" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.clinic_extension_requests
+    ADD CONSTRAINT clinic_extension_requests_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.admin_profiles(id) ON DELETE SET NULL;
 
 
-CREATE POLICY "clinic_extension_requests_insert" ON "public"."clinic_extension_requests" FOR INSERT TO "authenticated" WITH CHECK (("public"."is_admin_at_least"('STAFF'::"text") OR "public"."has_owner_access"("clinic_id")));
+--
+-- Name: clinic_extension_requests clinic_extension_requests_b2b_agreement_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinic_extension_requests
+    ADD CONSTRAINT clinic_extension_requests_b2b_agreement_id_fkey FOREIGN KEY (b2b_agreement_id) REFERENCES public.b2b_agreements(id) ON DELETE RESTRICT;
 
 
-CREATE POLICY "clinic_extension_requests_select" ON "public"."clinic_extension_requests" FOR SELECT TO "authenticated" USING (("public"."is_admin_at_least"('STAFF'::"text") OR "public"."has_active_membership"("clinic_id")));
+--
+-- Name: clinic_extension_requests clinic_extension_requests_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinic_extension_requests
+    ADD CONSTRAINT clinic_extension_requests_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
 
-CREATE POLICY "clinic_extension_requests_update" ON "public"."clinic_extension_requests" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+--
+-- Name: clinic_memberships clinic_memberships_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinic_memberships
+    ADD CONSTRAINT clinic_memberships_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
 
-ALTER TABLE "public"."clinic_memberships" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: clinic_memberships clinic_memberships_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinic_memberships
+    ADD CONSTRAINT clinic_memberships_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
-CREATE POLICY "clinic_memberships_member_select" ON "public"."clinic_memberships" FOR SELECT TO "authenticated" USING ("public"."has_active_membership"("clinic_id"));
 
+--
+-- Name: clinic_patients clinic_patients_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinic_patients
+    ADD CONSTRAINT clinic_patients_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
-CREATE POLICY "clinic_memberships_owner_manage" ON "public"."clinic_memberships" TO "authenticated" USING ("public"."has_owner_access"("clinic_id")) WITH CHECK ("public"."has_owner_access"("clinic_id"));
 
+--
+-- Name: clinic_patients clinic_patients_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinic_patients
+    ADD CONSTRAINT clinic_patients_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
-CREATE POLICY "clinic_owner_read_b2b_invitations" ON "public"."b2b_invitations" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM "public"."clinic_memberships"
-  WHERE (("clinic_memberships"."clinic_id" = "b2b_invitations"."clinic_id") AND ("clinic_memberships"."user_id" = "auth"."uid"()) AND ("clinic_memberships"."is_owner" = true) AND ("clinic_memberships"."is_active" = true)))));
 
+--
+-- Name: clinics clinics_owner_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.clinics
+    ADD CONSTRAINT clinics_owner_user_id_fkey FOREIGN KEY (owner_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
-ALTER TABLE "public"."clinic_patients" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: cognitive_assessments cognitive_assessments_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "clinic_patients_ops_all" ON "public"."clinic_patients" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
+ALTER TABLE ONLY public.cognitive_assessments
+    ADD CONSTRAINT cognitive_assessments_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
 
+--
+-- Name: cognitive_assessments cognitive_assessments_visit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."clinics" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.cognitive_assessments
+    ADD CONSTRAINT cognitive_assessments_visit_id_fkey FOREIGN KEY (visit_id) REFERENCES public.patient_visits(id) ON DELETE CASCADE;
 
 
-CREATE POLICY "clinics_member_select" ON "public"."clinics" FOR SELECT TO "authenticated" USING ("public"."has_active_membership"("id"));
+--
+-- Name: demo_requests demo_requests_city_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.demo_requests
+    ADD CONSTRAINT demo_requests_city_id_fkey FOREIGN KEY (city_id) REFERENCES public.address_city(id);
 
 
-CREATE POLICY "clinics_owner_manage" ON "public"."clinics" TO "authenticated" USING ("public"."has_owner_access"("id")) WITH CHECK ("public"."has_owner_access"("id"));
+--
+-- Name: demo_requests demo_requests_district_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.demo_requests
+    ADD CONSTRAINT demo_requests_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.address_district(id);
 
 
-ALTER TABLE "public"."cognitive_assessments" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: demo_requests demo_requests_postal_code_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.demo_requests
+    ADD CONSTRAINT demo_requests_postal_code_id_fkey FOREIGN KEY (postal_code_id) REFERENCES public.address_postal_code(id);
 
-CREATE POLICY "cognitive_assessments_clinic_ops_all" ON "public"."cognitive_assessments" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
+--
+-- Name: demo_requests demo_requests_province_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.demo_requests
+    ADD CONSTRAINT demo_requests_province_id_fkey FOREIGN KEY (province_id) REFERENCES public.address_province(id);
 
-ALTER TABLE "public"."consent_templates" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: demo_requests demo_requests_subdistrict_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "consent_templates_delete" ON "public"."consent_templates" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('ADMIN'::"text"));
+ALTER TABLE ONLY public.demo_requests
+    ADD CONSTRAINT demo_requests_subdistrict_id_fkey FOREIGN KEY (subdistrict_id) REFERENCES public.address_subdistrict(id);
 
 
+--
+-- Name: developmental_history developmental_history_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "consent_templates_insert" ON "public"."consent_templates" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('ADMIN'::"text"));
+ALTER TABLE ONLY public.developmental_history
+    ADD CONSTRAINT developmental_history_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
 
+--
+-- Name: developmental_history developmental_history_visit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "consent_templates_select" ON "public"."consent_templates" FOR SELECT TO "authenticated" USING (true);
+ALTER TABLE ONLY public.developmental_history
+    ADD CONSTRAINT developmental_history_visit_id_fkey FOREIGN KEY (visit_id) REFERENCES public.patient_visits(id) ON DELETE CASCADE;
 
 
+--
+-- Name: education education_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "consent_templates_update" ON "public"."consent_templates" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('ADMIN'::"text")) WITH CHECK ("public"."is_admin_at_least"('ADMIN'::"text"));
+ALTER TABLE ONLY public.education
+    ADD CONSTRAINT education_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
 
 
+--
+-- Name: education education_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."demo_requests" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.education
+    ADD CONSTRAINT education_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id);
 
 
-ALTER TABLE "public"."developmental_history" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: marital_status marital_status_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.marital_status
+    ADD CONSTRAINT marital_status_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
 
-CREATE POLICY "developmental_history_clinic_ops_all" ON "public"."developmental_history" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
+--
+-- Name: marital_status marital_status_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.marital_status
+    ADD CONSTRAINT marital_status_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id);
 
-ALTER TABLE "public"."edge_rate_limit_events" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: occupation occupation_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."education" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.occupation
+    ADD CONSTRAINT occupation_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
 
 
-CREATE POLICY "education_admin_delete" ON "public"."education" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text"));
+--
+-- Name: occupation occupation_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.occupation
+    ADD CONSTRAINT occupation_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id);
 
 
-CREATE POLICY "education_admin_insert" ON "public"."education" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+--
+-- Name: patient_clinic_consents patient_clinic_consents_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_clinic_consents
+    ADD CONSTRAINT patient_clinic_consents_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
 
-CREATE POLICY "education_admin_update" ON "public"."education" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+--
+-- Name: patient_clinic_consents patient_clinic_consents_invitation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_clinic_consents
+    ADD CONSTRAINT patient_clinic_consents_invitation_id_fkey FOREIGN KEY (invitation_id) REFERENCES public.patient_invitations(id) ON DELETE SET NULL;
 
 
-CREATE POLICY "education_select_all" ON "public"."education" FOR SELECT TO "authenticated", "anon" USING (true);
+--
+-- Name: patient_clinic_consents patient_clinic_consents_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_clinic_consents
+    ADD CONSTRAINT patient_clinic_consents_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
 
-CREATE POLICY "insert_demo_request" ON "public"."demo_requests" FOR INSERT TO "authenticated", "anon" WITH CHECK (false);
+--
+-- Name: patient_consents patient_consents_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_consents
+    ADD CONSTRAINT patient_consents_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
 
-ALTER TABLE "public"."marital_status" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: patient_consents patient_consents_visit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_consents
+    ADD CONSTRAINT patient_consents_visit_id_fkey FOREIGN KEY (visit_id) REFERENCES public.patient_visits(id) ON DELETE CASCADE;
 
-CREATE POLICY "marital_status_admin_delete" ON "public"."marital_status" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text"));
 
+--
+-- Name: patient_family_data patient_family_data_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_family_data
+    ADD CONSTRAINT patient_family_data_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
-CREATE POLICY "marital_status_admin_insert" ON "public"."marital_status" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
 
+--
+-- Name: patient_family_data patient_family_data_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_family_data
+    ADD CONSTRAINT patient_family_data_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
-CREATE POLICY "marital_status_admin_update" ON "public"."marital_status" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
 
+--
+-- Name: patient_invitations patient_invitations_appointment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_invitations
+    ADD CONSTRAINT patient_invitations_appointment_id_fkey FOREIGN KEY (appointment_id) REFERENCES public.appointments(id) ON DELETE SET NULL;
 
-CREATE POLICY "marital_status_select_all" ON "public"."marital_status" FOR SELECT TO "authenticated", "anon" USING (true);
 
+--
+-- Name: patient_invitations patient_invitations_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_invitations
+    ADD CONSTRAINT patient_invitations_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
-ALTER TABLE "public"."occupation" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: patient_invitations patient_invitations_invited_by_membership_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "occupation_admin_delete" ON "public"."occupation" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text"));
+ALTER TABLE ONLY public.patient_invitations
+    ADD CONSTRAINT patient_invitations_invited_by_membership_id_fkey FOREIGN KEY (invited_by_membership_id) REFERENCES public.clinic_memberships(id) ON DELETE SET NULL;
 
 
+--
+-- Name: patient_invitations patient_invitations_practitioner_membership_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "occupation_admin_insert" ON "public"."occupation" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+ALTER TABLE ONLY public.patient_invitations
+    ADD CONSTRAINT patient_invitations_practitioner_membership_id_fkey FOREIGN KEY (practitioner_membership_id) REFERENCES public.clinic_memberships(id) ON DELETE SET NULL;
 
 
+--
+-- Name: patient_invitations patient_invitations_replaced_by_invitation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "occupation_admin_update" ON "public"."occupation" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+ALTER TABLE ONLY public.patient_invitations
+    ADD CONSTRAINT patient_invitations_replaced_by_invitation_id_fkey FOREIGN KEY (replaced_by_invitation_id) REFERENCES public.patient_invitations(id) ON DELETE SET NULL;
 
 
+--
+-- Name: patient_invitations patient_invitations_target_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "occupation_select_all" ON "public"."occupation" FOR SELECT TO "authenticated", "anon" USING (true);
+ALTER TABLE ONLY public.patient_invitations
+    ADD CONSTRAINT patient_invitations_target_patient_id_fkey FOREIGN KEY (target_patient_id) REFERENCES public.patients(id) ON DELETE SET NULL;
 
 
+--
+-- Name: patient_personal_data patient_personal_data_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."otp_verifications" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.patient_personal_data
+    ADD CONSTRAINT patient_personal_data_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
 
-ALTER TABLE "public"."patient_clinic_consents" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: patient_personal_data patient_personal_data_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_personal_data
+    ADD CONSTRAINT patient_personal_data_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
-CREATE POLICY "patient_clinic_consents_clinic_ops_all" ON "public"."patient_clinic_consents" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
+--
+-- Name: patient_signatures patient_signatures_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patient_signatures
+    ADD CONSTRAINT patient_signatures_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
-ALTER TABLE "public"."patient_consents" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: patient_visits patient_visits_appointment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "patient_consents_insert" ON "public"."patient_consents" FOR INSERT TO "authenticated" WITH CHECK ("public"."has_patient_access"("patient_id"));
+ALTER TABLE ONLY public.patient_visits
+    ADD CONSTRAINT patient_visits_appointment_id_fkey FOREIGN KEY (appointment_id) REFERENCES public.appointments(id) ON DELETE CASCADE;
 
 
+--
+-- Name: patient_visits patient_visits_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "patient_consents_select" ON "public"."patient_consents" FOR SELECT TO "authenticated" USING ("public"."has_patient_access"("patient_id"));
+ALTER TABLE ONLY public.patient_visits
+    ADD CONSTRAINT patient_visits_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
 
+--
+-- Name: patient_visits patient_visits_clinic_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "patient_consents_update" ON "public"."patient_consents" FOR UPDATE TO "authenticated" USING ("public"."has_patient_access"("patient_id")) WITH CHECK ("public"."has_patient_access"("patient_id"));
+ALTER TABLE ONLY public.patient_visits
+    ADD CONSTRAINT patient_visits_clinic_patient_id_fkey FOREIGN KEY (clinic_patient_id) REFERENCES public.clinic_patients(id) ON DELETE RESTRICT;
 
 
+--
+-- Name: patient_visits patient_visits_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."patient_family_data" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.patient_visits
+    ADD CONSTRAINT patient_visits_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
 
-CREATE POLICY "patient_family_data_clinic_ops_all" ON "public"."patient_family_data" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
+--
+-- Name: patients patients_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.patients
+    ADD CONSTRAINT patients_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
-ALTER TABLE "public"."patient_invitations" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: referrals_and_feedback referrals_and_feedback_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.referrals_and_feedback
+    ADD CONSTRAINT referrals_and_feedback_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
-CREATE POLICY "patient_invitations_clinic_ops_all" ON "public"."patient_invitations" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
+--
+-- Name: referrals_and_feedback referrals_and_feedback_patient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.referrals_and_feedback
+    ADD CONSTRAINT referrals_and_feedback_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES public.patients(id) ON DELETE CASCADE;
 
-ALTER TABLE "public"."patient_personal_data" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: referrals_and_feedback referrals_and_feedback_practitioner_membership_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "patient_personal_data_clinic_ops_all" ON "public"."patient_personal_data" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
+ALTER TABLE ONLY public.referrals_and_feedback
+    ADD CONSTRAINT referrals_and_feedback_practitioner_membership_id_fkey FOREIGN KEY (practitioner_membership_id) REFERENCES public.clinic_memberships(id) ON DELETE SET NULL;
 
 
+--
+-- Name: referrals_and_feedback referrals_and_feedback_visit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."patient_signatures" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.referrals_and_feedback
+    ADD CONSTRAINT referrals_and_feedback_visit_id_fkey FOREIGN KEY (visit_id) REFERENCES public.patient_visits(id) ON DELETE CASCADE;
 
 
-CREATE POLICY "patient_signatures_clinic_ops_select" ON "public"."patient_signatures" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM "public"."clinic_patients" "cp"
-  WHERE (("cp"."patient_id" = "patient_signatures"."patient_id") AND "public"."has_ops_access"("cp"."clinic_id")))));
+--
+-- Name: religion religion_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.religion
+    ADD CONSTRAINT religion_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
 
 
-ALTER TABLE "public"."patient_visits" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: religion religion_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.religion
+    ADD CONSTRAINT religion_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id);
 
-CREATE POLICY "patient_visits_clinic_ops_all" ON "public"."patient_visits" TO "authenticated" USING ("public"."has_ops_access"("clinic_id")) WITH CHECK ("public"."has_ops_access"("clinic_id"));
 
+--
+-- Name: therapy_sessions therapy_sessions_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.therapy_sessions
+    ADD CONSTRAINT therapy_sessions_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.clinics(id) ON DELETE CASCADE;
 
-ALTER TABLE "public"."patients" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: therapy_sessions therapy_sessions_visit_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "patients_clinic_access_all" ON "public"."patients" TO "authenticated" USING ("public"."has_patient_access"("id")) WITH CHECK ("public"."is_portal_staff"());
+ALTER TABLE ONLY public.therapy_sessions
+    ADD CONSTRAINT therapy_sessions_visit_id_fkey FOREIGN KEY (visit_id) REFERENCES public.patient_visits(id) ON DELETE CASCADE;
 
 
+--
+-- Name: users users_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE POLICY "public_read_active_b2b_template" ON "public"."b2b_agreement_templates" FOR SELECT TO "anon" USING (("is_active" = true));
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
+--
+-- Name: objects objects_bucketId_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
 
-CREATE POLICY "public_read_address_city" ON "public"."address_city" FOR SELECT USING (true);
+ALTER TABLE ONLY storage.objects
+    ADD CONSTRAINT "objects_bucketId_fkey" FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
 
 
+--
+-- Name: s3_multipart_uploads s3_multipart_uploads_bucket_id_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
 
-CREATE POLICY "public_read_address_district" ON "public"."address_district" FOR SELECT USING (true);
+ALTER TABLE ONLY storage.s3_multipart_uploads
+    ADD CONSTRAINT s3_multipart_uploads_bucket_id_fkey FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
 
 
+--
+-- Name: s3_multipart_uploads_parts s3_multipart_uploads_parts_bucket_id_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
 
-CREATE POLICY "public_read_address_postal_code" ON "public"."address_postal_code" FOR SELECT USING (true);
+ALTER TABLE ONLY storage.s3_multipart_uploads_parts
+    ADD CONSTRAINT s3_multipart_uploads_parts_bucket_id_fkey FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
 
 
+--
+-- Name: s3_multipart_uploads_parts s3_multipart_uploads_parts_upload_id_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
 
-CREATE POLICY "public_read_address_province" ON "public"."address_province" FOR SELECT USING (true);
+ALTER TABLE ONLY storage.s3_multipart_uploads_parts
+    ADD CONSTRAINT s3_multipart_uploads_parts_upload_id_fkey FOREIGN KEY (upload_id) REFERENCES storage.s3_multipart_uploads(id) ON DELETE CASCADE;
 
 
+--
+-- Name: vector_indexes vector_indexes_bucket_id_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
 
-CREATE POLICY "public_read_address_subdistrict" ON "public"."address_subdistrict" FOR SELECT USING (true);
+ALTER TABLE ONLY storage.vector_indexes
+    ADD CONSTRAINT vector_indexes_bucket_id_fkey FOREIGN KEY (bucket_id) REFERENCES storage.buckets_vectors(id);
 
 
+--
+-- Name: audit_log_entries; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
-CREATE POLICY "public_read_pending_b2b_invitation" ON "public"."b2b_invitations" FOR SELECT TO "anon" USING (("status" = 'pending'::"text"));
+ALTER TABLE auth.audit_log_entries ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: flow_state; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
+ALTER TABLE auth.flow_state ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "public_update_b2b_invitation" ON "public"."b2b_invitations" FOR UPDATE TO "anon" USING (("status" = 'pending'::"text")) WITH CHECK (("status" = 'signed'::"text"));
+--
+-- Name: identities; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
+ALTER TABLE auth.identities ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: instances; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
-ALTER TABLE "public"."referrals_and_feedback" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE auth.instances ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: mfa_amr_claims; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
-CREATE POLICY "referrals_and_feedback_clinic_practitioner_all" ON "public"."referrals_and_feedback" TO "authenticated" USING ("public"."has_practitioner_access"("clinic_id")) WITH CHECK ("public"."has_practitioner_access"("clinic_id"));
+ALTER TABLE auth.mfa_amr_claims ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: mfa_challenges; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
+ALTER TABLE auth.mfa_challenges ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE "public"."religion" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: mfa_factors; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
+ALTER TABLE auth.mfa_factors ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "religion_admin_delete" ON "public"."religion" FOR DELETE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text"));
+--
+-- Name: one_time_tokens; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
+ALTER TABLE auth.one_time_tokens ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: refresh_tokens; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
-CREATE POLICY "religion_admin_insert" ON "public"."religion" FOR INSERT TO "authenticated" WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+ALTER TABLE auth.refresh_tokens ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: saml_providers; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
+ALTER TABLE auth.saml_providers ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "religion_admin_update" ON "public"."religion" FOR UPDATE TO "authenticated" USING ("public"."is_admin_at_least"('STAFF'::"text")) WITH CHECK ("public"."is_admin_at_least"('STAFF'::"text"));
+--
+-- Name: saml_relay_states; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
+ALTER TABLE auth.saml_relay_states ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: schema_migrations; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
-CREATE POLICY "religion_select_all" ON "public"."religion" FOR SELECT TO "authenticated", "anon" USING (true);
+ALTER TABLE auth.schema_migrations ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: sessions; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
+ALTER TABLE auth.sessions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "service_role_manage_edge_rate_limit_events" ON "public"."edge_rate_limit_events" TO "service_role" USING (true) WITH CHECK (true);
+--
+-- Name: sso_domains; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
+ALTER TABLE auth.sso_domains ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: sso_providers; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
-CREATE POLICY "service_role_read_demo_request" ON "public"."demo_requests" FOR SELECT TO "service_role" USING (true);
+ALTER TABLE auth.sso_providers ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: users; Type: ROW SECURITY; Schema: auth; Owner: -
+--
 
+ALTER TABLE auth.users ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "service_role_update_demo_request" ON "public"."demo_requests" FOR UPDATE TO "service_role" USING (true) WITH CHECK (true);
+--
+-- Name: address_city; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.address_city ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: address_district; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."therapy_sessions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.address_district ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: address_postal_code; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
-CREATE POLICY "therapy_sessions_clinic_practitioner_all" ON "public"."therapy_sessions" TO "authenticated" USING ("public"."has_practitioner_access"("clinic_id")) WITH CHECK ("public"."has_practitioner_access"("clinic_id"));
+ALTER TABLE public.address_postal_code ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: address_province; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.address_province ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE "public"."users" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: address_subdistrict; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.address_subdistrict ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "users_select_own" ON "public"."users" FOR SELECT TO "authenticated" USING (("auth"."uid"() = "id"));
+--
+-- Name: b2b_invitations admin_all_b2b_invitations; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY admin_all_b2b_invitations ON public.b2b_invitations TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.admin_profiles
+  WHERE ((admin_profiles.id = auth.uid()) AND (admin_profiles.is_active = true)))));
 
 
-GRANT USAGE ON SCHEMA "public" TO "postgres";
-GRANT USAGE ON SCHEMA "public" TO "anon";
-GRANT USAGE ON SCHEMA "public" TO "authenticated";
-GRANT USAGE ON SCHEMA "public" TO "service_role";
+--
+-- Name: b2b_agreement_templates admin_all_b2b_templates; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY admin_all_b2b_templates ON public.b2b_agreement_templates TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.admin_profiles
+  WHERE ((admin_profiles.id = auth.uid()) AND (admin_profiles.is_active = true)))));
 
 
-GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "consent_ip" "text", "consent_user_agent" "text") TO "service_role";
+--
+-- Name: admin_profiles; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.admin_profiles ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: admin_profiles admin_profiles_admin_insert; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "signature_id" "uuid", "consent_ip" "text", "consent_user_agent" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "signature_id" "uuid", "consent_ip" "text", "consent_user_agent" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."accept_patient_consent_by_token"("invite_token" "text", "signature_id" "uuid", "consent_ip" "text", "consent_user_agent" "text") TO "service_role";
+CREATE POLICY admin_profiles_admin_insert ON public.admin_profiles FOR INSERT TO authenticated WITH CHECK (public.is_admin_at_least('ADMIN'::text));
 
 
+--
+-- Name: admin_profiles admin_profiles_admin_select; Type: POLICY; Schema: public; Owner: -
+--
 
-REVOKE ALL ON FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean, "assign_practitioner" boolean, "member_profession" "public"."practitioner_profession", "actor_user_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean, "assign_practitioner" boolean, "member_profession" "public"."practitioner_profession", "actor_user_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."add_clinic_member_by_email"("target_clinic_id" "uuid", "member_email" "text", "assign_staff" boolean, "assign_practitioner" boolean, "member_profession" "public"."practitioner_profession", "actor_user_id" "uuid") TO "service_role";
+CREATE POLICY admin_profiles_admin_select ON public.admin_profiles FOR SELECT TO authenticated USING (public.is_admin_at_least('ADMIN'::text));
 
 
+--
+-- Name: admin_profiles admin_profiles_admin_update; Type: POLICY; Schema: public; Owner: -
+--
 
-REVOKE ALL ON FUNCTION "public"."admin_add_clinic_member"("p_clinic_id" "uuid", "p_user_id" "uuid", "p_full_name" "text", "p_email" "text", "p_is_staff" boolean, "p_is_practitioner" boolean, "p_profession" "public"."practitioner_profession") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."admin_add_clinic_member"("p_clinic_id" "uuid", "p_user_id" "uuid", "p_full_name" "text", "p_email" "text", "p_is_staff" boolean, "p_is_practitioner" boolean, "p_profession" "public"."practitioner_profession") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."admin_add_clinic_member"("p_clinic_id" "uuid", "p_user_id" "uuid", "p_full_name" "text", "p_email" "text", "p_is_staff" boolean, "p_is_practitioner" boolean, "p_profession" "public"."practitioner_profession") TO "service_role";
+CREATE POLICY admin_profiles_admin_update ON public.admin_profiles FOR UPDATE TO authenticated USING (public.is_admin_at_least('ADMIN'::text)) WITH CHECK (public.is_admin_at_least('ADMIN'::text));
 
 
+--
+-- Name: admin_profiles admin_profiles_read_own_profile; Type: POLICY; Schema: public; Owner: -
+--
 
-REVOKE ALL ON FUNCTION "public"."admin_get_clinic_detail"("p_clinic_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."admin_get_clinic_detail"("p_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."admin_get_clinic_detail"("p_clinic_id" "uuid") TO "service_role";
+CREATE POLICY admin_profiles_read_own_profile ON public.admin_profiles FOR SELECT TO authenticated USING ((id = auth.uid()));
 
 
+--
+-- Name: admin_profiles admin_profiles_super_admin_delete; Type: POLICY; Schema: public; Owner: -
+--
 
-REVOKE ALL ON FUNCTION "public"."admin_list_clinics"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."admin_list_clinics"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."admin_list_clinics"() TO "service_role";
+CREATE POLICY admin_profiles_super_admin_delete ON public.admin_profiles FOR DELETE TO authenticated USING (public.is_admin_at_least('SUPER_ADMIN'::text));
 
 
+--
+-- Name: demo_requests admin_read_demo_request; Type: POLICY; Schema: public; Owner: -
+--
 
-REVOKE ALL ON FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."approve_clinic_extension_request"("p_request_id" "uuid", "p_added_days" integer) TO "service_role";
+CREATE POLICY admin_read_demo_request ON public.demo_requests FOR SELECT TO authenticated USING (public.is_admin_at_least('STAFF'::text));
 
 
+--
+-- Name: appointments; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
-REVOKE ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid") TO "service_role";
+ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: appointments appointments_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY appointments_clinic_ops_all ON public.appointments TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
-REVOKE ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "expired_date" timestamp with time zone) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "expired_date" timestamp with time zone) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "expired_date" timestamp with time zone) TO "service_role";
 
+--
+-- Name: b2b_agreement_templates; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.b2b_agreement_templates ENABLE ROW LEVEL SECURITY;
 
-REVOKE ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "full_address" "text", "expired_date" timestamp with time zone) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "full_address" "text", "expired_date" timestamp with time zone) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."create_clinic_with_owner"("clinic_name" "text", "clinic_slug" "text", "owner_user_id" "uuid", "permit_number" "text", "owner_ktp_number" "text", "phone_number" "text", "address_line" "text", "rt_rw" "text", "province_name" "text", "city_name" "text", "district_name" "text", "subdistrict_name" "text", "postal_code" "text", "full_address" "text", "expired_date" timestamp with time zone) TO "service_role";
+--
+-- Name: b2b_agreements; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.b2b_agreements ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: b2b_agreements b2b_agreements_owner_insert; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."create_patient_consent"("p_visit_id" "uuid", "p_patient_id" "uuid", "p_consent_type" "text", "p_signed_by_name" "text", "p_notes" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."create_patient_consent"("p_visit_id" "uuid", "p_patient_id" "uuid", "p_consent_type" "text", "p_signed_by_name" "text", "p_notes" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."create_patient_consent"("p_visit_id" "uuid", "p_patient_id" "uuid", "p_consent_type" "text", "p_signed_by_name" "text", "p_notes" "text") TO "service_role";
+CREATE POLICY b2b_agreements_owner_insert ON public.b2b_agreements FOR INSERT TO authenticated WITH CHECK (public.has_owner_access(clinic_id));
 
 
+--
+-- Name: b2b_agreements b2b_agreements_select; Type: POLICY; Schema: public; Owner: -
+--
 
-REVOKE ALL ON FUNCTION "public"."create_patient_from_auth_user"("auth_email" "text", "auth_user_id" "uuid", "invite_token" "text", "auth_phone" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_patient_from_auth_user"("auth_email" "text", "auth_user_id" "uuid", "invite_token" "text", "auth_phone" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."create_patient_from_auth_user"("auth_email" "text", "auth_user_id" "uuid", "invite_token" "text", "auth_phone" "text") TO "service_role";
+CREATE POLICY b2b_agreements_select ON public.b2b_agreements FOR SELECT TO authenticated USING ((public.is_admin_at_least('STAFF'::text) OR public.has_active_membership(clinic_id)));
 
 
+--
+-- Name: b2b_invitations; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
-REVOKE ALL ON FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text", "patient_phone" "text", "contact_type" "text", "session_date" "date", "session_time" time without time zone, "duration_minutes" integer, "session_timezone" "text", "invitation_ttl_hours" integer) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text", "patient_phone" "text", "contact_type" "text", "session_date" "date", "session_time" time without time zone, "duration_minutes" integer, "session_timezone" "text", "invitation_ttl_hours" integer) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."create_patient_invitation_with_schedule"("target_clinic_id" "uuid", "invited_by_membership_id" "uuid", "patient_email" "text", "patient_phone" "text", "contact_type" "text", "session_date" "date", "session_time" time without time zone, "duration_minutes" integer, "session_timezone" "text", "invitation_ttl_hours" integer) TO "service_role";
+ALTER TABLE public.b2b_invitations ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: clinic_extension_requests; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.clinic_extension_requests ENABLE ROW LEVEL SECURITY;
 
-GRANT ALL ON FUNCTION "public"."delete_admin_b2b_template"("p_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."delete_admin_b2b_template"("p_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."delete_admin_b2b_template"("p_id" "uuid") TO "service_role";
+--
+-- Name: clinic_extension_requests clinic_extension_requests_insert; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY clinic_extension_requests_insert ON public.clinic_extension_requests FOR INSERT TO authenticated WITH CHECK ((public.is_admin_at_least('STAFF'::text) OR public.has_owner_access(clinic_id)));
 
 
-GRANT ALL ON FUNCTION "public"."delete_admin_consent_template"("p_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."delete_admin_consent_template"("p_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."delete_admin_consent_template"("p_id" "uuid") TO "service_role";
+--
+-- Name: clinic_extension_requests clinic_extension_requests_select; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY clinic_extension_requests_select ON public.clinic_extension_requests FOR SELECT TO authenticated USING ((public.is_admin_at_least('STAFF'::text) OR public.has_active_membership(clinic_id)));
 
 
-REVOKE ALL ON FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."edge_check_rate_limit"("p_function_name" "text", "p_identifier" "text", "p_window_seconds" integer, "p_limit" integer) TO "service_role";
+--
+-- Name: clinic_extension_requests clinic_extension_requests_update; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY clinic_extension_requests_update ON public.clinic_extension_requests FOR UPDATE TO authenticated USING (public.is_admin_at_least('STAFF'::text)) WITH CHECK (public.is_admin_at_least('STAFF'::text));
 
 
-GRANT ALL ON FUNCTION "public"."get_active_consent_template"() TO "anon";
-GRANT ALL ON FUNCTION "public"."get_active_consent_template"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_active_consent_template"() TO "service_role";
+--
+-- Name: clinic_memberships; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.clinic_memberships ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: clinic_memberships clinic_memberships_member_select; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."get_admin_clinic_edit"("p_clinic_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_admin_clinic_edit"("p_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_admin_clinic_edit"("p_clinic_id" "uuid") TO "service_role";
+CREATE POLICY clinic_memberships_member_select ON public.clinic_memberships FOR SELECT TO authenticated USING (public.has_active_membership(clinic_id));
 
 
+--
+-- Name: clinic_memberships clinic_memberships_owner_manage; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."get_admin_dashboard"() TO "anon";
-GRANT ALL ON FUNCTION "public"."get_admin_dashboard"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_admin_dashboard"() TO "service_role";
+CREATE POLICY clinic_memberships_owner_manage ON public.clinic_memberships TO authenticated USING (public.has_owner_access(clinic_id)) WITH CHECK (public.has_owner_access(clinic_id));
 
 
+--
+-- Name: b2b_invitations clinic_owner_read_b2b_invitations; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."get_admin_profile"() TO "anon";
-GRANT ALL ON FUNCTION "public"."get_admin_profile"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_admin_profile"() TO "service_role";
+CREATE POLICY clinic_owner_read_b2b_invitations ON public.b2b_invitations FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.clinic_memberships
+  WHERE ((clinic_memberships.clinic_id = b2b_invitations.clinic_id) AND (clinic_memberships.user_id = auth.uid()) AND (clinic_memberships.is_owner = true) AND (clinic_memberships.is_active = true)))));
 
 
+--
+-- Name: clinic_patients; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
-REVOKE ALL ON FUNCTION "public"."get_b2b_update_reminder"("p_clinic_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_b2b_update_reminder"("p_clinic_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_b2b_update_reminder"("p_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_b2b_update_reminder"("p_clinic_id" "uuid") TO "service_role";
+ALTER TABLE public.clinic_patients ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: clinic_patients clinic_patients_ops_all; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY clinic_patients_ops_all ON public.clinic_patients TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
-REVOKE ALL ON FUNCTION "public"."get_clinics_with_pending_extension"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_clinics_with_pending_extension"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_clinics_with_pending_extension"() TO "service_role";
 
+--
+-- Name: clinics; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.clinics ENABLE ROW LEVEL SECURITY;
 
-GRANT ALL ON FUNCTION "public"."get_invitation_by_token"("invite_token" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_invitation_by_token"("invite_token" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_invitation_by_token"("invite_token" "text") TO "service_role";
+--
+-- Name: clinics clinics_member_select; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY clinics_member_select ON public.clinics FOR SELECT TO authenticated USING (public.has_active_membership(id));
 
 
-GRANT ALL ON FUNCTION "public"."get_portal_clinic_agreement"("p_clinic_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_portal_clinic_agreement"("p_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_portal_clinic_agreement"("p_clinic_id" "uuid") TO "service_role";
+--
+-- Name: clinics clinics_owner_manage; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY clinics_owner_manage ON public.clinics TO authenticated USING (public.has_owner_access(id)) WITH CHECK (public.has_owner_access(id));
 
 
-GRANT ALL ON FUNCTION "public"."get_portal_clinic_profile"("p_clinic_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_portal_clinic_profile"("p_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_portal_clinic_profile"("p_clinic_id" "uuid") TO "service_role";
+--
+-- Name: cognitive_assessments; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.cognitive_assessments ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: cognitive_assessments cognitive_assessments_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."get_portal_dashboard"("p_clinic_id" "uuid", "p_start" timestamp with time zone, "p_end" timestamp with time zone, "p_mode" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_portal_dashboard"("p_clinic_id" "uuid", "p_start" timestamp with time zone, "p_end" timestamp with time zone, "p_mode" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_portal_dashboard"("p_clinic_id" "uuid", "p_start" timestamp with time zone, "p_end" timestamp with time zone, "p_mode" "text") TO "service_role";
+CREATE POLICY cognitive_assessments_clinic_ops_all ON public.cognitive_assessments TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
 
+--
+-- Name: consent_templates; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."get_portal_patient_workspace"("p_clinic_id" "uuid", "p_patient_id" "uuid", "p_appointment_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_portal_patient_workspace"("p_clinic_id" "uuid", "p_patient_id" "uuid", "p_appointment_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_portal_patient_workspace"("p_clinic_id" "uuid", "p_patient_id" "uuid", "p_appointment_id" "uuid") TO "service_role";
+ALTER TABLE public.consent_templates ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: consent_templates consent_templates_delete; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY consent_templates_delete ON public.consent_templates FOR DELETE TO authenticated USING (public.is_admin_at_least('ADMIN'::text));
 
-GRANT ALL ON FUNCTION "public"."get_portal_session"() TO "anon";
-GRANT ALL ON FUNCTION "public"."get_portal_session"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_portal_session"() TO "service_role";
 
+--
+-- Name: consent_templates consent_templates_insert; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY consent_templates_insert ON public.consent_templates FOR INSERT TO authenticated WITH CHECK (public.is_admin_at_least('ADMIN'::text));
 
-REVOKE ALL ON FUNCTION "public"."get_reference_data"("table_name" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_reference_data"("table_name" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_reference_data"("table_name" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_reference_data"("table_name" "text") TO "service_role";
 
+--
+-- Name: consent_templates consent_templates_select; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY consent_templates_select ON public.consent_templates FOR SELECT TO authenticated USING (true);
 
-REVOKE ALL ON FUNCTION "public"."handle_new_auth_user"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."handle_new_auth_user"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_new_auth_user"() TO "service_role";
 
+--
+-- Name: consent_templates consent_templates_update; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY consent_templates_update ON public.consent_templates FOR UPDATE TO authenticated USING (public.is_admin_at_least('ADMIN'::text)) WITH CHECK (public.is_admin_at_least('ADMIN'::text));
 
-GRANT ALL ON FUNCTION "public"."has_active_membership"("target_clinic_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."has_active_membership"("target_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."has_active_membership"("target_clinic_id" "uuid") TO "service_role";
 
+--
+-- Name: demo_requests; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.demo_requests ENABLE ROW LEVEL SECURITY;
 
-GRANT ALL ON FUNCTION "public"."has_ops_access"("target_clinic_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."has_ops_access"("target_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."has_ops_access"("target_clinic_id" "uuid") TO "service_role";
+--
+-- Name: developmental_history; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.developmental_history ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: developmental_history developmental_history_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."has_owner_access"("target_clinic_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."has_owner_access"("target_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."has_owner_access"("target_clinic_id" "uuid") TO "service_role";
+CREATE POLICY developmental_history_clinic_ops_all ON public.developmental_history TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
 
+--
+-- Name: edge_rate_limit_events; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."has_patient_access"("target_patient_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."has_patient_access"("target_patient_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."has_patient_access"("target_patient_id" "uuid") TO "service_role";
+ALTER TABLE public.edge_rate_limit_events ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: education; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.education ENABLE ROW LEVEL SECURITY;
 
-GRANT ALL ON FUNCTION "public"."has_practitioner_access"("target_clinic_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."has_practitioner_access"("target_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."has_practitioner_access"("target_clinic_id" "uuid") TO "service_role";
+--
+-- Name: education education_admin_delete; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY education_admin_delete ON public.education FOR DELETE TO authenticated USING (public.is_admin_at_least('STAFF'::text));
 
 
-GRANT ALL ON FUNCTION "public"."is_admin_at_least"("p_min_role" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."is_admin_at_least"("p_min_role" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."is_admin_at_least"("p_min_role" "text") TO "service_role";
+--
+-- Name: education education_admin_insert; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY education_admin_insert ON public.education FOR INSERT TO authenticated WITH CHECK (public.is_admin_at_least('STAFF'::text));
 
 
-GRANT ALL ON FUNCTION "public"."is_portal_staff"() TO "anon";
-GRANT ALL ON FUNCTION "public"."is_portal_staff"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."is_portal_staff"() TO "service_role";
+--
+-- Name: education education_admin_update; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY education_admin_update ON public.education FOR UPDATE TO authenticated USING (public.is_admin_at_least('STAFF'::text)) WITH CHECK (public.is_admin_at_least('STAFF'::text));
 
 
-GRANT ALL ON FUNCTION "public"."is_registered_profile_email"("p_email" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."is_registered_profile_email"("p_email" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."is_registered_profile_email"("p_email" "text") TO "service_role";
+--
+-- Name: education education_select_all; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY education_select_all ON public.education FOR SELECT TO authenticated, anon USING (true);
 
 
-GRANT ALL ON FUNCTION "public"."list_admin_clinic_followups"("p_clinic_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."list_admin_clinic_followups"("p_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."list_admin_clinic_followups"("p_clinic_id" "uuid") TO "service_role";
+--
+-- Name: demo_requests insert_demo_request; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY insert_demo_request ON public.demo_requests FOR INSERT TO authenticated, anon WITH CHECK (true);
 
 
-GRANT ALL ON FUNCTION "public"."list_admin_consent_templates"() TO "anon";
-GRANT ALL ON FUNCTION "public"."list_admin_consent_templates"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."list_admin_consent_templates"() TO "service_role";
+--
+-- Name: marital_status; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.marital_status ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: marital_status marital_status_admin_delete; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."list_admin_demo_requests"("p_status" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."list_admin_demo_requests"("p_status" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."list_admin_demo_requests"("p_status" "text") TO "service_role";
+CREATE POLICY marital_status_admin_delete ON public.marital_status FOR DELETE TO authenticated USING (public.is_admin_at_least('STAFF'::text));
 
 
+--
+-- Name: marital_status marital_status_admin_insert; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."list_admin_profiles"() TO "anon";
-GRANT ALL ON FUNCTION "public"."list_admin_profiles"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."list_admin_profiles"() TO "service_role";
+CREATE POLICY marital_status_admin_insert ON public.marital_status FOR INSERT TO authenticated WITH CHECK (public.is_admin_at_least('STAFF'::text));
 
 
+--
+-- Name: marital_status marital_status_admin_update; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."list_patient_consents"("p_visit_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."list_patient_consents"("p_visit_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."list_patient_consents"("p_visit_id" "uuid") TO "service_role";
+CREATE POLICY marital_status_admin_update ON public.marital_status FOR UPDATE TO authenticated USING (public.is_admin_at_least('STAFF'::text)) WITH CHECK (public.is_admin_at_least('STAFF'::text));
 
 
+--
+-- Name: marital_status marital_status_select_all; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."list_portal_clinic_memberships"("p_clinic_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."list_portal_clinic_memberships"("p_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."list_portal_clinic_memberships"("p_clinic_id" "uuid") TO "service_role";
+CREATE POLICY marital_status_select_all ON public.marital_status FOR SELECT TO authenticated, anon USING (true);
 
 
+--
+-- Name: occupation; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."list_portal_patients"("p_clinic_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."list_portal_patients"("p_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."list_portal_patients"("p_clinic_id" "uuid") TO "service_role";
+ALTER TABLE public.occupation ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: occupation occupation_admin_delete; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY occupation_admin_delete ON public.occupation FOR DELETE TO authenticated USING (public.is_admin_at_least('STAFF'::text));
 
-GRANT ALL ON FUNCTION "public"."mark_admin_demo_registered"("p_demo_request_id" "uuid", "p_clinic_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."mark_admin_demo_registered"("p_demo_request_id" "uuid", "p_clinic_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."mark_admin_demo_registered"("p_demo_request_id" "uuid", "p_clinic_id" "uuid") TO "service_role";
 
+--
+-- Name: occupation occupation_admin_insert; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY occupation_admin_insert ON public.occupation FOR INSERT TO authenticated WITH CHECK (public.is_admin_at_least('STAFF'::text));
 
-GRANT ALL ON FUNCTION "public"."mutate_reference_data"("table_name" "text", "row_id" "uuid", "row_name" "text", "row_order_index" integer, "op" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."mutate_reference_data"("table_name" "text", "row_id" "uuid", "row_name" "text", "row_order_index" integer, "op" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."mutate_reference_data"("table_name" "text", "row_id" "uuid", "row_name" "text", "row_order_index" integer, "op" "text") TO "service_role";
 
+--
+-- Name: occupation occupation_admin_update; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY occupation_admin_update ON public.occupation FOR UPDATE TO authenticated USING (public.is_admin_at_least('STAFF'::text)) WITH CHECK (public.is_admin_at_least('STAFF'::text));
 
-REVOKE ALL ON FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."reject_clinic_extension_request"("p_request_id" "uuid") TO "service_role";
 
+--
+-- Name: occupation occupation_select_all; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY occupation_select_all ON public.occupation FOR SELECT TO authenticated, anon USING (true);
 
-REVOKE ALL ON FUNCTION "public"."rls_auto_enable"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
 
+--
+-- Name: otp_verifications; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.otp_verifications ENABLE ROW LEVEL SECURITY;
 
-REVOKE ALL ON FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."save_therapy_session_entry"("target_clinic_id" "uuid", "target_patient_id" "uuid", "target_visit_id" "uuid", "input_session_date" "date", "input_session_time" time without time zone, "input_activity_type" "text", "input_subject" "text", "input_clinical_notes" "text") TO "service_role";
+--
+-- Name: patient_clinic_consents; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.patient_clinic_consents ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: patient_clinic_consents patient_clinic_consents_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."set_admin_profile_active"("p_id" "uuid", "p_is_active" boolean) TO "anon";
-GRANT ALL ON FUNCTION "public"."set_admin_profile_active"("p_id" "uuid", "p_is_active" boolean) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."set_admin_profile_active"("p_id" "uuid", "p_is_active" boolean) TO "service_role";
+CREATE POLICY patient_clinic_consents_clinic_ops_all ON public.patient_clinic_consents TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
 
+--
+-- Name: patient_consents; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
-REVOKE ALL ON FUNCTION "public"."set_admin_profiles_audit_fields"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."set_admin_profiles_audit_fields"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."set_admin_profiles_audit_fields"() TO "service_role";
+ALTER TABLE public.patient_consents ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: patient_consents patient_consents_insert; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY patient_consents_insert ON public.patient_consents FOR INSERT TO authenticated WITH CHECK (true);
 
-REVOKE ALL ON FUNCTION "public"."submit_patient_registration"("invite_token" "text", "registration_payload" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."submit_patient_registration"("invite_token" "text", "registration_payload" "jsonb") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."submit_patient_registration"("invite_token" "text", "registration_payload" "jsonb") TO "service_role";
 
+--
+-- Name: patient_consents patient_consents_select; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY patient_consents_select ON public.patient_consents FOR SELECT TO authenticated USING (true);
 
-GRANT ALL ON FUNCTION "public"."submit_portal_clinic_agreement"("p_clinic_id" "uuid", "p_template_id" "uuid", "p_signed_by_name" "text", "p_signature_image_path" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."submit_portal_clinic_agreement"("p_clinic_id" "uuid", "p_template_id" "uuid", "p_signed_by_name" "text", "p_signature_image_path" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."submit_portal_clinic_agreement"("p_clinic_id" "uuid", "p_template_id" "uuid", "p_signed_by_name" "text", "p_signature_image_path" "text") TO "service_role";
 
+--
+-- Name: patient_consents patient_consents_update; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY patient_consents_update ON public.patient_consents FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 
-REVOKE ALL ON FUNCTION "public"."sync_clinic_membership_profile_defaults"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."sync_clinic_membership_profile_defaults"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."sync_clinic_membership_profile_defaults"() TO "service_role";
 
+--
+-- Name: patient_family_data; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.patient_family_data ENABLE ROW LEVEL SECURITY;
 
-GRANT ALL ON FUNCTION "public"."update_patient_consent_signature"("p_id" "uuid", "p_signature_path" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."update_patient_consent_signature"("p_id" "uuid", "p_signature_path" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."update_patient_consent_signature"("p_id" "uuid", "p_signature_path" "text") TO "service_role";
+--
+-- Name: patient_family_data patient_family_data_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY patient_family_data_clinic_ops_all ON public.patient_family_data TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
 
-REVOKE ALL ON FUNCTION "public"."update_patient_registration_by_user_id"("invite_token" "text", "registration_payload" "jsonb", "target_user_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_patient_registration_by_user_id"("invite_token" "text", "registration_payload" "jsonb", "target_user_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."update_patient_registration_by_user_id"("invite_token" "text", "registration_payload" "jsonb", "target_user_id" "uuid") TO "service_role";
+--
+-- Name: patient_invitations; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.patient_invitations ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: patient_invitations patient_invitations_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."update_portal_clinic_asset_paths"("p_clinic_id" "uuid", "p_profile_picture_path" "text", "p_stamp_path" "text", "p_signature_path" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."update_portal_clinic_asset_paths"("p_clinic_id" "uuid", "p_profile_picture_path" "text", "p_stamp_path" "text", "p_signature_path" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."update_portal_clinic_asset_paths"("p_clinic_id" "uuid", "p_profile_picture_path" "text", "p_stamp_path" "text", "p_signature_path" "text") TO "service_role";
+CREATE POLICY patient_invitations_clinic_ops_all ON public.patient_invitations TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
 
+--
+-- Name: patient_personal_data; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
-GRANT ALL ON FUNCTION "public"."upsert_admin_b2b_template"("p_id" "uuid", "p_title" "text", "p_content" "text", "p_is_active" boolean) TO "anon";
-GRANT ALL ON FUNCTION "public"."upsert_admin_b2b_template"("p_id" "uuid", "p_title" "text", "p_content" "text", "p_is_active" boolean) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."upsert_admin_b2b_template"("p_id" "uuid", "p_title" "text", "p_content" "text", "p_is_active" boolean) TO "service_role";
+ALTER TABLE public.patient_personal_data ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: patient_personal_data patient_personal_data_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY patient_personal_data_clinic_ops_all ON public.patient_personal_data TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
-GRANT ALL ON FUNCTION "public"."upsert_admin_consent_template"("p_id" "uuid", "p_title" "text", "p_body" "text", "p_is_active" boolean) TO "anon";
-GRANT ALL ON FUNCTION "public"."upsert_admin_consent_template"("p_id" "uuid", "p_title" "text", "p_body" "text", "p_is_active" boolean) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."upsert_admin_consent_template"("p_id" "uuid", "p_title" "text", "p_body" "text", "p_is_active" boolean) TO "service_role";
 
+--
+-- Name: patient_signatures; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.patient_signatures ENABLE ROW LEVEL SECURITY;
 
-GRANT ALL ON FUNCTION "public"."upsert_admin_profile"("p_id" "uuid", "p_full_name" "text", "p_email" "text", "p_phone" "text", "p_admin_level" "public"."admin_level_enum", "p_is_active" boolean) TO "anon";
-GRANT ALL ON FUNCTION "public"."upsert_admin_profile"("p_id" "uuid", "p_full_name" "text", "p_email" "text", "p_phone" "text", "p_admin_level" "public"."admin_level_enum", "p_is_active" boolean) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."upsert_admin_profile"("p_id" "uuid", "p_full_name" "text", "p_email" "text", "p_phone" "text", "p_admin_level" "public"."admin_level_enum", "p_is_active" boolean) TO "service_role";
+--
+-- Name: patient_signatures patient_signatures_clinic_ops_select; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY patient_signatures_clinic_ops_select ON public.patient_signatures FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.clinic_patients cp
+  WHERE ((cp.patient_id = patient_signatures.patient_id) AND public.has_ops_access(cp.clinic_id)))));
 
 
-REVOKE ALL ON FUNCTION "public"."verify_referral_pin"("referral_id" "uuid", "input_pin" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."verify_referral_pin"("referral_id" "uuid", "input_pin" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."verify_referral_pin"("referral_id" "uuid", "input_pin" "text") TO "service_role";
+--
+-- Name: patient_visits; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.patient_visits ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: patient_visits patient_visits_clinic_ops_all; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON TABLE "public"."address_city" TO "anon";
-GRANT ALL ON TABLE "public"."address_city" TO "authenticated";
-GRANT ALL ON TABLE "public"."address_city" TO "service_role";
+CREATE POLICY patient_visits_clinic_ops_all ON public.patient_visits TO authenticated USING (public.has_ops_access(clinic_id)) WITH CHECK (public.has_ops_access(clinic_id));
 
 
+--
+-- Name: patients; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
-GRANT ALL ON TABLE "public"."address_district" TO "anon";
-GRANT ALL ON TABLE "public"."address_district" TO "authenticated";
-GRANT ALL ON TABLE "public"."address_district" TO "service_role";
+ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: patients patients_clinic_access_all; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY patients_clinic_access_all ON public.patients TO authenticated USING (public.has_patient_access(id)) WITH CHECK (public.is_portal_staff());
 
-GRANT ALL ON TABLE "public"."address_postal_code" TO "anon";
-GRANT ALL ON TABLE "public"."address_postal_code" TO "authenticated";
-GRANT ALL ON TABLE "public"."address_postal_code" TO "service_role";
 
+--
+-- Name: b2b_agreement_templates public_read_active_b2b_template; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY public_read_active_b2b_template ON public.b2b_agreement_templates FOR SELECT TO anon USING ((is_active = true));
 
-GRANT ALL ON TABLE "public"."address_province" TO "anon";
-GRANT ALL ON TABLE "public"."address_province" TO "authenticated";
-GRANT ALL ON TABLE "public"."address_province" TO "service_role";
 
+--
+-- Name: address_city public_read_address_city; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY public_read_address_city ON public.address_city FOR SELECT USING (true);
 
-GRANT ALL ON TABLE "public"."address_subdistrict" TO "anon";
-GRANT ALL ON TABLE "public"."address_subdistrict" TO "authenticated";
-GRANT ALL ON TABLE "public"."address_subdistrict" TO "service_role";
 
+--
+-- Name: address_district public_read_address_district; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY public_read_address_district ON public.address_district FOR SELECT USING (true);
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."admin_profiles" TO "anon";
-GRANT ALL ON TABLE "public"."admin_profiles" TO "authenticated";
-GRANT ALL ON TABLE "public"."admin_profiles" TO "service_role";
 
+--
+-- Name: address_postal_code public_read_address_postal_code; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY public_read_address_postal_code ON public.address_postal_code FOR SELECT USING (true);
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."appointments" TO "anon";
-GRANT ALL ON TABLE "public"."appointments" TO "authenticated";
-GRANT ALL ON TABLE "public"."appointments" TO "service_role";
 
+--
+-- Name: address_province public_read_address_province; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY public_read_address_province ON public.address_province FOR SELECT USING (true);
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."b2b_agreement_templates" TO "anon";
-GRANT ALL ON TABLE "public"."b2b_agreement_templates" TO "authenticated";
-GRANT ALL ON TABLE "public"."b2b_agreement_templates" TO "service_role";
 
+--
+-- Name: address_subdistrict public_read_address_subdistrict; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY public_read_address_subdistrict ON public.address_subdistrict FOR SELECT USING (true);
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."b2b_agreements" TO "anon";
-GRANT ALL ON TABLE "public"."b2b_agreements" TO "authenticated";
-GRANT ALL ON TABLE "public"."b2b_agreements" TO "service_role";
 
+--
+-- Name: b2b_invitations public_read_pending_b2b_invitation; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY public_read_pending_b2b_invitation ON public.b2b_invitations FOR SELECT TO anon USING ((status = 'pending'::text));
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."b2b_invitations" TO "anon";
-GRANT ALL ON TABLE "public"."b2b_invitations" TO "authenticated";
-GRANT ALL ON TABLE "public"."b2b_invitations" TO "service_role";
 
+--
+-- Name: b2b_invitations public_update_b2b_invitation; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY public_update_b2b_invitation ON public.b2b_invitations FOR UPDATE TO anon USING ((status = 'pending'::text)) WITH CHECK ((status = 'signed'::text));
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."clinic_extension_requests" TO "anon";
-GRANT ALL ON TABLE "public"."clinic_extension_requests" TO "authenticated";
-GRANT ALL ON TABLE "public"."clinic_extension_requests" TO "service_role";
 
+--
+-- Name: referrals_and_feedback; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.referrals_and_feedback ENABLE ROW LEVEL SECURITY;
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."clinic_memberships" TO "anon";
-GRANT ALL ON TABLE "public"."clinic_memberships" TO "authenticated";
-GRANT ALL ON TABLE "public"."clinic_memberships" TO "service_role";
+--
+-- Name: referrals_and_feedback referrals_and_feedback_clinic_practitioner_all; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY referrals_and_feedback_clinic_practitioner_all ON public.referrals_and_feedback TO authenticated USING (public.has_practitioner_access(clinic_id)) WITH CHECK (public.has_practitioner_access(clinic_id));
 
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."clinic_patients" TO "anon";
-GRANT ALL ON TABLE "public"."clinic_patients" TO "authenticated";
-GRANT ALL ON TABLE "public"."clinic_patients" TO "service_role";
+--
+-- Name: religion; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.religion ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: religion religion_admin_delete; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."clinics" TO "anon";
-GRANT ALL ON TABLE "public"."clinics" TO "authenticated";
-GRANT ALL ON TABLE "public"."clinics" TO "service_role";
+CREATE POLICY religion_admin_delete ON public.religion FOR DELETE TO authenticated USING (public.is_admin_at_least('STAFF'::text));
 
 
+--
+-- Name: religion religion_admin_insert; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."cognitive_assessments" TO "anon";
-GRANT ALL ON TABLE "public"."cognitive_assessments" TO "authenticated";
-GRANT ALL ON TABLE "public"."cognitive_assessments" TO "service_role";
+CREATE POLICY religion_admin_insert ON public.religion FOR INSERT TO authenticated WITH CHECK (public.is_admin_at_least('STAFF'::text));
 
 
+--
+-- Name: religion religion_admin_update; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."consent_templates" TO "anon";
-GRANT ALL ON TABLE "public"."consent_templates" TO "authenticated";
-GRANT ALL ON TABLE "public"."consent_templates" TO "service_role";
+CREATE POLICY religion_admin_update ON public.religion FOR UPDATE TO authenticated USING (public.is_admin_at_least('STAFF'::text)) WITH CHECK (public.is_admin_at_least('STAFF'::text));
 
 
+--
+-- Name: religion religion_select_all; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."demo_requests" TO "anon";
-GRANT ALL ON TABLE "public"."demo_requests" TO "authenticated";
-GRANT ALL ON TABLE "public"."demo_requests" TO "service_role";
+CREATE POLICY religion_select_all ON public.religion FOR SELECT TO authenticated, anon USING (true);
 
 
+--
+-- Name: edge_rate_limit_events service_role_manage_edge_rate_limit_events; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."developmental_history" TO "anon";
-GRANT ALL ON TABLE "public"."developmental_history" TO "authenticated";
-GRANT ALL ON TABLE "public"."developmental_history" TO "service_role";
+CREATE POLICY service_role_manage_edge_rate_limit_events ON public.edge_rate_limit_events TO service_role USING (true) WITH CHECK (true);
 
 
+--
+-- Name: demo_requests service_role_read_demo_request; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."edge_rate_limit_events" TO "anon";
-GRANT ALL ON TABLE "public"."edge_rate_limit_events" TO "authenticated";
-GRANT ALL ON TABLE "public"."edge_rate_limit_events" TO "service_role";
+CREATE POLICY service_role_read_demo_request ON public.demo_requests FOR SELECT TO service_role USING (true);
 
 
+--
+-- Name: demo_requests service_role_update_demo_request; Type: POLICY; Schema: public; Owner: -
+--
 
-GRANT ALL ON TABLE "public"."education" TO "anon";
-GRANT ALL ON TABLE "public"."education" TO "authenticated";
-GRANT ALL ON TABLE "public"."education" TO "service_role";
+CREATE POLICY service_role_update_demo_request ON public.demo_requests FOR UPDATE TO service_role USING (true) WITH CHECK (true);
 
 
+--
+-- Name: therapy_sessions; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
-GRANT ALL ON TABLE "public"."marital_status" TO "anon";
-GRANT ALL ON TABLE "public"."marital_status" TO "authenticated";
-GRANT ALL ON TABLE "public"."marital_status" TO "service_role";
+ALTER TABLE public.therapy_sessions ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: therapy_sessions therapy_sessions_clinic_practitioner_all; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY therapy_sessions_clinic_practitioner_all ON public.therapy_sessions TO authenticated USING (public.has_practitioner_access(clinic_id)) WITH CHECK (public.has_practitioner_access(clinic_id));
 
-GRANT ALL ON TABLE "public"."occupation" TO "anon";
-GRANT ALL ON TABLE "public"."occupation" TO "authenticated";
-GRANT ALL ON TABLE "public"."occupation" TO "service_role";
 
+--
+-- Name: users; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."otp_verifications" TO "anon";
-GRANT ALL ON TABLE "public"."otp_verifications" TO "authenticated";
-GRANT ALL ON TABLE "public"."otp_verifications" TO "service_role";
+--
+-- Name: users users_select_own; Type: POLICY; Schema: public; Owner: -
+--
 
+CREATE POLICY users_select_own ON public.users FOR SELECT TO authenticated USING ((auth.uid() = id));
 
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_clinic_consents" TO "anon";
-GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "authenticated";
-GRANT ALL ON TABLE "public"."patient_clinic_consents" TO "service_role";
+--
+-- Name: messages; Type: ROW SECURITY; Schema: realtime; Owner: -
+--
 
+ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: buckets; Type: ROW SECURITY; Schema: storage; Owner: -
+--
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_consents" TO "anon";
-GRANT ALL ON TABLE "public"."patient_consents" TO "authenticated";
-GRANT ALL ON TABLE "public"."patient_consents" TO "service_role";
+ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: buckets_analytics; Type: ROW SECURITY; Schema: storage; Owner: -
+--
 
+ALTER TABLE storage.buckets_analytics ENABLE ROW LEVEL SECURITY;
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_family_data" TO "anon";
-GRANT ALL ON TABLE "public"."patient_family_data" TO "authenticated";
-GRANT ALL ON TABLE "public"."patient_family_data" TO "service_role";
+--
+-- Name: buckets_vectors; Type: ROW SECURITY; Schema: storage; Owner: -
+--
 
+ALTER TABLE storage.buckets_vectors ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: migrations; Type: ROW SECURITY; Schema: storage; Owner: -
+--
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_invitations" TO "anon";
-GRANT ALL ON TABLE "public"."patient_invitations" TO "authenticated";
-GRANT ALL ON TABLE "public"."patient_invitations" TO "service_role";
+ALTER TABLE storage.migrations ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: objects; Type: ROW SECURITY; Schema: storage; Owner: -
+--
 
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_personal_data" TO "anon";
-GRANT ALL ON TABLE "public"."patient_personal_data" TO "authenticated";
-GRANT ALL ON TABLE "public"."patient_personal_data" TO "service_role";
+--
+-- Name: s3_multipart_uploads; Type: ROW SECURITY; Schema: storage; Owner: -
+--
 
+ALTER TABLE storage.s3_multipart_uploads ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: s3_multipart_uploads_parts; Type: ROW SECURITY; Schema: storage; Owner: -
+--
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_signatures" TO "anon";
-GRANT ALL ON TABLE "public"."patient_signatures" TO "authenticated";
-GRANT ALL ON TABLE "public"."patient_signatures" TO "service_role";
+ALTER TABLE storage.s3_multipart_uploads_parts ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: vector_indexes; Type: ROW SECURITY; Schema: storage; Owner: -
+--
 
+ALTER TABLE storage.vector_indexes ENABLE ROW LEVEL SECURITY;
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patient_visits" TO "anon";
-GRANT ALL ON TABLE "public"."patient_visits" TO "authenticated";
-GRANT ALL ON TABLE "public"."patient_visits" TO "service_role";
+--
+-- Name: supabase_realtime; Type: PUBLICATION; Schema: -; Owner: -
+--
 
+CREATE PUBLICATION supabase_realtime WITH (publish = 'insert, update, delete, truncate');
 
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."patients" TO "anon";
-GRANT ALL ON TABLE "public"."patients" TO "authenticated";
-GRANT ALL ON TABLE "public"."patients" TO "service_role";
+--
+-- Name: ensure_rls; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
 
+CREATE EVENT TRIGGER ensure_rls ON ddl_command_end
+         WHEN TAG IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+   EXECUTE FUNCTION public.rls_auto_enable();
 
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."referrals_and_feedback" TO "anon";
-GRANT ALL ON TABLE "public"."referrals_and_feedback" TO "authenticated";
-GRANT ALL ON TABLE "public"."referrals_and_feedback" TO "service_role";
+--
+-- Name: issue_graphql_placeholder; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
 
+CREATE EVENT TRIGGER issue_graphql_placeholder ON sql_drop
+         WHEN TAG IN ('DROP EXTENSION')
+   EXECUTE FUNCTION extensions.set_graphql_placeholder();
 
 
-GRANT ALL ON TABLE "public"."religion" TO "anon";
-GRANT ALL ON TABLE "public"."religion" TO "authenticated";
-GRANT ALL ON TABLE "public"."religion" TO "service_role";
+--
+-- Name: issue_pg_cron_access; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
 
+CREATE EVENT TRIGGER issue_pg_cron_access ON ddl_command_end
+         WHEN TAG IN ('CREATE EXTENSION')
+   EXECUTE FUNCTION extensions.grant_pg_cron_access();
 
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."therapy_sessions" TO "anon";
-GRANT ALL ON TABLE "public"."therapy_sessions" TO "authenticated";
-GRANT ALL ON TABLE "public"."therapy_sessions" TO "service_role";
+--
+-- Name: issue_pg_graphql_access; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
 
+CREATE EVENT TRIGGER issue_pg_graphql_access ON ddl_command_end
+         WHEN TAG IN ('CREATE FUNCTION')
+   EXECUTE FUNCTION extensions.grant_pg_graphql_access();
 
 
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."users" TO "anon";
-GRANT ALL ON TABLE "public"."users" TO "authenticated";
-GRANT ALL ON TABLE "public"."users" TO "service_role";
+--
+-- Name: issue_pg_net_access; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
 
+CREATE EVENT TRIGGER issue_pg_net_access ON ddl_command_end
+         WHEN TAG IN ('CREATE EXTENSION')
+   EXECUTE FUNCTION extensions.grant_pg_net_access();
 
 
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
+--
+-- Name: pgrst_ddl_watch; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
 
+CREATE EVENT TRIGGER pgrst_ddl_watch ON ddl_command_end
+   EXECUTE FUNCTION extensions.pgrst_ddl_watch();
 
 
+--
+-- Name: pgrst_drop_watch; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
 
+CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
+   EXECUTE FUNCTION extensions.pgrst_drop_watch();
 
 
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
+--
+-- PostgreSQL database dump complete
+--
 
-
-
-
-
-
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
-
-
-
-
-
-
+\unrestrict aMMlBMC53v9yMKMdTOTJuhCghM11bFigEJKAxV1GIQEBVgqlPzW5MI4TF0hetsV
 
