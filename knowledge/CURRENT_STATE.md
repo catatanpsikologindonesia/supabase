@@ -78,11 +78,9 @@ The repository currently uses one squashed migration file:
 
 - `supabase/migrations/20260521210149_rpc_portal_update_clinic_asset_paths.sql` — squashed baseline plus B2B reminder and clinic profile asset RPCs
 
-RPC naming standardization Phase 1 audit is documented in `knowledge/rpc-naming-mapping.md`; no SQL migrations have been applied for that initiative yet.
+RPC naming standardization for CP is complete in the local baseline. Normalized RPC functions replaced the previous `rpc_*` names, the old `rpc_*` functions were dropped, and both active frontend repos are already on normalized callsites.
 
-Normalized RPC functions replaced the previous `rpc_*` function names. The old `rpc_*` functions were dropped after CP admin/user source callsites were migrated and verified.
-
-This file contains the active tables, enums, RPCs, triggers, RLS enablement, policies, `public.get_b2b_update_reminder(uuid)`, `public.rpc_portal_get_clinic_profile(uuid)`, and `public.rpc_portal_update_clinic_asset_paths(uuid, text, text, text)`.
+This file contains the active tables, enums, RPCs, triggers, RLS enablement, policies, `public.get_b2b_update_reminder(uuid)`, `public.get_portal_clinic_profile(uuid)`, and `public.update_portal_clinic_asset_paths(uuid, text, text, text)`.
 
 ## Current Public Schema Families
 
