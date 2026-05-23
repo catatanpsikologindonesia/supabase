@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 .DEFAULT_GOAL := help
 
-.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local start-local-restore restore-local prepare-local sync-auth sync-cron sync-cron-jobs sync-extensions sync-storage sync-storage-policies verify-local-remote mirror-remote-to-local guard-local-sync knowledge-language-check push-remote push-staging push-prod restore-storage db-reset
+.PHONY: help export-db export-storage export-config export-all restore verify verify-fast sync-all sync-all-verbose pull-snapshot start-local start-local-restore restore-local prepare-local sync-auth sync-cron sync-cron-jobs sync-extensions sync-storage sync-storage-policies verify-local-remote mirror-remote-to-local guard-local-sync knowledge-language-check push-remote push-staging push-prod restore-storage db-reset push-local-data
 
 help:
 	@echo "Available targets:"
@@ -34,6 +34,7 @@ help:
 	@echo "  make push-staging"
 	@echo "  make push-prod"
 	@echo "  make push-remote"
+	@echo "  make push-local-data"
 
 export-db: pull-snapshot
 
@@ -118,6 +119,9 @@ push-prod:
 
 push-remote:
 	$(MAKE) push-staging
+
+push-local-data:
+	./scripts/push_local_data_to_remote.sh
 
 guard-knowledge-sync:
 	bash ./scripts/guard-knowledge-sync.sh

@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-05-22
+Last updated: 2026-05-24
 
 ## Repository Role
 
@@ -11,7 +11,7 @@ It currently owns:
 - database schema and RLS
 - SQL functions, triggers, and policies
 - edge functions and shared helpers
-- local restore, mirror, verify, and push automation
+- local restore, mirror, verify, local-to-remote data push, and push automation
 - snapshot artifacts for local recovery and parity work
 
 ## Branch And Runtime
@@ -76,11 +76,11 @@ Current `_shared/` files in code:
 
 The repository currently uses one squashed migration file:
 
-- `supabase/migrations/20260521210149_rpc_portal_update_clinic_asset_paths.sql` — squashed baseline plus B2B reminder and clinic profile asset RPCs
+- `supabase/migrations/20260524014310_schema_parity_from_local_source.sql` — local source-of-truth schema parity baseline covering normalized RPCs and public column parity needed by staging data restore
 
 RPC naming standardization for CP is complete in the local baseline. Normalized RPC functions replaced the previous `rpc_*` names, the old `rpc_*` functions were dropped, and both active frontend repos are already on normalized callsites.
 
-This file contains the active tables, enums, RPCs, triggers, RLS enablement, policies, `public.get_b2b_update_reminder(uuid)`, `public.get_portal_clinic_profile(uuid)`, and `public.update_portal_clinic_asset_paths(uuid, text, text, text)`.
+This file contains the active tables, enums, RPCs, triggers, RLS enablement, policies, `public.get_b2b_update_reminder(uuid)`, `public.get_portal_clinic_profile(uuid)`, `public.update_portal_clinic_asset_paths(uuid, text, text, text)`, and admin/user portal RPC contracts.
 
 ## Current Public Schema Families
 
@@ -129,6 +129,7 @@ The repo currently exposes script-driven workflows for:
 - cron sync
 - extension sync
 - staging and production push flows
+- local-to-remote staging data push through `scripts/push_local_data_to_remote.sh`
 
 Restore and migration hardening currently include:
 
@@ -138,8 +139,7 @@ Restore and migration hardening currently include:
 
 Current parity note:
 
-- `make verify-local-remote` still reports broader local-vs-remote drift in tables, functions, auth counts, storage objects, and edge-function inventory
-- this repository should not be described as remote-parity-clean until that rollout gap is explicitly resolved
+- `make verify-local-remote` reports local and remote aligned as of 2026-05-24 after local-source schema parity migration and staging data sync
 - `_shared/password_policy.ts` is currently in parity with the active Psikolog admin and user frontend validators
 
 ## Snapshot State
@@ -177,6 +177,8 @@ Committed database snapshot artifacts currently present:
 - **2026-05-21**: Added frontend RPC migration contracts for the admin and user portals. Active frontend database reads/writes now go through RPC contracts; direct `supabase.from()` database table access has been removed from both active frontend codebases. Storage bucket access still uses `supabase.storage.from()`.
 - **2026-05-21**: Added `public.get_b2b_update_reminder(uuid)` for the user portal PKS update banner. The RPC compares `b2b_agreement_templates.updated_at` with the clinic's latest `b2b_agreements.signed_at` and returns a seven-day reminder window.
 - **2026-05-21**: Added clinic profile asset support: `clinics.profile_picture_path`, `clinics.stamp_path`, `clinics.signature_path`, private `clinic_profile_picture` storage bucket, member-scoped storage policies, `rpc_portal_get_clinic_profile(uuid)`, and `rpc_portal_update_clinic_asset_paths(uuid, text, text, text)`.
+- **2026-05-24**: Added `schema_parity_from_local_source` migration after confirming local schema/data is the source of truth. The migration records the local-current public column parity and normalized admin/user RPC contracts that were required to make remote staging match local state.
+- **2026-05-24**: Added `scripts/push_local_data_to_remote.sh` and `make push-local-data` for staging data restore from local to remote. The script skips ephemeral/audit-only tables and copies public data plus `auth.users`/`auth.identities`.
 
 ## Key Active Rules
 

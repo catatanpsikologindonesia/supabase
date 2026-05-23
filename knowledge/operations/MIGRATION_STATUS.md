@@ -50,3 +50,4 @@ The current code appends plain bullet lines to this file after each successful m
 - 2026-05-22 20260522021459: Applied rpc_normalized_portal_wrappers
 - 2026-05-22 20260522022555: Applied drop_deprecated_rpc_prefix_functions
 - 2026-05-22 20260522023331: Applied rehydrate_normalized_rpc_functions
+- 2026-05-24 20260524014310: Applied schema_parity_from_local_source
